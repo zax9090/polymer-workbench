@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/extensions/sources/martinize2",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.723,
+  "executed_at": "2026-10-22T04:26:19.439119+00:00",
+  "source_sha256": "b7ada46fb5e56f70ee8ae6e0e0efc0e6c14a37a7cbf0e6827b824a239787b8a5",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/martinize2.json",
+  "stderr": "evidence/extensions/rea/martinize2.stderr.log"
+}

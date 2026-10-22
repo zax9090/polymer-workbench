@@ -18,6 +18,7 @@ datas = [
     (str(ROOT / "requirements.lock.txt"), "."),
     (str(ROOT / "requirements.desktop.lock.txt"), "."),
     (str(STAGE / "scripts" / "polyply_cli.py"), "scripts"),
+    (str(STAGE / "scripts" / "martinize2_cli.py"), "scripts"),
     (str(STAGE / "licenses"), "licenses"),
     (str(STAGE / "build-manifest.json"), "."),
 ]
@@ -26,6 +27,10 @@ binaries = []
 hiddenimports = [
     "workbench.__main__", "workbench.desktop", "workbench.server",
     "workbench.science", "workbench.external", "workbench.jobs",
+    "workbench.research_api", "workbench.research_store", "workbench.descriptors",
+    "workbench.ingestion", "workbench.learning", "workbench.campaigns",
+    "workbench.bridges", "workbench.diagnostics",
+    "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
     "uvicorn.lifespan.on", "PySide6.QtWebEngineWidgets", "PySide6.QtWebEngineCore",
@@ -37,7 +42,11 @@ def production_module(name):
 
 # Scientific adapters import modules dynamically and generated worker scripts
 # are retained as provenance. Data includes force fields and residue templates.
-for package in ("rdkit", "MDAnalysis", "lammps", "radonpy", "pysimm", "polyply", "vermouth", "pysmiles", "cgsmiles", "packmol", "mdtraj"):
+for package in (
+    "rdkit", "MDAnalysis", "lammps", "radonpy", "pysimm", "polyply", "vermouth",
+    "pysmiles", "cgsmiles", "packmol", "mdtraj", "duckdb", "pymbar", "pypdf",
+    "baybe", "botorch", "gpytorch", "linear_operator", "cattrs",
+):
     spec = importlib.util.find_spec(package)
     if spec is None:
         raise RuntimeError(f"Required build dependency is missing: {package}")
@@ -62,12 +71,18 @@ for distribution in (
     "mpich", "mdtraj", "fastapi", "uvicorn", "pandas", "matplotlib", "pbr",
     "PySide6", "PySide6-Essentials", "PySide6-Addons", "shiboken6",
     "pyside6-webengine", "pyside6-pdf",
+    "duckdb", "scikit-learn", "pymbar", "pypdf", "narwhals", "numexpr",
+    "baybe", "botorch", "gpytorch", "linear_operator", "torch", "attrs", "cattrs",
 ):
     try:
         datas += copy_metadata(distribution)
     except importlib.metadata.PackageNotFoundError:
         if distribution not in {"pyside6-webengine", "pyside6-pdf"}:
             raise
+
+# The maintained torch hook retains source files needed by torch.jit/inspect,
+# collects its native CPU libraries, and suppresses unsafe top-level symlinks.
+# Keep that hook enabled instead of replacing it with a generic data copy.
 
 lammps_root = Path(importlib.util.find_spec("lammps").origin).parent
 packmol_root = Path(importlib.util.find_spec("packmol").origin).parent

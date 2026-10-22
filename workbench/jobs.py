@@ -40,6 +40,7 @@ class JobManager:
         self.stop_events = {}
         self.cancelled = set()
         self.closed = False
+        self.on_finished = None
         for meta in self.root.glob("*/job.json"):
             try:
                 job = json.loads(meta.read_text())
@@ -133,6 +134,14 @@ class JobManager:
                 self.processes.pop(job_id, None)
                 self._update(job_id, status="cancelled" if job_id in self.cancelled else "failed",
                              finished_at=now(), error=str(exc))
+        finally:
+            if self.on_finished is not None:
+                try:
+                    self.on_finished(job_id)
+                except Exception as exc:
+                    # Data indexing must never change a completed simulation.
+                    import logging
+                    logging.getLogger(__name__).exception("Research indexing failed for %s: %s", job_id, exc)
 
     def _manifest(self, directory):
         entries = []
@@ -147,13 +156,13 @@ class JobManager:
 
     def _runtime(self, directory):
         packages = {}
-        for package in ("numpy", "scipy", "rdkit", "MDAnalysis", "lammps", "mpich", "radonpy-pypi", "packmol", "polyply", "pysimm", "hoomd", "colabfold"):
+        for package in ("numpy", "scipy", "rdkit", "MDAnalysis", "lammps", "mpich", "radonpy-pypi", "packmol", "polyply", "pysimm", "hoomd", "colabfold", "vermouth", "duckdb", "scikit-learn", "pymbar", "pypdf", "baybe", "torch"):
             try:
                 packages[package] = version(package)
             except PackageNotFoundError:
                 packages[package] = None
         files = {}
-        for name in ("workbench/science.py", "workbench/external.py", "scripts/engine_worker.py", "requirements.lock.txt"):
+        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
             path = ROOT / name
             if path.is_file():
                 files[name] = hashlib.sha256(path.read_bytes()).hexdigest()

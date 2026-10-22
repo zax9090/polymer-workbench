@@ -1,0 +1,170 @@
+{
+  "validated_at": "2026-10-22T04:55:45.180866+00:00",
+  "release": "/home/kali/Projects/polymer-workbench/build/Polymer Lab 0.3 relocated x1fppvip/portable app with spaces",
+  "data": "/home/kali/Projects/polymer-workbench/build/Polymer Lab 0.3 relocated x1fppvip/research data with spaces",
+  "executable_sha256": "84986949ef0cec06e89fa8b720e8d1c875834ee5752d16d5259b106f3b976416",
+  "version": "0.3.0",
+  "source_sha256_matches": true,
+  "clean_environment": {
+    "PATH": "/usr/bin:/bin",
+    "PYTHONPATH": null,
+    "LD_LIBRARY_PATH": null,
+    "VIRTUAL_ENV": null
+  },
+  "jobs": [
+    {
+      "key": "radonpy",
+      "id": "f0091bfcf2594337a78d25cee00c00bc",
+      "status": "completed",
+      "engine": "RadonPy / LAMMPS",
+      "elapsed_seconds": 12.456
+    },
+    {
+      "key": "pysimm",
+      "id": "e9c52e9983464f41b5242cb728a5081c",
+      "status": "completed",
+      "engine": "pysimm / LAMMPS",
+      "elapsed_seconds": 2.153
+    },
+    {
+      "key": "martini_bridge",
+      "id": "78490eb35ed04bbbabbf9e25c7681072",
+      "status": "prepared",
+      "generated_components": [
+        "protein_cg.pdb",
+        "protein.top",
+        "polymer.itp"
+      ]
+    }
+  ],
+  "passed": true,
+  "health": {
+    "ok": true,
+    "name": "Polymer Lab",
+    "version": "0.3.0",
+    "local_only": true
+  },
+  "version_matches": true,
+  "expected_version": "0.3.0",
+  "unauthenticated_status": 401,
+  "static_assets": {
+    "/": {
+      "bytes": 41651,
+      "sha256": "7653790defaf5b933e00e23e19f9dace0c14c71f1d3c779ec402b7f439735b25"
+    },
+    "/static/app.js": {
+      "bytes": 41736,
+      "sha256": "eee1044dd15bd80f2c3907dc914477ddb707a8d5dae0fe87695c71c9529bbb08"
+    },
+    "/static/style.css": {
+      "bytes": 24887,
+      "sha256": "ea1370bc24e31b90b39695a752e9af724b8e2e47fa2a8030d66a93cc7fe9a0f8"
+    },
+    "/static/vendor/3Dmol-min.js": {
+      "bytes": 545215,
+      "sha256": "4ab374e1830bccec950b280fd285a430e05e91bd13c9ef0097c611c66de6cb36"
+    }
+  },
+  "engines": [
+    {
+      "id": "numpy",
+      "name": "numpy",
+      "available": true,
+      "version": "2.5.4",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "rdkit",
+      "name": "rdkit",
+      "available": true,
+      "version": "2026.9.1",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "MDAnalysis",
+      "name": "MDAnalysis",
+      "available": true,
+      "version": "2.11.0",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "lammps",
+      "name": "lammps",
+      "available": true,
+      "version": "2025.7.22.4.0",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "radonpy",
+      "name": "radonpy",
+      "available": true,
+      "version": "0.2.11",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "pysimm",
+      "name": "pysimm",
+      "available": true,
+      "version": "1.1.0",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "hoomd",
+      "name": "hoomd",
+      "available": false,
+      "version": null,
+      "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+    },
+    {
+      "id": "packmol",
+      "name": "packmol",
+      "available": true,
+      "version": "21.2.3",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "polyply",
+      "name": "polyply",
+      "available": true,
+      "version": "1.8.0",
+      "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+    },
+    {
+      "id": "gmx",
+      "name": "gmx",
+      "available": false,
+      "version": null,
+      "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+    },
+    {
+      "id": "colabfold_batch",
+      "name": "colabfold_batch",
+      "available": false,
+      "version": null,
+      "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+    },
+    {
+      "id": "3dmol",
+      "name": "3Dmol.js",
+      "available": true,
+      "version": "local vendor",
+      "detail": "로컬 분자 시각화 라이브러리"
+    },
+    {
+      "id": "alphafold_db",
+      "name": "AlphaFold DB",
+      "available": true,
+      "version": null,
+      "detail": "공개 예측 구조 조회 · 인터넷 연결 필요"
+    },
+    {
+      "id": "rea",
+      "name": "REA",
+      "available": false,
+      "version": "6.7.0",
+      "detail": "개발 분석 도구 · 데스크톱 배포본에는 분석 기록을 포함하며 REA 재실행 환경은 별도"
+    }
+  ],
+  "server_exit": 0,
+  "graceful_shutdown_logged": true
+}

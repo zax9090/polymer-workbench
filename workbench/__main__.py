@@ -10,6 +10,7 @@ import runpy
 import signal
 import socket
 import sys
+from . import __version__
 
 
 def _run_script(path: Path, arguments: list[str]) -> int:
@@ -89,15 +90,16 @@ def main(arguments=None) -> int:
         if len(args) < 2:
             raise SystemExit("--engine-script requires a Python script path")
         return _run_script(Path(args[1]).resolve(), args[2:])
-    if args and args[0] == "--polyply":
+    if args and args[0] in {"--polyply", "--martinize"}:
         from .paths import resource_root
-        script = resource_root() / "scripts" / "polyply_cli.py"
+        tool = "polyply" if args[0] == "--polyply" else "martinize2"
+        script = resource_root() / "scripts" / (tool + "_cli.py")
         if not script.is_file():
-            script = resource_root() / ".venv" / "bin" / "polyply"
+            script = resource_root() / ".venv" / "bin" / tool
         return _run_script(script, args[1:])
     parser = argparse.ArgumentParser(prog="PolymerLab", description="Polymer Lab 고분자·단백질 연구 데스크톱 프로그램")
     parser.add_argument("--data-dir", type=Path, help="별도의 연구 작업 폴더를 사용합니다")
-    parser.add_argument("--version", action="version", version="Polymer Lab 0.2.0")
+    parser.add_argument("--version", action="version", version="Polymer Lab " + __version__)
     options = parser.parse_args(args)
     from .desktop import run_desktop
     return run_desktop(options.data_dir)

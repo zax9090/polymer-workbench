@@ -7,7 +7,7 @@ Polymer Lab은 고분자·단백질 연구 워크플로를 한 창에서 실행�
 Linux 배포 압축 파일 `PolymerLab-<버전>-linux-x86_64.tar.gz`를 풀고 `PolymerLab/launch.sh` 또는 `PolymerLab/PolymerLab`를 실행합니다. Python, 가상 환경이나 개발용 서버를 따로 설치할 필요가 없습니다. `_internal` 폴더도 함께 보관해야 합니다.
 
 ```bash
-tar -xzf PolymerLab-0.2.0-linux-x86_64.tar.gz
+tar -xzf PolymerLab-0.3.0-linux-x86_64.tar.gz
 cd PolymerLab
 ./launch.sh
 ```
@@ -28,12 +28,17 @@ cd PolymerLab
 |---|---|
 | 데스크톱 창 | PySide6/Qt WebEngine, 앱 아이콘, 다운로드·폴더 열기 기능 |
 | 고분자 계산 | NumPy, RDKit, LAMMPS, RadonPy, pysimm, MDAnalysis |
-| 모델 준비 | PACKMOL, polyply, 관련 힘장 및 템플릿 데이터 |
+| 모델 준비 | PACKMOL, polyply, martinize2, 관련 힘장 및 템플릿 데이터 |
+| 연구 데이터 | DuckDB 색인, Parquet 스냅샷, CSV 측정값·기기 곡선 검토, PDF 페이지 텍스트 추출 |
+| 분석과 예측 | MDAnalysis 피처, pymbar 평형 후보 구간, scikit-learn 회귀·재료 그룹 교차검증 |
+| 실험계획 | 유한 후보·예산을 사용하는 캠페인, scikit-learn 및 BayBE/BoTorch CPU 백엔드 |
 | 시각화 | 로컬 3Dmol.js, 구조·궤적 화면 |
 | AlphaFold | 기존 AlphaFold DB 예측 가져오기, 구조·신뢰도 분석, 추론용 입력 생성 |
 | REA | 저장소 등록·해시·분석 근거 자료 |
 
-AlphaFold/ColabFold 신규 추론 환경과 모델 가중치, GROMACS, HOOMD-blue, Psi4는 포함하지 않습니다. 기존 앱과 동일하게 외부 환경을 연결하는 경로를 제공합니다. 고분자·단백질 혼합 구조를 PACKMOL로 배치한 다음의 공통 힘장·토폴로지 자동화도 별도 연구·구현 단계입니다.
+AlphaFold/ColabFold 신규 추론 환경과 모델 가중치, GROMACS, HOOMD-blue, Psi4, AmberTools, OpenFF는 포함하지 않습니다. 기존 앱과 동일하게 외부 환경을 연결하는 경로를 제공합니다. Martini 경로에서는 명시한 이차구조를 사용한 단백질 조대화와 지원되는 polyply 고분자 구성요소 준비를 실행합니다. 힘장·용매·이온을 검증한 전체 혼합계 MD가 실행되었다는 뜻은 아닙니다. Amber/OpenFF 경로는 필요한 입력과 도구를 확인하고 준비 계획을 생성합니다.
+
+합성 고분자 물성과 단백질–고분자 지표를 함께 저장할 수 있습니다. 물성 예측에는 검토된 실험·문헌 학습 데이터가 필요하며, 제공되는 앱에 학습 완료 물성 모델이 들어 있지는 않습니다. 짧은 MD 피처나 통계적 평형 후보 구간만으로 실제 벌크 물성의 정확도와 물리적 평형을 보장하지 않습니다. BayBE는 CPU 전용 PyTorch를 사용하며 CUDA 라이브러리나 GPU는 필요하지 않습니다.
 
 외부 `RADONPY_PYTHON` 또는 `PYSIMM_PYTHON` 환경을 연결할 때는 그 환경에 맞는 `LAMMPS_EXEC`도 함께 지정해야 합니다. 외부 Python과 번들의 LAMMPS/MPI 라이브러리를 섞으면 로더 충돌이 생길 수 있습니다. 기본 번들 경로는 추가 설정 없이 사용할 수 있습니다.
 
@@ -44,6 +49,8 @@ REA의 `node_modules` 개발 환경은 포함하지 않습니다. 배포 앱은 
 앱 창이 필요한 로컬 서버를 직접 시작하고 종료합니다. 통신은 이 컴퓨터의 루프백 주소에서만 이루어집니다. 계산은 별도 작업 프로세스로 실행하며, 프로세스는 배포 파일에 포함된 Python 런타임을 사용합니다.
 
 연구 데이터의 기본 위치는 `~/.local/share/polymer-lab/jobs/`입니다. `XDG_DATA_HOME`, `POLYMER_APP_DATA_DIR` 또는 작업 폴더를 직접 지정하는 `POLYMER_DATA_DIR` 환경 변수로 변경할 수 있습니다. 소스 체크아웃에서 설치 스크립트를 실행하면 기존 `data/jobs/`의 완료된 작업을 처음 한 번 복사하며 원본은 보존합니다. 배포 폴더만 있는 경우 기존 작업 위치를 자동 검색하지 않습니다. 필요한 경우 최초 실행 전에 `POLYMER_LEGACY_DATA_DIR`로 기존 작업 폴더를 지정합니다. 정확한 현재 저장 위치는 앱의 데이터 폴더 메뉴에서 열 수 있습니다.
+
+연구 색인, 확인한 측정값, 학습 모델 및 캠페인은 작업 폴더 옆의 `research/`에 저장합니다. 앱 업데이트는 이 데이터를 삭제하지 않습니다. 스냅샷 내보내기는 일관된 Parquet 파일과 해시를 생성합니다. 이미 연결한 Google Drive/rclone 동기화 폴더를 백업 경로로 설정하면 완성된 스냅샷을 복사하며, 실행 중인 DuckDB 파일은 동기화하지 않습니다. 앱 자체가 Google 계정에 로그인하거나 Drive를 연결하지는 않습니다.
 
 Qt WebEngine의 샌드박스를 기본 설정 그대로 사용합니다. 배포 실행기는 샌드박스 해제 플래그를 추가하지 않습니다. 데스크톱 로그인 세션과 운영체제의 Qt 실행 의존 라이브러리가 필요합니다.
 
@@ -57,7 +64,7 @@ Qt WebEngine의 샌드박스를 기본 설정 그대로 사용합니다. 배포 
 
 ## 소스에서 실행·다시 빌드
 
-개발 환경에는 과학 패키지 외에 `PySide6`, `PySide6-WebEngine`, `PyInstaller`가 필요합니다. 버전에 따라 WebEngine이 별도 휠로 배포됩니다.
+개발 환경에는 과학 패키지 외에 `PySide6`, `PySide6-WebEngine`, `PyInstaller`가 필요합니다. 버전에 따라 WebEngine이 별도 휠로 배포됩니다. `requirements.lock.txt`는 기본 연구 기능을 고정하며, `requirements.desktop.lock.txt`가 BayBE와 CPU 전용 `torch==2.14.1+cpu` 및 데스크톱 빌드 도구를 추가합니다. CPU 휠은 PyTorch 공식 인덱스에서 가져오도록 설정되어 있습니다. 빌드 스크립트는 CUDA 빌드를 발견하면 중단합니다.
 
 ```bash
 .venv/bin/python -m pip install -r requirements.desktop.lock.txt

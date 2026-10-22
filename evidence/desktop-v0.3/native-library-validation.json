@@ -1,0 +1,94 @@
+{
+  "validated_at": "2026-10-22T04:54:37.920466+00:00",
+  "executable_sha256": "84986949ef0cec06e89fa8b720e8d1c875834ee5752d16d5259b106f3b976416",
+  "platform_scope": "Current Linux x86_64 host; not a compatibility guarantee for older distributions.",
+  "loader_path": "bundle _internal only; build-machine .venv excluded",
+  "checks": [
+    {
+      "path": "PolymerLab",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/libexec/QtWebEngineProcess",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/plugins/platforms/libqxcb.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/lib/libQt6WebEngineCore.so.6",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/lammps/lmp",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/lammps/liblammps.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/packmol/binaries/packmol",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/rdkit/Chem/rdchem.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/MDAnalysis/lib/c_distances_openmp.cpython-313-x86_64-linux-gnu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/MDAnalysis/lib/c_distances.cpython-313-x86_64-linux-gnu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/_duckdb.abi3.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/torch/lib/libtorch_cpu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/torch/lib/libtorch_python.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/torch/_C.cpython-313-x86_64-linux-gnu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    }
+  ],
+  "cuda_libraries_bundled": [],
+  "passed": true
+}

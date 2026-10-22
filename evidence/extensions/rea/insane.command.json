@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/extensions/sources/insane",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.12,
+  "executed_at": "2026-10-22T04:26:18.891433+00:00",
+  "source_sha256": "e032a69fb40a1af08a79a303ba716daf2a64f6f5419c4ddca6a1e3f43b80e999",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/insane.json",
+  "stderr": "evidence/extensions/rea/insane.stderr.log"
+}

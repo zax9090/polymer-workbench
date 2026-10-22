@@ -95,7 +95,7 @@ def runtime_environment() -> dict[str, str]:
         release = Path(sys.executable).resolve().parent
         env["PATH"] = os.pathsep.join([str(release / "bin"), str(release), env.get("PATH", "")])
         env["LD_LIBRARY_PATH"] = str(root) + os.pathsep + env.get("LD_LIBRARY_PATH", "")
-        natives = {"LAMMPS_EXEC": root / "lammps/lmp", "PACKMOL_EXEC": root / "packmol/binaries/packmol", "POLYPLY_EXEC": release / "bin/polyply"}
+        natives = {"LAMMPS_EXEC": root / "lammps/lmp", "PACKMOL_EXEC": root / "packmol/binaries/packmol", "POLYPLY_EXEC": release / "bin/polyply", "MARTINIZE_EXEC": release / "bin/martinize2"}
         for key, path in natives.items():
             if path.is_file():
                 env.setdefault(key, str(path))

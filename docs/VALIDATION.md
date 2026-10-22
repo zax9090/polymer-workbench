@@ -1,5 +1,42 @@
 # 실행 검증 기록
 
+## 0.3 연구 기능 검증
+
+2026-10-22, Linux x86_64 / Python 3.13.12. 최종 소스 자동 테스트 **59개 통과**, 실패·건너뜀 없음(39.24초). `evidence/source-tests-v0.3.xml`에 결과를 보관했습니다. 설치된 네이티브 LAMMPS 라이브러리를 직접 사용하는 테스트에도 `.venv/lib` 로더 경로를 명시했습니다.
+
+```sh
+env LD_LIBRARY_PATH="$PWD/.venv/lib" .venv/bin/python -m pytest -q --junitxml=evidence/source-tests-v0.3.xml
+```
+
+기존 계산 경로에 더해 DuckDB 원자적 저장/백업, 재료 참조, 단위 변환, CSV 검토, DSC/인장 초안, PDF, 토폴로지별 피처, 정의되지 않은 이면각, 실제 MD 여부, 학습 그룹 누출 방지, 단백질 문맥, BayBE 초기/관측 후 추천(이미 측정한 후보를 다시 추천하지 않음), 유한 자동 큐와 재시작, 실제 martinize2/polyply 구성요소 생성을 검증했습니다. 테스트 자료는 별도 임시 폴더의 합성 자료이며 실제 예측 정확도의 근거가 아닙니다. upstream API 폐기 예정 및 초기 FPS가 목적값을 사용하지 않는다는 경고는 실패와 구분합니다.
+
+QtWebEngine/Xvfb의 실제 화면에서 **14개 UI 검사 통과**, JavaScript console 오류 0개입니다. 1360px/760px 화면과 검증 범위를 `evidence/ui-v0.3/report.json` 및 같은 폴더의 PNG 6개에 기록했습니다. 이는 격리된 소스 앱 화면 검증입니다.
+
+REA 확장 감사는 **8개 저장소·26개 고정 원본 파일**에서 정상 실행되었고, 원본 해시가 유지되었습니다. `evidence/extensions/audit.json`에 API/CLI 위치·커밋·명령·종료 코드를 보관합니다. REA의 source inventory는 전체 코드의 역컴파일 또는 과학적 정확성 검증을 뜻하지 않습니다.
+
+## 데스크톱 배포본 0.3.0
+
+배포 실행 파일 SHA-256 `84986949ef0cec06…`(전체 값은 각 근거 파일)에 대해 개발용 가상환경·PYTHONPATH·외부 엔진 환경 변수를 제외하고 `PATH=/usr/bin:/bin`과 임시 연구 데이터 폴더에서 검증했습니다. 근거는 `evidence/desktop-v0.3/`에 있으며 배포본의 `_internal/evidence/desktop-v0.3/`에도 같은 파일이 들어 있습니다.
+
+```sh
+python3 scripts/verify_desktop.py --bundle dist/PolymerLab \
+  --with-alphafold-db --report evidence/desktop-v0.3/runtime-validation.json
+python3 scripts/verify_research_desktop.py --bundle dist/PolymerLab \
+  --report evidence/desktop-v0.3/research-validation.json
+```
+
+- **기존 계산 경로 10개 통과:** NumPy, LAMMPS, RDKit, RadonPy MD, RDKit→PACKMOL, polyply ITP, pysimm, AF3 입력 내보내기, AlphaFold DB P69905, AlphaFold 구조→PACKMOL. 결과 ZIP CRC·SHA-256, 토큰 없는 요청 거부, 버전 0.3.0, 재시작 후 작업 10개 보존을 확인했습니다.
+- **연구 기능 8개 통과:** 번들 BayBE의 유한 자동 캠페인(예산 6, 초기 FPS → 관측 5개 이후 BoTorch 추천), 작업 6개의 자동 피처·단위·PyMBAR 평형 후보 구간, 재료 10종 GP 학습·예측(미보정 불확실성, 정확도 미검증 표시), 인장 곡선 초안(2000 MPa, 검토 필요), PDF 텍스트, 실제 martinize2/polyply 구성요소(MD 미실행 표시), Parquet 스냅샷 해시, 재시작 후 측정값·모델·캠페인 보존. 측정값은 모두 소프트웨어 검증용 인공 자료입니다.
+- **경로 이동:** 공백이 있는 폴더로 앱과 데이터를 옮긴 뒤 RadonPy·pysimm 계산과 martinize2/polyply 브릿지가 완료되었고 정상 종료를 기록했습니다(`relocation-validation.json`).
+- **네이티브 라이브러리:** Qt WebEngine·LAMMPS·PACKMOL·RDKit·MDAnalysis·DuckDB·PyTorch CPU 등 14개 파일을 번들 경로만으로 `ldd` 확인, 누락 0개, CUDA 라이브러리 미포함(`native-library-validation.json`).
+- **배포 파일:** `PolymerLab-0.3.0-linux-x86_64.tar.gz`와 `polymer-lab_0.3.0_amd64.deb`의 필수 파일 45개, 소스·정적 파일·실행기·근거 파일 35개 해시와 `SHA256SUMS`가 일치했습니다. 각각 약 759 MiB, 풀었을 때 약 2.3 GB입니다.
+
+이 검증 중 0.3 소스의 결함 하나를 발견해 수정했습니다. BayBE `Campaign`은 기본적으로 이미 측정한 후보도 다시 추천할 수 있어서, 관측값 5개 이후 BoTorch 단계에서 실행할 수 없는 후보를 돌려주고 캠페인이 일시 정지했습니다. 측정한 후보를 추천 대상에서 제외하도록 고쳤고 같은 상황을 회귀 테스트로 추가했습니다.
+
+Qt 창의 실제 화면 상호작용, 새 AlphaFold/ColabFold 추론, GROMACS·HOOMD-blue 실행, 용매화 혼합계 MD, 클라우드 업로드, 실제 실험 자료에 대한 예측 정확도는 이 배포 검증에 포함되지 않습니다. 화면 검증은 위의 소스 앱 QtWebEngine 기록을 참고하세요.
+
+## 0.2 기존 기반 검증 기록
+
 2026-10-22, Linux x86_64 / Python 3.13.12에서 검증했습니다. 모든 계산은 이번 프로젝트의 전용 환경에서 실행했습니다.
 
 ## 자동 테스트

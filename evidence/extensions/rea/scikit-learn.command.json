@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/extensions/sources/scikit-learn",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.07,
+  "executed_at": "2026-10-22T04:26:14.795354+00:00",
+  "source_sha256": "59fadcb42ec234f55b897687b68017828dde3d5fe2e2f9eb3356c6b474f3e762",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/scikit-learn.json",
+  "stderr": "evidence/extensions/rea/scikit-learn.stderr.log"
+}

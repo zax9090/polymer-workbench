@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from . import __version__
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
@@ -168,7 +169,7 @@ def run_desktop(data_dir=None) -> int:
     app = QApplication([sys.argv[0]])
     app.setApplicationName(APP_NAME)
     app.setOrganizationName("PolymerLab")
-    app.setApplicationVersion("0.2.0")
+    app.setApplicationVersion(__version__)
     app.setDesktopFileName("polymer-lab")
     icon_path = resource_root() / "assets" / "polymer-lab.png"
     if not icon_path.exists():
@@ -296,7 +297,7 @@ def run_desktop(data_dir=None) -> int:
             file_menu.addSeparator()
             self._action(file_menu, "종료", self.close, QKeySequence.StandardKey.Quit)
             views = self.menuBar().addMenu("보기")
-            for label, view in (("워크플로우", "workflow"), ("실험 기록", "history"), ("REA 분석 근거", "evidence"), ("계산 엔진", "engines")):
+            for label, view in (("워크플로우", "workflow"), ("연구 데이터", "research"), ("실험·문헌 입력", "measurements"), ("물성 모델", "models"), ("탐색 캠페인", "campaigns"), ("혼합계 브릿지", "bridges"), ("실험 기록", "history"), ("REA 분석 근거", "evidence"), ("계산 엔진", "engines")):
                 self._action(views, label, lambda checked=False, value=view: self._navigate(value))
             views.addSeparator()
             self._action(views, "새로고침", lambda: self.web and self.web.reload(), QKeySequence.StandardKey.Refresh)
@@ -306,7 +307,7 @@ def run_desktop(data_dir=None) -> int:
             help_menu = self.menuBar().addMenu("도움말")
             self._action(help_menu, "실행 로그 폴더 열기", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(state_dir / "logs"))))
             self._action(help_menu, "Polymer Lab 정보", lambda: QMessageBox.about(self, APP_NAME,
-                "<h3>Polymer Lab 0.2</h3><p>고분자·단백질 연구를 위한 로컬 데스크톱 프로그램</p>"
+                "<h3>Polymer Lab " + __version__ + "</h3><p>고분자·단백질 연구를 위한 로컬 데스크톱 프로그램</p>"
                 "<p>구조 생성 → 계산 → 분석 → 연구 기록</p><p>AlphaFold DB 조회 및 ColabFold 연결 지원</p>"
                 "<p>연구 데이터는 이 컴퓨터의 연구 결과 폴더에 저장됩니다.</p>"))
 

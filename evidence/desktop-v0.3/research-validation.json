@@ -1,0 +1,389 @@
+{
+  "status": "passed",
+  "started_at": "2026-10-22T04:56:24.804854+00:00",
+  "checks": {
+    "baybe_automatic_campaign": {
+      "attempted": 6,
+      "iterations": [
+        {
+          "number": 1,
+          "created_at": "2026-10-22T04:56:30.506282+00:00",
+          "recommendation": {
+            "backend": "baybe",
+            "version": "0.15.0",
+            "strategy": "BayBE farthest point sampling",
+            "comparable_outcomes": 0,
+            "descriptor_columns": [
+              "descriptor_0"
+            ]
+          },
+          "candidate_ids": [
+            "826463f57cdc8b2dca0af0a6aed7094268c0c2951a494883a3a09c25bfe08e29",
+            "3600aac90508c76320d1f21f3d0221eddaa501e7894843ec04e2709bbc215e2d",
+            "5d09bf5cd71c9247c239aa5e12db8178cb12c99ac87187e8b0c6673cee8e4f79",
+            "cd2b20ac823f9fc2b5046c9ce58bfcbcb256b3c2affbb536c0ef036ff94ba867",
+            "302715a2a7ebe5e4b5ab248cd1926f4b8ed954cd4985fab4eddf59ec2cb40c4c"
+          ],
+          "job_ids": [
+            "c3fcff0355c84ea38b2ae119b10e5d59",
+            "b2f0b72ffd4c4281b41c9935b3015951",
+            "ab938dae9eb64e57a0edc85a05dfa3c5",
+            "ab0782ede62a4537b971e1b86e9d1f7f",
+            "eef06aabdd1f4707897dcbef15df75ac"
+          ]
+        },
+        {
+          "number": 2,
+          "created_at": "2026-10-22T04:56:36.470387+00:00",
+          "recommendation": {
+            "backend": "baybe",
+            "version": "0.15.0",
+            "strategy": "BoTorch acquisition",
+            "comparable_outcomes": 5,
+            "descriptor_columns": [
+              "descriptor_0"
+            ]
+          },
+          "candidate_ids": [
+            "b58c19fb0d99ce2943297ea5c509b3834d368b39e26838e29ba395321033cbf2"
+          ],
+          "job_ids": [
+            "1aa1681d14ea4a9db6e4f403bb93dfad"
+          ]
+        }
+      ],
+      "status": "completed"
+    },
+    "automatic_features": {
+      "experiments": 6,
+      "sample": {
+        "actual_dynamics": true,
+        "chain_count": 1,
+        "compatibility": {
+          "ensemble": null,
+          "force_field": null,
+          "method_version": "polymer-lab-descriptors/1",
+          "reduced_temperature": 1.0,
+          "route": "polymer_cg",
+          "temperature_kelvin": 300
+        },
+        "compatibility_key": "3baf6c7bc0cf499286b646c7e1ebc258b519624adb3829f07193ab95501b715f",
+        "equilibrated": false,
+        "equilibration": {
+          "potential_energy": {
+            "available": true,
+            "candidate_start_index": 48,
+            "effective_samples": 10.253336906433105,
+            "equilibrated": false,
+            "method": "pymbar.timeseries.detect_equilibration",
+            "note": "Statistical stationarity candidate for this observable only; not physical equilibration",
+            "post_candidate_mean": 2.0450803001677693,
+            "statistical_inefficiency": 5.266578197479248,
+            "unit": "epsilon (total system)"
+          },
+          "rg": {
+            "available": true,
+            "candidate_start_index": 85,
+            "effective_samples": 15.796479225158691,
+            "equilibrated": false,
+            "method": "pymbar.timeseries.detect_equilibration",
+            "note": "Statistical stationarity candidate for this observable only; not physical equilibration",
+            "post_candidate_mean": 1.304337699872307,
+            "statistical_inefficiency": 1.0761891603469849,
+            "unit": "sigma"
+          }
+        },
+        "frame_count": 101,
+        "length_unit": "sigma",
+        "method_version": "polymer-lab-descriptors/1",
+        "schema_version": 1,
+        "series": {
+          "rg_mean_per_frame": [
+            1.4066656153474428,
+            1.4143610679434018,
+            1.4039518038072674,
+            1.3989924971865717,
+            1.3437565895753592,
+            1.3524688618086556,
+            1.3697738039933163,
+            1.381265500978838,
+            1.3767353066345616,
+            1.3840455222690617,
+            1.4069172751777554,
+            1.425177307377661,
+            1.4400051497859583,
+            1.4386542473707018,
+            1.4385087830318453,
+            1.396335646030538,
+            1.397672842070275,
+            1.4421035388096375,
+            1.4013495296395686,
+            1.4071378801238206,
+            1.3870014906509944,
+            1.3873136952821594,
+            1.383519940877066,
+            1.3480095178042921,
+            1.3556419394608297,
+            1.3747826297787442,
+            1.3873304892237321,
+            1.373688333609076,
+            1.3422636677567936,
+            1.3399735442826026,
+            1.293955231527057,
+            1.3719972706828538,
+            1.3601003734869275,
+            1.362906907910324,
+            1.3398597174402103,
+            1.3453266047002266,
+            1.3683576599632714,
+            1.370574845875029,
+            1.3390142111075596,
+            1.3475929925844228,
+            1.3325563906638698,
+            1.3688853499109996,
+            1.34459014002043,
+            1.4023881176726505,
+            1.4579543662983419,
+            1.431584845203022,
+            1.3988213027675838,
+            1.3480423923557006,
+            1.3560362929838714,
+            1.3453669581883747,
+            1.3584663189756896,
+            1.3464285024929026,
+            1.3623034401881837,
+            1.3232437126733987,
+            1.2924639750845515,
+            1.311947570027827,
+            1.3017079035005357,
+            1.2593873925247943,
+            1.2441428121214382,
+            1.2261395984487249,
+            1.23430092831105,
+            1.2440280702099933,
+            1.3173155661461227,
+            1.3239897239800313,
+            1.3207325086630373,
+            1.2541508664735037,
+            1.244515133177319,
+            1.2398813441615129,
+            1.2503907759098993,
+            1.267422708007364,
+            1.2783675693599865,
+            1.3115239826411715,
+            1.3031152171956248,
+            1.272828193818223,
+            1.2813260452544308,
+            1.268447168904342,
+            1.3123874927029135,
+            1.2890835503011897,
+            1.3106649898349159,
+            1.292082475417386,
+            1.3155096596752454,
+            1.3305641490761129,
+            1.3338549608558496,
+            1.3673043851928801,
+            1.3862836021425053,
+            1.358679081842037,
+            1.3348187080449838,
+            1.2712478280303334,
+            1.2676509090029795,
+            1.2967964479070107,
+            1.2991770745659885,
+            1.3267280446808078,
+            1.2998062211955441,
+            1.2588397353257006,
+            1.2995348436704572,
+            1.2622574183349131,
+            1.2619555475597068,
+            1.3263866886930071,
+            1.3473152527903483,
+            1.3172287197669506,
+            1.340980676546146
+          ]
+        },
+        "source_files": [
+          "trajectory.json",
+          "metrics.json"
+        ],
+        "source_sha256": {
+          "metrics.json": "bc71a327c933c5bc288e902c462af91f51964de1a8cbf30059e8fe798c0dae47",
+          "trajectory.json": "3ed3f81c4a023e712c35643ed77767830aac6560ece7bc7adf4ab8c8368c9ae9"
+        },
+        "trajectory_source": "trajectory.json (explicit bonds and chain/element mapping)",
+        "unavailable": {
+          "contact_count": "Explicit protein/polymer selections and a stated distance cutoff are required",
+          "density": "No validated periodic bulk-cell mass/volume mapping; isolated chains and reduced units do not define material density",
+          "dipole_fluctuation": "Explicit per-atom charges and at least two actual MD frames are required",
+          "hbond_count": "Donor/acceptor chemistry, hydrogens, distance and angle criteria are required",
+          "persistence_length": "Adjacent tangent correlation is only a local stiffness proxy; no persistence length fit is performed",
+          "protein_rmsd": "Protein selection, aligned reference and a sampled protein trajectory are required",
+          "rdf_first_peak": "Periodic bulk coordinates, species selections, normalization and bin choices are required",
+          "sasa": "Atomic radii, component selections and a validated SASA calculation are required"
+        },
+        "values": {
+          "adjacent_tangent_correlation": {
+            "method": "mean cos(angle) between adjacent topology-verified backbone bond vectors; not persistence length",
+            "unit": "dimensionless",
+            "value": 0.4323053621537608
+          },
+          "backbone_dihedral_entropy": {
+            "defined_torsions": 2,
+            "method": "mean per-defined-torsion discrete entropy with 18 fixed [-pi,pi] bins; finite-sampling biased, not thermodynamic entropy",
+            "unit": "nats",
+            "value": 1.7509942766302131
+          },
+          "end_to_end_mean": {
+            "method": "distance between topology-verified linear backbone endpoints",
+            "unit": "sigma",
+            "value": 3.54670914308311
+          },
+          "end_to_end_std": {
+            "method": "mean of within-chain endpoint-distance sample standard deviations",
+            "unit": "sigma",
+            "value": 0.16114809509688005
+          },
+          "potential_energy_mean": {
+            "method": "mean over saved samples; not equilibrium free energy",
+            "unit": "epsilon (total system)",
+            "value": 2.6375002271854795
+          },
+          "rg_final": {
+            "method": "mass-weighted per-chain radius of gyration in final stored frame",
+            "unit": "sigma",
+            "value": 1.340980676546146
+          },
+          "rg_mean": {
+            "method": "mass-weighted radius of gyration; mean across validated chains and stored frames",
+            "unit": "sigma",
+            "value": 1.3389804106974137
+          },
+          "rg_std": {
+            "method": "mean of within-chain sample standard deviations",
+            "unit": "sigma",
+            "value": 0.054728052125794534
+          }
+        },
+        "warnings": [
+          "Short and correlated trajectories do not establish convergence or validate Tg, modulus, or binding affinity predictions."
+        ]
+      }
+    },
+    "model_fit_predict": {
+      "algorithm": "scikit-learn fixed-kernel GaussianProcessRegressor",
+      "groups": 10,
+      "uncertainty_kind": "uncalibrated_gp_posterior_std",
+      "scientific_accuracy_validated": false
+    },
+    "tensile_curve": {
+      "kind": "tensile",
+      "review_required": true,
+      "verified": false,
+      "origin": "experimental",
+      "source_sha256": "925641cc4dfbdad273b5c974fd40cb7fd62adeb8fd810d5060d46c113853b260",
+      "options": {
+        "strain_unit": "%",
+        "stress_unit": "MPa",
+        "linear_region": [
+          0,
+          0.3
+        ]
+      },
+      "points": 4,
+      "measurement_draft": {
+        "property": "young_modulus",
+        "value": 2000.0,
+        "unit": "MPa",
+        "method": "OLS engineering stress versus strain in manually selected linear region",
+        "conditions": {
+          "linear_region_input": [
+            0.0,
+            0.3
+          ],
+          "strain_unit_input": "%",
+          "stress_unit_input": "MPa"
+        }
+      },
+      "preview": {
+        "x": [
+          0.0,
+          0.1,
+          0.2,
+          0.3
+        ],
+        "y": [
+          0.0,
+          2.0,
+          4.0,
+          6.0
+        ],
+        "x_column": "strain",
+        "y_column": "stress"
+      },
+      "warnings": [
+        "Check extensometer calibration, specimen geometry, compliance/toe correction, strain rate and linear-region choice before saving."
+      ],
+      "fit": {
+        "window": [
+          0.0,
+          0.003
+        ],
+        "points": 4,
+        "slope": 2000.0,
+        "intercept": 2.2451171471311077e-16,
+        "r_squared": 1.0
+      }
+    },
+    "pdf_text": {
+      "pages": 1,
+      "review_required": true,
+      "source_sha256": "06b302fa7ac16312da618fe999fb6ad0936d38b9dbc9a1821650bd366978918b"
+    },
+    "actual_martini_components": {
+      "status": "prepared",
+      "generated_components": [
+        "protein_cg.pdb",
+        "protein.top",
+        "polymer.itp"
+      ],
+      "simulation_executed": false
+    },
+    "parquet_snapshot": {
+      "counts": {
+        "experiments": 7,
+        "measurements": 10
+      },
+      "files": [
+        {
+          "name": "experiments_master.parquet",
+          "bytes": 53144,
+          "sha256": "087874390e01d9e4ba8a3741b930fdf5844251b39c5d620fc999a1bef4b670f6"
+        },
+        {
+          "name": "measurements.parquet",
+          "bytes": 4829,
+          "sha256": "8ea15d806ad0f0c1dbec1c1f015201a87ce416789fe5081371e85593340fc257"
+        }
+      ],
+      "backup": {
+        "configured": false,
+        "copied": false,
+        "cloud_upload_verified": false
+      }
+    },
+    "restart_persistence": "passed"
+  },
+  "bundle_executable": "/home/kali/Projects/polymer-workbench/dist/PolymerLab/PolymerLab",
+  "executable_sha256": "84986949ef0cec06e89fa8b720e8d1c875834ee5752d16d5259b106f3b976416",
+  "fixture_notice": "Artificial software-test measurements only; not a scientific model validation.",
+  "not_tested": [
+    "cloud upload/account authorization",
+    "LLM/OCR extraction",
+    "new AlphaFold inference",
+    "solvated mixed-system MD",
+    "prediction accuracy on real experimental data",
+    "native window visual interaction"
+  ],
+  "server_log_tail": "INFO:     Started server process [410116]\nINFO:     Waiting for application startup.\nWarning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.\n\n********* JAX NOT FOUND *********\n PyMBAR can run faster with JAX  \n But will work fine without it   \nEither install with pip or conda:\n      pip install pybar[jax]     \n               OR                \n      conda install pymbar       \n*********************************\nINFO:     Application startup complete.\nINFO:     Shutting down\nINFO:     Waiting for application shutdown.\nINFO:     Application shutdown complete.\nINFO:     Finished server process [410116]\n",
+  "finished_at": "2026-10-22T04:56:45.351575+00:00"
+}

@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/extensions/sources/duckdb",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.17,
+  "executed_at": "2026-10-22T04:26:14.895553+00:00",
+  "source_sha256": "6cac1bded5cd91f4d16a0764e6d357333c59227615e4ebc37ded97b19846ddd9",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/duckdb.json",
+  "stderr": "evidence/extensions/rea/duckdb.stderr.log"
+}

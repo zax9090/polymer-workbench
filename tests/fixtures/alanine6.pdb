@@ -1,0 +1,50 @@
+ATOM      1  N   ALA A   1      -9.746  -0.645  -2.382  1.00  0.00           N  
+ATOM      2  CA  ALA A   1      -8.568   0.078  -1.861  1.00  0.00           C  
+ATOM      3  C   ALA A   1      -7.444  -0.925  -1.519  1.00  0.00           C  
+ATOM      4  O   ALA A   1      -7.614  -2.144  -1.530  1.00  0.00           O  
+ATOM      5  CB  ALA A   1      -8.970   0.886  -0.634  1.00  0.00           C  
+ATOM      6  N   ALA A   2      -6.236  -0.347  -1.220  1.00  0.00           N  
+ATOM      7  CA  ALA A   2      -5.066  -1.125  -0.832  1.00  0.00           C  
+ATOM      8  C   ALA A   2      -4.129  -0.192  -0.040  1.00  0.00           C  
+ATOM      9  O   ALA A   2      -4.296   1.028  -0.012  1.00  0.00           O  
+ATOM     10  CB  ALA A   2      -4.356  -1.692  -2.056  1.00  0.00           C  
+ATOM     11  N   ALA A   3      -3.106  -0.829   0.632  1.00  0.00           N  
+ATOM     12  CA  ALA A   3      -1.997  -0.057   1.184  1.00  0.00           C  
+ATOM     13  C   ALA A   3      -0.877  -0.011   0.125  1.00  0.00           C  
+ATOM     14  O   ALA A   3      -0.823  -0.813  -0.808  1.00  0.00           O  
+ATOM     15  CB  ALA A   3      -1.482  -0.709   2.460  1.00  0.00           C  
+ATOM     16  N   ALA A   4       0.070   0.971   0.332  1.00  0.00           N  
+ATOM     17  CA  ALA A   4       1.329   0.943  -0.406  1.00  0.00           C  
+ATOM     18  C   ALA A   4       2.352   0.146   0.429  1.00  0.00           C  
+ATOM     19  O   ALA A   4       2.201  -0.058   1.634  1.00  0.00           O  
+ATOM     20  CB  ALA A   4       1.837   2.360  -0.640  1.00  0.00           C  
+ATOM     21  N   ALA A   5       3.459  -0.284  -0.274  1.00  0.00           N  
+ATOM     22  CA  ALA A   5       4.630  -0.786   0.436  1.00  0.00           C  
+ATOM     23  C   ALA A   5       5.579   0.402   0.690  1.00  0.00           C  
+ATOM     24  O   ALA A   5       5.516   1.446   0.040  1.00  0.00           O  
+ATOM     25  CB  ALA A   5       5.338  -1.850  -0.392  1.00  0.00           C  
+ATOM     26  N   ALA A   6       6.529   0.183   1.667  1.00  0.00           N  
+ATOM     27  CA  ALA A   6       7.638   1.121   1.843  1.00  0.00           C  
+ATOM     28  C   ALA A   6       8.768   0.717   0.896  1.00  0.00           C  
+ATOM     29  O   ALA A   6       8.919  -0.380   0.378  1.00  0.00           O  
+ATOM     30  CB  ALA A   6       8.134   1.092   3.280  1.00  0.00           C  
+ATOM     31  OXT ALA A   6       9.663   1.703   0.688  1.00  0.00           O  
+CONECT    1    2
+CONECT    2    3    5
+CONECT    3    4    4    6
+CONECT    6    7
+CONECT    7    8   10
+CONECT    8    9    9   11
+CONECT   11   12
+CONECT   12   13   15
+CONECT   13   14   14   16
+CONECT   16   17
+CONECT   17   18   20
+CONECT   18   19   19   21
+CONECT   21   22
+CONECT   22   23   25
+CONECT   23   24   24   26
+CONECT   26   27
+CONECT   27   28   30
+CONECT   28   29   29   31
+END

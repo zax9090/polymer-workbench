@@ -31,6 +31,10 @@ def prepare_resources():
     STAGE.mkdir(parents=True, exist_ok=True)
     (STAGE / "scripts").mkdir(exist_ok=True)
     shutil.copy2(Path(sys.executable).parent / "polyply", STAGE / "scripts" / "polyply_cli.py")
+    shutil.copy2(Path(sys.executable).parent / "martinize2", STAGE / "scripts" / "martinize2_cli.py")
+    import torch
+    if torch.version.cuda is not None or not torch.__version__.endswith("+cpu"):
+        raise RuntimeError("The desktop release requires the pinned CPU-only torch build; install requirements.desktop.lock.txt")
     license_dir = STAGE / "licenses"
     license_dir.mkdir(exist_ok=True)
     records = []
@@ -63,10 +67,12 @@ def prepare_resources():
         "python": platform.python_version(), "libc": platform.libc_ver(),
         "bundler": "PyInstaller " + metadata.version("pyinstaller"),
         "bundle_kind": "onedir", "qt_sandbox_disabled": False,
+        "optimization": {"backend": "BayBE", "torch_device": "cpu", "cuda_bundled": False},
         "rea": "Static source registration and audit evidence included; REA development tool is not bundled.",
         "not_bundled": ["AlphaFold/ColabFold model weights", "AlphaFold inference environment", "GROMACS", "HOOMD-blue", "Psi4", "REA node_modules"],
         "dependencies": [{"name": r["name"], "version": r["version"]} for r in records],
         "source_sha256": {str(path.relative_to(ROOT)): sha256(path) for path in sorted((ROOT / "workbench").glob("*.py"))},
+        "static_sha256": {str(path.relative_to(ROOT)): sha256(path) for path in sorted((ROOT / "workbench" / "static").rglob("*")) if path.is_file()},
     }
     (STAGE / "build-manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
@@ -78,6 +84,7 @@ def assemble_release(manifest, make_deb, archive=True):
         (ROOT / "packaging" / "portable-launch.sh", DIST / "launch.sh"),
         (ROOT / "install-desktop.sh", DIST / "install-desktop.sh"),
         (ROOT / "packaging" / "polyply-launch.sh", DIST / "bin" / "polyply"),
+        (ROOT / "packaging" / "martinize-launch.sh", DIST / "bin" / "martinize2"),
         (ROOT / "assets" / "polymer-lab.png", DIST / "polymer-lab.png"),
         (ROOT / "assets" / "polymer-lab.svg", DIST / "polymer-lab.svg"),
         (ROOT / "docs" / "DESKTOP.md", DIST / "README-desktop.md"),
@@ -86,7 +93,7 @@ def assemble_release(manifest, make_deb, archive=True):
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
     (DIST / ".polymer-lab-bundle").write_text("org.polymerlab.desktop\n")
-    for path in (DIST / "launch.sh", DIST / "install-desktop.sh", DIST / "bin" / "polyply"):
+    for path in (DIST / "launch.sh", DIST / "install-desktop.sh", DIST / "bin" / "polyply", DIST / "bin" / "martinize2"):
         path.chmod(0o755)
     (DIST / "THIRD-PARTY-NOTICES.txt").write_text(
         "Polymer Lab incorporates independently licensed components.\n"
@@ -167,7 +174,8 @@ def main():
                             "--distpath", str(ROOT / "dist"), "--workpath", str(ROOT / "build" / "pyinstaller"),
                             str(ROOT / "packaging" / "polymer-lab.spec")],
                            cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
-    for relative, expected in manifest.get("source_sha256", {}).items():
+    bundled_hashes = {**manifest.get("source_sha256", {}), **manifest.get("static_sha256", {})}
+    for relative, expected in bundled_hashes.items():
         bundled = DIST / "_internal" / relative
         if not bundled.is_file() or sha256(bundled) != expected:
             raise RuntimeError(f"Bundled source differs from the build manifest: {relative}")

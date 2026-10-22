@@ -18,7 +18,7 @@ import numpy as np
 DEFAULTS = dict(route="polymer_cg", monomers=24, chains=2, steps=1000,
                 temperature=1.0, timestep=0.002, seed=42, engine="auto",
                 repeat_smiles="[*]CC[*]", sequence="", protein_mode="export")
-ROUTES = ("polymer_cg", "polymer_atomistic", "protein", "polyply", "hoomd", "pysimm", "packmol")
+ROUTES = ("polymer_cg", "polymer_atomistic", "protein", "polyply", "hoomd", "pysimm", "packmol", "mixture")
 MODEL = {"name": "soft repulsive bead-spring", "bond": "U=15*(r-1)^2",
          "pair": "U=5*(1+cos(pi*r/1.2)) for r<1.2, otherwise 0",
          "exclusions": "Directly bonded pairs only", "boundary": "nonperiodic, dilute chains",
@@ -284,7 +284,10 @@ def run_workflow(raw, output_dir, event: Callable | None = None):
     write_json(output / "config.json", config)
     emit("prepare", 0, "Validated workflow configuration")
     started = time.time()
-    if config["route"] != "polymer_cg":
+    if config["route"] == "mixture":
+        from workbench.bridges import run_bridge
+        result = run_bridge(config, output, emit)
+    elif config["route"] != "polymer_cg":
         from workbench.external import run_external
         result = run_external(config, output, emit)
     else:
@@ -324,5 +327,11 @@ def run_workflow(raw, output_dir, event: Callable | None = None):
                   "artifacts": [p.name for p in output.iterdir() if p.is_file()]}
     result["elapsed_seconds"] = round(time.time() - started, 3)
     write_json(output / "result.json", result)
+    try:
+        from workbench.descriptors import extract_job_features
+        write_json(output / "features.json", extract_job_features(output, {"config": config, "result": result}))
+    except Exception as exc:
+        # Preserve the successful calculation when a separately versioned analysis fails.
+        write_json(output / "feature_error.json", {"error": str(exc), "calculation_status_unchanged": True})
     emit("complete", 1, result.get("message", f"Workflow {result['status']}"))
     return result

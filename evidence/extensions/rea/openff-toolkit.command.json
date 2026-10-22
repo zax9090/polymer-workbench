@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/extensions/sources/openff-toolkit",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 1.97,
+  "executed_at": "2026-10-22T04:26:16.770373+00:00",
+  "source_sha256": "14f467f78ad4e33d03eed5b6dfb45840058ace0522176dd7f178b2a6c54fd978",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/openff-toolkit.json",
+  "stderr": "evidence/extensions/rea/openff-toolkit.stderr.log"
+}

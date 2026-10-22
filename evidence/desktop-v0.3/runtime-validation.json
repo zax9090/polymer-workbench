@@ -1,0 +1,539 @@
+{
+  "kind": "frozen_desktop_bundle_headless_integration",
+  "started_at": "2026-10-22T04:53:55.851183+00:00",
+  "bundle_executable": "/home/kali/Projects/polymer-workbench/dist/PolymerLab/PolymerLab",
+  "executable_sha256": "84986949ef0cec06e89fa8b720e8d1c875834ee5752d16d5259b106f3b976416",
+  "status": "passed",
+  "jobs": [
+    {
+      "key": "numpy",
+      "id": "f88980e609604ff69bc68412db966733",
+      "status": "completed",
+      "engine": "numpy-overdamped-langevin",
+      "elapsed_seconds": 3.492,
+      "artifacts": {
+        "zip_bytes": 13245,
+        "zip_sha256": "a2c596b9eecae28256b254d521ae9d2773d63b38f5ea08ac8499be913ac2db54",
+        "manifest_members_verified": 10,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "job.json",
+          "manifest.json",
+          "metrics.json",
+          "result.json",
+          "runtime.json",
+          "structure.pdb",
+          "structure.xyz",
+          "trajectory.json",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "lammps",
+      "id": "2cdcaf68d5e64949a92b110dbe2fbb7f",
+      "status": "completed",
+      "engine": "LAMMPS 20250722 Langevin/NVE",
+      "elapsed_seconds": 1.773,
+      "artifacts": {
+        "zip_bytes": 17756,
+        "zip_sha256": "ed7e11ee5fd92a91d085659c629e0283a43a9cbda891908fbeee1774341a461f",
+        "manifest_members_verified": 14,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "initial.data",
+          "input.lmp",
+          "job.json",
+          "lammps.log",
+          "manifest.json",
+          "metrics.json",
+          "restart.lammps",
+          "result.json",
+          "runtime.json",
+          "structure.pdb",
+          "structure.xyz",
+          "trajectory.json",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "rdkit",
+      "id": "bf2298bb30b349fdab31cc5543fb726f",
+      "status": "prepared",
+      "engine": "RDKit",
+      "elapsed_seconds": 0.649,
+      "artifacts": {
+        "zip_bytes": 8432,
+        "zip_sha256": "3c4689f6e0583fc7c12fd2170f075b4117476ec9054598f0f873c2e8af24f8a9",
+        "manifest_members_verified": 11,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "job.json",
+          "manifest.json",
+          "molecule.json",
+          "result.json",
+          "runtime.json",
+          "structure.mol",
+          "structure.pdb",
+          "structure.sdf",
+          "trajectory.json",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "radonpy",
+      "id": "20b6736aa92e4520a1782b6ac5c0f2a3",
+      "status": "completed",
+      "engine": "RadonPy / LAMMPS",
+      "elapsed_seconds": 3.629,
+      "artifacts": {
+        "zip_bytes": 69186,
+        "zip_sha256": "f3a8abad068faa6431d93b598708c59951b7db070dbae194d8367fd318137611",
+        "manifest_members_verified": 24,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "final.mol",
+          "job.json",
+          "log.lammps",
+          "manifest.json",
+          "molecule.json",
+          "radon_lmp.in",
+          "radon_md.dump",
+          "radon_md.log",
+          "radon_md_1.rst",
+          "radon_md_last.data",
+          "radon_md_last.dump",
+          "radon_md_lmp.data",
+          "radonpy.log",
+          "radonpy_complete.json",
+          "random_seeds.json",
+          "result.json",
+          "run_radonpy.py",
+          "runtime.json",
+          "structure.mol",
+          "structure.pdb",
+          "structure.sdf",
+          "trajectory.json",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "packmol_handoff",
+      "id": "b1035ae4128947e8bc74823d799db443",
+      "status": "prepared",
+      "engine": "PACKMOL",
+      "elapsed_seconds": 0.453,
+      "artifacts": {
+        "zip_bytes": 15146,
+        "zip_sha256": "baea86798b6f7789ab9c31720f44d65f3802dac14c3a49f51680f9ae69eecec2",
+        "manifest_members_verified": 15,
+        "files": [
+          "chain.pdb",
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "imported_component.pdb",
+          "job.json",
+          "manifest.json",
+          "molecule.json",
+          "packed.pdb",
+          "packmol.inp",
+          "packmol.log",
+          "result.json",
+          "runtime.json",
+          "structure.mol",
+          "structure.pdb",
+          "structure.sdf",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "polyply",
+      "id": "7ec013ffe5564e939f400e6c1f992229",
+      "status": "prepared",
+      "engine": "polyply",
+      "elapsed_seconds": 1.069,
+      "artifacts": {
+        "zip_bytes": 7269,
+        "zip_sha256": "e141e8b396320482fa558f6240cd704ba9436168b06ec5e59bf9cabc800181d2",
+        "manifest_members_verified": 11,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "job.json",
+          "manifest.json",
+          "polymer.itp",
+          "polyply_command.json",
+          "polyply_topology.log",
+          "random_seeds.json",
+          "result.json",
+          "runtime.json",
+          "system.top",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "pysimm",
+      "id": "86672c37a6ab447aaa408b108ef17639",
+      "status": "completed",
+      "engine": "pysimm / LAMMPS",
+      "elapsed_seconds": 1.495,
+      "artifacts": {
+        "zip_bytes": 11785,
+        "zip_sha256": "ad6b6bc2e01b1d477d9c7b5caa0ab6f84fb4917dfe5ba704c203fd03d0d1a379",
+        "manifest_members_verified": 16,
+        "files": [
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "final.data",
+          "job.json",
+          "log.lammps",
+          "manifest.json",
+          "molecule.json",
+          "pysimm.log",
+          "pysimm.sim.in",
+          "pysimm_complete.json",
+          "result.json",
+          "run_pysimm.py",
+          "runtime.json",
+          "structure.mol",
+          "structure.pdb",
+          "structure.sdf",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "af3_export",
+      "id": "7e65167c376a49478d03f7a148157f60",
+      "status": "prepared",
+      "engine": "AlphaFold 3 input exporter",
+      "elapsed_seconds": 0.339,
+      "artifacts": {
+        "zip_bytes": 5040,
+        "zip_sha256": "d155e5a93212102be752e86fc7f647685b6414b2bcbc24ef7d329042b3999032",
+        "manifest_members_verified": 8,
+        "files": [
+          "alphafold3_input.json",
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "job.json",
+          "manifest.json",
+          "result.json",
+          "runtime.json",
+          "sequence.fasta",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "alphafold_database",
+      "id": "ca83beca247b4faaa58c6f979438d172",
+      "status": "completed",
+      "engine": "AlphaFold Protein Structure Database",
+      "elapsed_seconds": 2.216,
+      "artifacts": {
+        "zip_bytes": 29443,
+        "zip_sha256": "dafe29efb244a63a4ad250a86639875e3398558d9b8e447ce430342040d25349",
+        "manifest_members_verified": 9,
+        "files": [
+          "alphafold_db_record.json",
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "job.json",
+          "manifest.json",
+          "metrics.json",
+          "result.json",
+          "runtime.json",
+          "structure.pdb",
+          "worker.log"
+        ]
+      }
+    },
+    {
+      "key": "packmol_protein_handoff",
+      "id": "b942423cb9374557ae92fa58134a5fac",
+      "status": "prepared",
+      "engine": "PACKMOL",
+      "elapsed_seconds": 0.467,
+      "artifacts": {
+        "zip_bytes": 114617,
+        "zip_sha256": "2cc289c27ced0e041a00adf22092acf90b6773455bda83cabf61da5e29a46322",
+        "manifest_members_verified": 15,
+        "files": [
+          "chain.pdb",
+          "config.json",
+          "events.jsonl",
+          "features.json",
+          "imported_component.pdb",
+          "job.json",
+          "manifest.json",
+          "molecule.json",
+          "packed.pdb",
+          "packmol.inp",
+          "packmol.log",
+          "result.json",
+          "runtime.json",
+          "structure.mol",
+          "structure.pdb",
+          "structure.sdf",
+          "worker.log"
+        ]
+      }
+    }
+  ],
+  "failed_jobs": [],
+  "validation_errors": [],
+  "isolation": {
+    "PATH": "/usr/bin:/bin",
+    "temporary_application_and_XDG_directories": true,
+    "PYTHONPATH": false,
+    "inherited_loader_or_engine_variables": false,
+    "network_services_used": true,
+    "network_services": [
+      "https://alphafold.ebi.ac.uk"
+    ]
+  },
+  "not_tested": [
+    "Qt native window visual inspection",
+    "AlphaFold/ColabFold new inference",
+    "GROMACS",
+    "HOOMD-blue"
+  ],
+  "service": {
+    "health": {
+      "ok": true,
+      "name": "Polymer Lab",
+      "version": "0.3.0",
+      "local_only": true
+    },
+    "version_matches": true,
+    "expected_version": "0.3.0",
+    "unauthenticated_status": 401,
+    "static_assets": {
+      "/": {
+        "bytes": 41651,
+        "sha256": "7653790defaf5b933e00e23e19f9dace0c14c71f1d3c779ec402b7f439735b25"
+      },
+      "/static/app.js": {
+        "bytes": 41736,
+        "sha256": "eee1044dd15bd80f2c3907dc914477ddb707a8d5dae0fe87695c71c9529bbb08"
+      },
+      "/static/style.css": {
+        "bytes": 24887,
+        "sha256": "ea1370bc24e31b90b39695a752e9af724b8e2e47fa2a8030d66a93cc7fe9a0f8"
+      },
+      "/static/vendor/3Dmol-min.js": {
+        "bytes": 545215,
+        "sha256": "4ab374e1830bccec950b280fd285a430e05e91bd13c9ef0097c611c66de6cb36"
+      }
+    }
+  },
+  "capabilities": {
+    "engines": [
+      {
+        "id": "numpy",
+        "name": "numpy",
+        "available": true,
+        "version": "2.5.4",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "rdkit",
+        "name": "rdkit",
+        "available": true,
+        "version": "2026.9.1",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "MDAnalysis",
+        "name": "MDAnalysis",
+        "available": true,
+        "version": "2.11.0",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "lammps",
+        "name": "lammps",
+        "available": true,
+        "version": "2025.7.22.4.0",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "radonpy",
+        "name": "radonpy",
+        "available": true,
+        "version": "0.2.11",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "pysimm",
+        "name": "pysimm",
+        "available": true,
+        "version": "1.1.0",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "hoomd",
+        "name": "hoomd",
+        "available": false,
+        "version": null,
+        "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+      },
+      {
+        "id": "packmol",
+        "name": "packmol",
+        "available": true,
+        "version": "21.2.3",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "polyply",
+        "name": "polyply",
+        "available": true,
+        "version": "1.8.0",
+        "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인"
+      },
+      {
+        "id": "gmx",
+        "name": "gmx",
+        "available": false,
+        "version": null,
+        "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+      },
+      {
+        "id": "colabfold_batch",
+        "name": "colabfold_batch",
+        "available": false,
+        "version": null,
+        "detail": "현재 환경에 없음 · 별도 환경 연결 가능"
+      },
+      {
+        "id": "3dmol",
+        "name": "3Dmol.js",
+        "available": true,
+        "version": "local vendor",
+        "detail": "로컬 분자 시각화 라이브러리"
+      },
+      {
+        "id": "alphafold_db",
+        "name": "AlphaFold DB",
+        "available": true,
+        "version": null,
+        "detail": "공개 예측 구조 조회 · 인터넷 연결 필요"
+      },
+      {
+        "id": "rea",
+        "name": "REA",
+        "available": false,
+        "version": "6.7.0",
+        "detail": "개발 분석 도구 · 데스크톱 배포본에는 분석 기록을 포함하며 REA 재실행 환경은 별도"
+      }
+    ],
+    "routes": [
+      {
+        "id": "polymer_cg",
+        "name": "조대화 고분자",
+        "description": "LAMMPS/NumPy → MDAnalysis → 궤적·관측값",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "polymer_atomistic",
+        "name": "전원자 고분자",
+        "description": "RDKit 구조 생성 또는 RadonPy/LAMMPS 고립 사슬 MD",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "protein",
+        "name": "AlphaFold / ColabFold",
+        "description": "기존 예측 가져오기·PDB 분석·새 예측 입력 내보내기. 새 추론은 별도 ColabFold 필요",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "packmol",
+        "name": "분자 혼합계",
+        "description": "RDKit 고분자와 이전 구조 배치. 토폴로지·힘장 설정은 후속 작업",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "polyply",
+        "name": "polyply → GROMACS",
+        "description": "토폴로지 생성. 좌표·MD는 전체 힘장 파일 및 GROMACS 필요",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "hoomd",
+        "name": "HOOMD-blue",
+        "description": "별도 HOOMD 환경에서 조대화 계산",
+        "available": false,
+        "missing": [
+          "hoomd"
+        ]
+      },
+      {
+        "id": "pysimm",
+        "name": "pysimm → LAMMPS",
+        "description": "별도 pysimm 환경에서 모델링·계산",
+        "available": true,
+        "missing": []
+      },
+      {
+        "id": "mixture",
+        "name": "단백질–고분자 브릿지",
+        "description": "Martini 3 또는 AMBER 준비 계획·단계별 평형화 입력. 검증된 전체 힘장은 별도 필요",
+        "available": true,
+        "missing": []
+      }
+    ],
+    "note": "Module detection is not a successful simulation; job preflight checks load/runtime dependencies."
+  },
+  "graceful_shutdown": true,
+  "restart_persistence": {
+    "verified": true,
+    "jobs": 10
+  },
+  "server_log_tail": "INFO:     Started server process [391712]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\nWarning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.\n\n********* JAX NOT FOUND *********\n PyMBAR can run faster with JAX  \n But will work fine without it   \nEither install with pip or conda:\n      pip install pybar[jax]     \n               OR                \n      conda install pymbar       \n*********************************\nINFO:     Shutting down\nINFO:     Waiting for application shutdown.\nINFO:     Application shutdown complete.\nINFO:     Finished server process [391712]\n",
+  "worker_log_tails": {
+    "state/jobs/b942423cb9374557ae92fa58134a5fac/packmol.log": "\n################################################################################\n\n PACKMOL - Packing optimization for the automated generation of\n starting configurations for molecular dynamics simulations.\n \n                                                             Version 21.2.3 \n\n################################################################################\n\n  Packmol must be run with: packmol < inputfile.inp \n\n  Userguide at: http://m3g.iqm.unicamp.br/packmol \n\n  Reading input file... (Control-C aborts)\n  Types of coordinate files specified: pdb\n  Seed for random number generator:           42\n  Output file: packed.pdb\n  Reading coordinate file: chain.pdb\n  Reading coordinate file: imported_component.pdb\n  Number of independent structures:            2\n  The structures are: \n  Structure            1 :chain.pdb(          26  atoms)\n  Structure            2 :imported_component.pdb(        1077  atoms)\n  Maximum number of GENCAN loops for all molecule packing:          400\n  Distance tolerance:    2.0000000000000000     \n  Warning: Type of residue numbering not set for structure            1\n  Residue numbering set for structure            1 :           0\n  Swap chains of molecules of structure            1 : F\n  Warning: Type of residue numbering not set for structure            2\n  Residue numbering set for structure            2 :           1\n  Swap chains of molecules of structure            2 : F\n  Number of molecules of type            1 :            2\n  Number of molecules of type            2 :            1\n  Total number of restrictions:            2\n  Total number of atoms:         1129\n  Total number of molecules:            3\n  Number of fixed molecules:            0\n  Number of free molecules:            3\n  Number of variables:           18\n  Total number of fixed atoms:            0\n  Maximum internal distance of type            1 :    8.5874314553305169     \n  Maximum internal distance of type            2 :    45.127014736186567     \n  All atoms must be within these coordinates: \n   x: [   -996.22729459174991      ,    1003.7727054082501       ] \n   y: [   -994.80271964459428      ,    1005.1972803554057       ] \n   z: [   -993.60000000000002      ,    1006.4000000000000       ] \n  If the system is larger than this, increase the sidemax parameter. \n\n################################################################################\n\n  Building initial approximation ... \n\n################################################################################\n\n  Adjusting initial point to fit the constraints \n\n--------------------------------------------------------------------------------\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            1\n\n  Packing:|0                                                        100%|\n          |***************************\n\n  Restraint-only function value:    8.5563052067248385E-006\n  Maximum violation of the restraints:    8.2111356491226293E-006\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            2\n\n  Packing:|0                                                        100%|\n          |***************************\n\n  Restraint-only function value:    3.6386088086460162E-003\n  Maximum violation of the restraints:    1.9530623105376175E-003\n\n--------------------------------------------------------------------------------\n\n  Rescaling maximum and minimum coordinates... \n  Minimum and maximum coordinates after constraint fitting: \n   x: [   -2.8655079216646094E-003 ,    44.480825227951371       ] \n   y: [    7.4053224658779497E-003 ,    74.398922741300922       ] \n   z: [   -4.4193464568164573E-002 ,    74.306639259222436       ] \n  Computing size of patches... \n  Number of cells in each direction and cell sides: \n   x:           21  cells of size    2.3277947969463351     \n   y:           35  cells of size    2.2511862119667154     \n   z:           35  cells of size    2.2500237921083031     \n  Cell-system length:   48.88369  78.79152  78.75083\n  Reseting center of mass... \n\n--------------------------------------------------------------------------------\n\n  Setting initial trial coordinates ... \n\n--------------------------------------------------------------------------------\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            1\n  Adjusting random positions to fit the constraints. \n  Restraint-only function value:    0.0000000000000000     \n  Maximum violation of the restraints:    0.0000000000000000     \n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            2\n  Adjusting random positions to fit the constraints. \n  Packing:|0                                                        100%|\n          |************\n  Restraint-only function value:    0.0000000000000000     \n  Maximum violation of the restraints:    0.0000000000000000     \n\n################################################################################\n\n  Objective function at initial point:    0.0000000000000000     \n\n################################################################################\n\n  Packing molecules of type:            1\n\n################################################################################\n\n\n  Initial approximation is a solution. Nothing to do. \n\n  Current point written to file: packed.pdb\n--------------------------------------------------------------------------------\n  Packing solved for molecules of type           1\n  Objective function value:    0.0000000000000000     \n  Maximum violation of target distance:    0.0000000000000000     \n  Max. constraint violation:    0.0000000000000000     \n--------------------------------------------------------------------------------\n\n################################################################################\n\n  Packing molecules of type:            2\n\n################################################################################\n\n\n  Initial approximation is a solution. Nothing to do. \n\n  Current point written to file: packed.pdb\n--------------------------------------------------------------------------------\n  Packing solved for molecules of type           2\n  Objective function value:    0.0000000000000000     \n  Maximum violation of target distance:    0.0000000000000000     \n  Max. constraint violation:    0.0000000000000000     \n--------------------------------------------------------------------------------\n\n################################################################################\n\n  Packing all molecules together \n\n################################################################################\n\n\n  Initial approximation is a solution. Nothing to do. \n\n  Solution written to file: packed.pdb\n\n################################################################################\n\n                                 Success! \n              Final objective function value: .00000E+00\n              Maximum violation of target distance:   0.000000\n              Maximum violation of the constraints: .00000E+00\n\n--------------------------------------------------------------------------------\n\n              Please cite this work if Packmol was useful: \n\n           L. Martinez, R. Andrade, E. G. Birgin, J. M. Martinez, \n         PACKMOL: A package for building initial configurations for\n                   molecular dynamics simulations. \n        Journal of Computational Chemistry, 30(13) pp. 2157-2164, 2009.\n                  https://doi.org/10.1002/jcc.21224\n\n################################################################################\n\n   Running time:    1.73069984E-02  seconds. \n\n--------------------------------------------------------------------------------\n\n\n",
+    "state/jobs/b942423cb9374557ae92fa58134a5fac/worker.log": "{\"status\": \"prepared\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/b942423cb9374557ae92fa58134a5fac/result.json\"}\n",
+    "state/jobs/ca83beca247b4faaa58c6f979438d172/worker.log": "{\"status\": \"completed\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/ca83beca247b4faaa58c6f979438d172/result.json\"}\n",
+    "state/jobs/7e65167c376a49478d03f7a148157f60/worker.log": "{\"status\": \"prepared\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/7e65167c376a49478d03f7a148157f60/result.json\"}\n",
+    "state/jobs/86672c37a6ab447aaa408b108ef17639/pysimm.log": "(debug) PySIMM: reading file\nadding gasteiger charges\ncharges converged after 15 iterations\n13:54:11: starting LAMMPS simulation\n13:54:11: simulation using LAMMPS successful\n",
+    "state/jobs/86672c37a6ab447aaa408b108ef17639/worker.log": "{\"status\": \"completed\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/86672c37a6ab447aaa408b108ef17639/result.json\"}\n",
+    "state/jobs/7ec013ffe5564e939f400e6c1f992229/polyply_topology.log": "INFO - step - reading input and library files\nINFO - step - reading sequence from command\nINFO - step - mapping sequence to molecule\nINFO - step - applying links between residues\nINFO - Couldn't import numba. Install it for a speed boost.\n\r  0%|          | 0/82 [00:00<?, ?it/s]\r100%|██████████| 82/82 [00:00<00:00, 28620.53it/s]\nINFO - general - Applying N-ter to PEO1\nINFO - general - The resname of your target residue is not recognised as a protein resname. Will not attempt to modify.\nINFO - general - Applying C-ter to PEO4\nINFO - general - The resname of your target residue is not recognised as a protein resname. Will not attempt to modify.\nINFO - general - Please cite: Kroon, P C; Grunewald, F; Barnoud, J; van Tilburg, M; Souza, P C; Wassenaar, T A; Marrink, S J;  elife 2024; 10.7554/elife.90627.2\nINFO - general - Please cite: Souza, P C T; Alessandri, R; Barnoud, J; Thallmair, S; Faustino, I; Grünewald, F; Patmanidis, I; Abdizadeh, H; Bruininks, B M H; Wassenaar, T A; Kroon, P C; Melcr, J; Nieto, V; Corradi, V; Khan, H M; Domański, J; Javanainen, M; Martinez-Seara, H; Reuter, N; Best, R B; Vattulainen, I; Monticelli, L; Periole, X; Tieleman, D P; de Vries, A H; Marrink, S J;  Nature Methods 2021; 10.1038/s41592-021-01098-3\nINFO - general - Please cite: Grunewald, F; Alessandri, R; Kroon, P C; Monticelli, L; Souza, P C; Marrink, S J;  Nature Communications 2022; 10.1038/s41467-021-27627-4\n",
+    "state/jobs/7ec013ffe5564e939f400e6c1f992229/worker.log": "{\"status\": \"prepared\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/7ec013ffe5564e939f400e6c1f992229/result.json\"}\n",
+    "state/jobs/b1035ae4128947e8bc74823d799db443/packmol.log": "putfile.inp \n\n  Userguide at: http://m3g.iqm.unicamp.br/packmol \n\n  Reading input file... (Control-C aborts)\n  Types of coordinate files specified: pdb\n  Seed for random number generator:           42\n  Output file: packed.pdb\n  Reading coordinate file: chain.pdb\n  Reading coordinate file: imported_component.pdb\n  Number of independent structures:            2\n  The structures are: \n  Structure            1 :chain.pdb(          26  atoms)\n  Structure            2 :imported_component.pdb(          26  atoms)\n  Maximum number of GENCAN loops for all molecule packing:          400\n  Distance tolerance:    2.0000000000000000     \n  Warning: Type of residue numbering not set for structure            1\n  Residue numbering set for structure            1 :           0\n  Swap chains of molecules of structure            1 : F\n  Warning: Type of residue numbering not set for structure            2\n  Residue numbering set for structure            2 :           0\n  Swap chains of molecules of structure            2 : F\n  Number of molecules of type            1 :            2\n  Number of molecules of type            2 :            1\n  Total number of restrictions:            2\n  Total number of atoms:           78\n  Total number of molecules:            3\n  Number of fixed molecules:            0\n  Number of free molecules:            3\n  Number of variables:           18\n  Total number of fixed atoms:            0\n  Maximum internal distance of type            1 :    8.5874314553305169     \n  Maximum internal distance of type            2 :    8.5874314553305169     \n  All atoms must be within these coordinates: \n   x: [   -996.22729459174991      ,    1003.7727054082501       ] \n   y: [   -994.80271964459428      ,    1005.1972803554057       ] \n   z: [   -993.60000000000002      ,    1006.4000000000000       ] \n  If the system is larger than this, increase the sidemax parameter. \n\n################################################################################\n\n  Building initial approximation ... \n\n################################################################################\n\n  Adjusting initial point to fit the constraints \n\n--------------------------------------------------------------------------------\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            1\n\n  Packing:|0                                                        100%|\n          |***************************\n\n  Restraint-only function value:    8.5545591617611944E-006\n  Maximum violation of the restraints:    8.2133059921070721E-006\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            2\n\n  Packing:|0                                                        100%|\n          |******************\n\n  Restraint-only function value:    1.0862619759185623E-002\n  Maximum violation of the restraints:    9.1927185941992756E-003\n\n--------------------------------------------------------------------------------\n\n  Rescaling maximum and minimum coordinates... \n  Minimum and maximum coordinates after constraint fitting: \n   x: [   -2.8658865979146963E-003 ,    36.695864424197417       ] \n   y: [    7.4074790544171850E-003 ,    36.459804609987657       ] \n   z: [    1.3682017327597652E-002 ,    36.750878666001356       ] \n  Computing size of patches... \n  Number of cells in each direction and cell sides: \n   x:           18  cells of size    2.2832627950441853     \n   y:           18  cells of size    2.2695776183851799     \n   z:           18  cells of size    2.2853998138152090     \n  Cell-system length:   41.09873  40.85240  41.13720\n  Reseting center of mass... \n\n--------------------------------------------------------------------------------\n\n  Setting initial trial coordinates ... \n\n--------------------------------------------------------------------------------\n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            1\n  Adjusting random positions to fit the constraints. \n  Packing:|0                                                        100%|\n          |******\n  Restraint-only function value:    0.0000000000000000     \n  Maximum violation of the restraints:    0.0000000000000000     \n\n--------------------------------------------------------------------------------\n\n  Molecules of type:            2\n  Adjusting random positions to fit the constraints. \n  Packing:|0                                                        100%|\n          |******\n  Restraint-only function value:    0.0000000000000000     \n  Maximum violation of the restraints:    0.0000000000000000     \n\n################################################################################\n\n  Objective function at initial point:    6.6365394650630494     \n\n################################################################################\n\n  Packing molecules of type:            1\n\n################################################################################\n\n\n--------------------------------------------------------------------------------\n\n  Starting GENCAN loop:            0\n  Scaling radii by:    1.1000000000000001     \n\n  Packing:|0                                                        100%|\n          |***\n\n  Function value from last GENCAN loop: f = .00000E+00\n  Best function value before: f = .66365E+01\n  Improvement from best function value:    99.99 %\n  Improvement from last loop:    99.99 %\n  Maximum violation of target distance:     0.000000\n  Maximum violation of the constraints: .00000E+00\n  Current structure written to file: packed.pdb\n--------------------------------------------------------------------------------\n  Packing solved for molecules of type           1\n  Objective function value:    0.0000000000000000     \n  Maximum violation of target distance:    0.0000000000000000     \n  Max. constraint violation:    0.0000000000000000     \n--------------------------------------------------------------------------------\n\n################################################################################\n\n  Packing molecules of type:            2\n\n################################################################################\n\n\n  Initial approximation is a solution. Nothing to do. \n\n  Current point written to file: packed.pdb\n--------------------------------------------------------------------------------\n  Packing solved for molecules of type           2\n  Objective function value:    0.0000000000000000     \n  Maximum violation of target distance:    0.0000000000000000     \n  Max. constraint violation:    0.0000000000000000     \n--------------------------------------------------------------------------------\n\n################################################################################\n\n  Packing all molecules together \n\n################################################################################\n\n\n  Initial approximation is a solution. Nothing to do. \n\n  Solution written to file: packed.pdb\n\n################################################################################\n\n                                 Success! \n              Final objective function value: .00000E+00\n              Maximum violation of target distance:   0.000000\n              Maximum violation of the constraints: .00000E+00\n\n--------------------------------------------------------------------------------\n\n              Please cite this work if Packmol was useful: \n\n           L. Martinez, R. Andrade, E. G. Birgin, J. M. Martinez, \n         PACKMOL: A package for building initial configurations for\n                   molecular dynamics simulations. \n        Journal of Computational Chemistry, 30(13) pp. 2157-2164, 2009.\n                  https://doi.org/10.1002/jcc.21224\n\n################################################################################\n\n   Running time:    1.71200000E-03  seconds. \n\n--------------------------------------------------------------------------------\n\n\n",
+    "state/jobs/b1035ae4128947e8bc74823d799db443/worker.log": "{\"status\": \"prepared\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/b1035ae4128947e8bc74823d799db443/result.json\"}\n",
+    "state/jobs/20b6736aa92e4520a1782b6ac5c0f2a3/radon_md.log": "   16.900408      0.039295724    957.9043      -49.228319     -555.10904      514.01892      342.77764      68.220984    \n        35   17.5           163.1582       285.62216      53.606148      33.49859       12.15859       21.34          6.2471731      10.269538      4.0782963      0              0.25762222     0.48737053     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1231.1601      26.398474     -400.69208      625.05722      536.09798      52.665822    \n        36   18             135.82135      419.05232      63.052509      33.551581      10.121441      23.43014       8.3170652      10.309227      4.0638083      0              0.24940187     0.49063785     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1427.6619      99.398157     -269.90312      678.37328      662.79682      47.642818    \n        37   18.5           121.11221      514.27213      69.788285      33.583963      9.025312       24.558651      9.5288558      10.24105       4.0514334      0              0.244194       0.49311735     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1541.7934      168.67117     -167.64816      667.98538      720.30828      54.8635      \n        38   19             124.03709      566.18488      73.447211      33.588275      9.2432752      24.345         9.4870641      10.080066      4.041788       0              0.24144526     0.49463672     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1569.8555      230.12764     -101.42843      592.90041      710.20738      75.561332    \n        39   19.5           143.85789      567.07363      73.488101      33.566598      10.720326      22.846272      8.224365       9.8503954      4.0353871      0              0.24102292     0.49510126     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1507.4744      276.40599     -82.659537      456.91187      636.62983      110.06109    \n        40   20             174.27679      507.46378      69.254884      33.529863      12.98715       20.542713      6.1902957      9.5821697      4.0325727      0              0.24317177     0.49450301     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1349.6449      298.16827     -125.42186      268.419        505.57639      157.39468    \n        41   20.5           205.47104      379.10635      60.182925      33.49416       15.311753      18.182406      4.1002407      9.3075313      4.0334517      0              0.24826024     0.49292223     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    1093.5088      286.63134     -242.82106      40.223685      325.26975      215.06228    \n        42   21             227.29868      179.10571      46.0842        33.47531       16.938355      16.536955      2.6957545      9.0564041      4.0378606      0              0.25641487     0.4905207      0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    742.84425      236.52714     -442.05424     -210.8873       107.24058      279.00865    \n        43   21.5           232.6061      -86.294032      27.408551      33.483577      17.333865      16.149712      2.4968487      8.8527749      4.0453677      0              0.26719376     0.48752713     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724    312.46854      148.49352     -719.84415     -465.01765     -132.54389      343.85174    \n        44   22             219.53709     -399.75376      5.3779487      33.520275      16.359959      17.160315      3.6292572      8.7120898      4.0553154      0              0.27943732     0.48421578     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -169.39036      30.046076     -1059.917      -700.6606      -373.29998      403.36495    \n        45   22.5           192.08108     -733.6893      -18.073734      33.577371      14.31393       19.263441      5.7841833      8.6401088      4.0668962      0              0.29137025     0.48088228     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -662.14849     -105.28016     -1433.6393     -896.80571     -590.39515      451.17504    \n        46   23             158.68982     -1054.0348     -40.562945      33.640209      11.825605      21.814604      8.3233204      8.6332736      4.0792505      0              0.30094113     0.47781798     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -1117.6812     -240.45076     -1803.9723     -1035.4134     -757.83521      481.59394    \n        47   23.5           129.43781     -1326.0942     -59.663486      33.69242       9.6457382      24.046682      10.493155      8.6803683      4.0915677      0              0.30630577     0.47528503     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -1487.9999     -358.4191      -2131.8635     -1103.8301     -851.92554      490.46333    \n        48   24             112.68415     -1520.9685     -73.353484      33.721408      8.3972512      25.324157      11.676132      8.765043       4.103174       0              0.30631218     0.47349531     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -1733.9012     -445.58877     -2383.4155     -1096.6398     -855.3255       475.86637    \n        49   24.5           112.35245     -1620.8289     -80.38243       33.72255       8.3725327      25.350017      11.59434       8.8686478      4.1135926      0              0.30084254     0.47259443     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -1832.2878     -494.28395     -2535.9148     -1016.5141     -760.50487      438.56509    \n        50   25             126.7301      -1621.6369     -80.461173      33.700691      9.4439588      24.256732      10.397794      8.9728114      4.1225648      0              0.29091094     0.47265096     0              0              4827.1583      16.900408      16.900408      16.900408      0.039295724   -1780.1653     -503.59235     -2581.153      -873.82631     -571.69551      382.06002    \nLoop time of 0.00182545 on 1 procs for 50 steps with 26 atoms\n\nPerformance: 1183.269 ns/day, 0.020 hours/ns, 27390.476 timesteps/s, 712.152 katom-step/s\n50.0% CPU use with 1 MPI tasks x 1 OpenMP threads\n\nMPI task timing breakdown:\nSection |  min time  |  avg time  |  max time  |%varavg| %total\n---------------------------------------------------------------\nPair    | 0.00012569 | 0.00012569 | 0.00012569 |   0.0 |  6.89\nBond    | 0.00018361 | 0.00018361 | 0.00018361 |   0.0 | 10.06\nNeigh   | 0          | 0          | 0          |   0.0 |  0.00\nComm    | 2.452e-06  | 2.452e-06  | 2.452e-06  |   0.0 |  0.13\nOutput  | 0.0014767  | 0.0014767  | 0.0014767  |   0.0 | 80.90\nModify  | 2.7432e-05 | 2.7432e-05 | 2.7432e-05 |   0.0 |  1.50\nOther   |            | 9.542e-06  |            |       |  0.52\n\nNlocal:             26 ave          26 max          26 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\nNghost:              0 ave           0 max           0 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\nNeighs:            252 ave         252 max         252 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\n\nTotal # of neighbors = 252\nAve neighs/atom = 9.6923077\nAve special neighs/atom = 10.461538\nNeighbor list builds = 0\nDangerous builds = 0\nunfix md2\n\nwrite_dump all custom radon_md_last.dump id x y z xu yu zu vx vy vz fx fy fz modify sort id\nwrite_data radon_md_last.data\nSystem init for write_data ...\nGenerated 1 of 1 mixed pair_coeff terms from arithmetic mixing rule\nquit\n",
+    "state/jobs/20b6736aa92e4520a1782b6ac5c0f2a3/radonpy.log": "RadonPy warning: OPENMP package is not available. Parallel number of OPENMP is changed to zero.\n",
+    "state/jobs/20b6736aa92e4520a1782b6ac5c0f2a3/worker.log": "Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.\n\n********* JAX NOT FOUND *********\n PyMBAR can run faster with JAX  \n But will work fine without it   \nEither install with pip or conda:\n      pip install pybar[jax]     \n               OR                \n      conda install pymbar       \n*********************************\n{\"status\": \"completed\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/20b6736aa92e4520a1782b6ac5c0f2a3/result.json\"}\n",
+    "state/jobs/bf2298bb30b349fdab31cc5543fb726f/worker.log": "{\"status\": \"prepared\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/bf2298bb30b349fdab31cc5543fb726f/result.json\"}\n",
+    "state/jobs/2cdcaf68d5e64949a92b110dbe2fbb7f/lammps.log": "size = 0.8, bins = 259 251 251\n  1 neighbor lists, perpetual/occasional/extra = 1 0 0\n  (1) pair soft, perpetual\n      attributes: half, newton on\n      pair build: half/bin/newton\n      stencil: half/bin/3d\n      bin: standard\nWARNING: Communication cutoff 1.6 is shorter than a bond length based estimate of 1.9. This may lead to errors. (src/src/comm.cpp:743)\nPer MPI rank memory allocation (min/avg/max) = 70.35 | 70.35 | 70.35 Mbytes\n   Step          Temp          PotEng         KinEng         TotEng    \n         0   1              0.084696158    10.5           10.584696    \nLoop time of 5.71e-07 on 1 procs for 0 steps with 8 atoms\n\n175.1% CPU use with 1 MPI tasks x 1 OpenMP threads\n\nMPI task timing breakdown:\nSection |  min time  |  avg time  |  max time  |%varavg| %total\n---------------------------------------------------------------\nPair    | 0          | 0          | 0          |   0.0 |  0.00\nBond    | 0          | 0          | 0          |   0.0 |  0.00\nNeigh   | 0          | 0          | 0          |   0.0 |  0.00\nComm    | 0          | 0          | 0          |   0.0 |  0.00\nOutput  | 0          | 0          | 0          |   0.0 |  0.00\nModify  | 0          | 0          | 0          |   0.0 |  0.00\nOther   |            | 5.71e-07   |            |       |100.00\n\nNlocal:              8 ave           8 max           8 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\nNghost:              0 ave           0 max           0 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\nNeighs:              0 ave           0 max           0 min\nHistogram: 1 0 0 0 0 0 0 0 0 0\n\nTotal # of neighbors = 0\nAve neighs/atom = 0\nAve special neighs/atom = 4.5\nNeighbor list builds = 0\nDangerous builds = 0\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         0   1              0.084696158    10.5           10.584696    \n         1   1.0141422      0.072106164    10.648494      10.7206      \nLoop time of 1.3605e-05 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         1   1.0141422      0.072106164    10.648494      10.7206      \n         2   1.0011026      0.06114624     10.511577      10.572723    \nLoop time of 5.74e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         2   1.0011026      0.06114624     10.511577      10.572723    \n         3   1.0032484      0.051856646    10.534108      10.585965    \nLoop time of 5.169e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         3   1.0032484      0.051856646    10.534108      10.585965    \n         4   1.0185269      0.044442529    10.694533      10.738975    \nLoop time of 8.965e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         4   1.0185269      0.044442529    10.694533      10.738975    \n         5   1.0253837      0.039709522    10.766529      10.806238    \nLoop time of 4.859e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         5   1.0253837      0.039709522    10.766529      10.806238    \n         6   1.0419671      0.036711708    10.940655      10.977367    \nLoop time of 4.499e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         6   1.0419671      0.036711708    10.940655      10.977367    \n         7   1.0591782      0.035882247    11.121371      11.157254    \nLoop time of 3.866e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         7   1.0591782      0.035882247    11.121371      11.157254    \n         8   1.0752853      0.036873328    11.290495      11.327369    \nLoop time of 3.965e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         8   1.0752853      0.036873328    11.290495      11.327369    \n         9   1.0845487      0.039806326    11.387762      11.427568    \nLoop time of 3.664e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n         9   1.0845487      0.039806326    11.387762      11.427568    \n        10   1.0753465      0.045519535    11.291138      11.336658    \nLoop time of 3.856e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        10   1.0753465      0.045519535    11.291138      11.336658    \n        11   1.0867899      0.053465083    11.411294      11.464759    \nLoop time of 4.017e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        11   1.0867899      0.053465083    11.411294      11.464759    \n        12   1.1009488      0.064091407    11.559963      11.624054    \nLoop time of 3.955e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        12   1.1009488      0.064091407    11.559963      11.624054    \n        13   1.093015       0.076699743    11.476657      11.553357    \nLoop time of 3.733e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        13   1.093015       0.076699743    11.476657      11.553357    \n        14   1.0851074      0.091670555    11.393627      11.485298    \nLoop time of 3.668e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        14   1.0851074      0.091670555    11.393627      11.485298    \n        15   1.0589808      0.10841212     11.119299      11.227711    \nLoop time of 3.935e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        15   1.0589808      0.10841212     11.119299      11.227711    \n        16   1.042965       0.12742468     10.951132      11.078557    \nLoop time of 3.83e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        16   1.042965       0.12742468     10.951132      11.078557    \n        17   1.0486981      0.14835863     11.01133       11.159688    \nLoop time of 3.823e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        17   1.0486981      0.14835863     11.01133       11.159688    \n        18   1.0537391      0.1726978      11.064261      11.236959    \nLoop time of 3.668e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        18   1.0537391      0.1726978      11.064261      11.236959    \n        19   1.0559913      0.19982301     11.087909      11.287732    \nLoop time of 3.571e-06 on 1 procs for 1 steps with 8 atoms\n\nrun 1 pre no post no\n   Step          Temp          PotEng         KinEng         TotEng    \n        19   1.0559913      0.19982301     11.087909      11.287732    \n        20   1.0486358      0.22947457     11.010675      11.24015     \nLoop time of 3.684e-06 on 1 procs for 1 steps with 8 atoms\n\nwrite_restart \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/2cdcaf68d5e64949a92b110dbe2fbb7f/restart.lammps\"\nSystem init for write_restart ...\nGenerated 0 of 0 mixed pair_coeff terms from geometric mixing rule\nWARNING: Communication cutoff 1.6 is shorter than a bond length based estimate of 1.9. This may lead to errors. (src/src/comm.cpp:743)\nTotal wall time: 0:00:00\n",
+    "state/jobs/2cdcaf68d5e64949a92b110dbe2fbb7f/worker.log": "Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.\n\n********* JAX NOT FOUND *********\n PyMBAR can run faster with JAX  \n But will work fine without it   \nEither install with pip or conda:\n      pip install pybar[jax]     \n               OR                \n      conda install pymbar       \n*********************************\n{\"status\": \"completed\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/2cdcaf68d5e64949a92b110dbe2fbb7f/result.json\"}\n",
+    "state/jobs/f88980e609604ff69bc68412db966733/worker.log": "Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.\n\n********* JAX NOT FOUND *********\n PyMBAR can run faster with JAX  \n But will work fine without it   \nEither install with pip or conda:\n      pip install pybar[jax]     \n               OR                \n      conda install pymbar       \n*********************************\n{\"status\": \"completed\", \"result\": \"/tmp/polymer-bundle-verification-ufp1qvzt/state/jobs/f88980e609604ff69bc68412db966733/result.json\"}\n"
+  },
+  "message": "All 10 workflow cases, artifact hashes, private service and persistent history verified.",
+  "finished_at": "2026-10-22T04:54:17.414481+00:00"
+}

@@ -7,6 +7,7 @@ tools/rea/node_modules/
 tools/rea/npm/
 tools/engines/
 evidence/sources/
+evidence/extensions/sources/
 *.zip
 *.egg-info/
 .env

@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "checks": [
+    "unique DOM ids and connected initial screen",
+    "REA extension source audit renders with original download link",
+    "research navigation and desktop width",
+    "measurements navigation and desktop width",
+    "models navigation and desktop width",
+    "campaigns navigation and desktop width",
+    "bridges navigation and desktop width",
+    "CSV preview clears verification and requires explicit review, stores converted demo value",
+    "tensile curve draft is quantitative and remains unsaved/unverified",
+    "demo measurement cannot create a trained model",
+    "explicit bounded automatic campaign runs two real NumPy jobs and displays objective values",
+    "bridge preparation job is submitted and capabilities render",
+    "Parquet snapshot offers actual download URL",
+    "narrow layout has no page overflow"
+  ],
+  "console_errors": [],
+  "data_scope": "isolated temporary store; synthetic measurement tagged demo",
+  "execution_artifacts": "/tmp/polymer-research-ui-5myotpcn",
+  "artifacts": "evidence/ui-v0.3",
+  "verification_scope": "Source application in QtWebEngine under Xvfb with a separate temporary API store. Screens inspected visually; not a verification of the installed desktop package.",
+  "screenshots": [
+    {
+      "name": "bridges-1360.png",
+      "sha256": "a4e5d21bed8bb50778b86fbf2ec74d669cb0e28e9ac0ae138f8450dfd90d4987"
+    },
+    {
+      "name": "campaigns-results-1360.png",
+      "sha256": "72a07dc73159245a9225ee0a5d3a6066069a3cf8772a0dc358307ac93733ceb6"
+    },
+    {
+      "name": "measurements-1360.png",
+      "sha256": "077e0539f92fe6684f5e9e443f3d330538e7256bb760539173155f84747969aa"
+    },
+    {
+      "name": "measurements-760.png",
+      "sha256": "f8e3062e5c345a5c68ad6690e91057263284b7eb1cef40d029219817c3bbeb1d"
+    },
+    {
+      "name": "models-1360.png",
+      "sha256": "92f5e45fbac359573699947877a2aee5cc9b680859b1db3e7d31376b20d8c37e"
+    },
+    {
+      "name": "research-1360.png",
+      "sha256": "301fb1361db36721d2d1d6eb233aa70e3131738f67ce08276cfabcd45d9dee80"
+    }
+  ]
+}

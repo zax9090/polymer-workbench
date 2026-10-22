@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class JobConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     name: str = Field(default="새 연구 작업", min_length=1, max_length=120)
-    route: Literal["polymer_cg", "polymer_atomistic", "protein", "polyply", "hoomd", "pysimm", "packmol"] = "polymer_cg"
+    route: Literal["polymer_cg", "polymer_atomistic", "protein", "polyply", "hoomd", "pysimm", "packmol", "mixture"] = "polymer_cg"
     monomers: int = Field(default=24, ge=2, le=200)
     chains: int = Field(default=2, ge=1, le=16)
     steps: int = Field(default=1000, ge=10, le=100000)
@@ -33,6 +33,10 @@ class JobConfig(BaseModel):
     pdb_text: str = Field(default="", max_length=5000000)
     a3m_text: str = Field(default="", max_length=5000000)
     engine_input: str = Field(default="", max_length=500000)
+    bridge_track: Literal["martini3", "amber", "openff"] = "martini3"
+    bridge_mode: Literal["prepare", "protein_cg"] = "prepare"
+    secondary_structure: str = Field(default="", max_length=10000, pattern=r"^[HEC]*$")
+    polymer_net_charge: int = Field(default=0, ge=-100, le=100)
 
     @model_validator(mode="after")
     def bounds(self):
@@ -52,4 +56,11 @@ class JobConfig(BaseModel):
             if not 4 <= len(seq) <= 2000 or any(c not in "ACDEFGHIKLMNPQRSTVWY" for c in seq):
                 raise ValueError("단백질 서열에는 4~2,000개의 표준 아미노산 문자 또는 FASTA를 입력하세요.")
             self.sequence = seq
+        if self.route == "mixture":
+            if not 250 <= self.temperature_kelvin <= 400:
+                raise ValueError("현재 혼합계 준비 템플릿의 온도 범위는 250~400 K입니다.")
+            if self.bridge_mode == "protein_cg" and self.bridge_track != "martini3":
+                raise ValueError("단백질 CG 생성은 Martini 3 경로에서 지원합니다.")
+            if self.bridge_track == "martini3" and self.polyply_library != "martini3":
+                raise ValueError("Martini 3 브릿지에는 동일 버전의 martini3 라이브러리를 사용하세요.")
         return self

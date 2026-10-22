@@ -1,0 +1,325 @@
+[
+  {
+    "id": "baybe",
+    "repository": "emdgroup/baybe",
+    "url": "https://github.com/emdgroup/baybe",
+    "license": "Apache-2.0",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/emdgroup/baybe/3d285c73a48b55ed46404d0e40c30a550dad2ea2/README.md",
+        "sha256": "7cb379ae653138710b9909b4e79d60bac86630fb59a7c9322b1665bbebf1bbbb",
+        "bytes": 22383,
+        "github_blob_sha": "033ead212bdb772533cfd6a7d9a8e1ff879438b5"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/emdgroup/baybe/3d285c73a48b55ed46404d0e40c30a550dad2ea2/LICENSE",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+        "bytes": 10174,
+        "github_blob_sha": "f433b1a53f5b830a205fd2df78e2b34974656c7b"
+      },
+      {
+        "path": "baybe/campaign.py",
+        "source_url": "https://raw.githubusercontent.com/emdgroup/baybe/3d285c73a48b55ed46404d0e40c30a550dad2ea2/baybe/campaign.py",
+        "sha256": "3ebf7b7d1cf23bfba4fc3e0865a2190900e96bd8f30265521653091009e1a62b",
+        "bytes": 40421,
+        "github_blob_sha": "3aa1d4827323471ce765ce3550e5cc61053bb169"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "baybe/campaign.py",
+        "needle": "class Campaign",
+        "purpose": "Campaign recommendation / measurement state"
+      }
+    ],
+    "commit": "3d285c73a48b55ed46404d0e40c30a550dad2ea2",
+    "resolved_at": "2026-10-22T04:25:43.890412+00:00"
+  },
+  {
+    "id": "duckdb",
+    "repository": "duckdb/duckdb",
+    "url": "https://github.com/duckdb/duckdb",
+    "license": "MIT",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/duckdb/duckdb/c15a232a57040c59d5004ea4a7e54520260b2db2/README.md",
+        "sha256": "d9c2afdbd78821e5cd28731bdefa22760374c7670ef2100cd4c44e2d8ced8a8a",
+        "bytes": 5808,
+        "github_blob_sha": "f9cd154ac7c41b49784cc66e659d60412d468fce"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/duckdb/duckdb/c15a232a57040c59d5004ea4a7e54520260b2db2/LICENSE",
+        "sha256": "075c33400ffcb0c586dd106a029d3e733e9da3693f8fcb9cebfc651c8a2f14e3",
+        "bytes": 1072,
+        "github_blob_sha": "2719c9a23d2a37c1dfb7402e79f03bd615701e53"
+      },
+      {
+        "path": "src/include/duckdb/main/database.hpp",
+        "source_url": "https://raw.githubusercontent.com/duckdb/duckdb/c15a232a57040c59d5004ea4a7e54520260b2db2/src/include/duckdb/main/database.hpp",
+        "sha256": "ab9796fdb73197a9822d7140bf0f4ccae411266335a70f98d00f27ef62606b80",
+        "bytes": 8436,
+        "github_blob_sha": "041f3119d95565a494cf580584de124a71da8e17"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "src/include/duckdb/main/database.hpp",
+        "needle": "class DuckDB",
+        "purpose": "Embedded database connection entry point"
+      }
+    ],
+    "commit": "c15a232a57040c59d5004ea4a7e54520260b2db2",
+    "resolved_at": "2026-10-22T04:25:43.920839+00:00"
+  },
+  {
+    "id": "scikit-learn",
+    "repository": "scikit-learn/scikit-learn",
+    "url": "https://github.com/scikit-learn/scikit-learn",
+    "license": "BSD-3-Clause",
+    "source_files": [
+      {
+        "path": "README.rst",
+        "source_url": "https://raw.githubusercontent.com/scikit-learn/scikit-learn/718eedb7af8678255de080d4748d9f67e321ba41/README.rst",
+        "sha256": "3e0c151adde02aa2501477a7c2a17a87888abe58178c09a2a8eff794bbee3221",
+        "bytes": 7676,
+        "github_blob_sha": "cf30a4b3289a096a273ca490e1a846cf4c088795"
+      },
+      {
+        "path": "COPYING",
+        "source_url": "https://raw.githubusercontent.com/scikit-learn/scikit-learn/718eedb7af8678255de080d4748d9f67e321ba41/COPYING",
+        "sha256": "50d6a9d340f19ab355609917993114daf5f47e3161067bcf34955bbd05cd9cb0",
+        "bytes": 1532,
+        "github_blob_sha": "3d7ee432c15b685eaa654b6abe8f8e3ea8126a8d"
+      },
+      {
+        "path": "sklearn/model_selection/_split.py",
+        "source_url": "https://raw.githubusercontent.com/scikit-learn/scikit-learn/718eedb7af8678255de080d4748d9f67e321ba41/sklearn/model_selection/_split.py",
+        "sha256": "c8906abec0bb3af831928d4c3689c904ff59ed49e5dc99c4038f72d91ec2d093",
+        "bytes": 111854,
+        "github_blob_sha": "bef3f1adb3c83051a47acb3613c988cb16c746d6"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "sklearn/model_selection/_split.py",
+        "needle": "class GroupKFold",
+        "purpose": "Group-aware validation prevents same-material train/test leakage"
+      }
+    ],
+    "commit": "718eedb7af8678255de080d4748d9f67e321ba41",
+    "resolved_at": "2026-10-22T04:25:43.905672+00:00"
+  },
+  {
+    "id": "pymbar",
+    "repository": "choderalab/pymbar",
+    "url": "https://github.com/choderalab/pymbar",
+    "license": "MIT",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/choderalab/pymbar/ed40ec3bbef03bb08938ad1a74d459b0d1ab81f7/README.md",
+        "sha256": "e22f9a18d567757aa27294672561183080cb7dde1ca146cc302a9c15df3b6858",
+        "bytes": 7512,
+        "github_blob_sha": "e3df544fd356b757d0b2aa1b531260af3fcd338f"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/choderalab/pymbar/ed40ec3bbef03bb08938ad1a74d459b0d1ab81f7/LICENSE",
+        "sha256": "b06216b25962856729369804671b10ac7daed2237597f285abc540c363c19da2",
+        "bytes": 1098,
+        "github_blob_sha": "9cbae2a7e0268fef2d497cf112b5f41403016c4e"
+      },
+      {
+        "path": "pymbar/timeseries.py",
+        "source_url": "https://raw.githubusercontent.com/choderalab/pymbar/ed40ec3bbef03bb08938ad1a74d459b0d1ab81f7/pymbar/timeseries.py",
+        "sha256": "b375525c9f3f151c006d6eb2eb7898a204c834c603eb8d48b1e8a02841dd0f2a",
+        "bytes": 35551,
+        "github_blob_sha": "e0d455323e13f52dcff6bd489241b860112a864d"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "pymbar/timeseries.py",
+        "needle": "def detect_equilibration(",
+        "purpose": "Statistical transient/correlation analysis; not proof of physical equilibrium"
+      }
+    ],
+    "commit": "ed40ec3bbef03bb08938ad1a74d459b0d1ab81f7",
+    "resolved_at": "2026-10-22T04:25:44.451324+00:00"
+  },
+  {
+    "id": "openff-toolkit",
+    "repository": "openforcefield/openff-toolkit",
+    "url": "https://github.com/openforcefield/openff-toolkit",
+    "license": "MIT",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-toolkit/ef074d58a2e7b03625aae7cd3aff87a8ee46c38b/README.md",
+        "sha256": "73fb2377d87773af8dd24326c7ae4c138ab8ba04f938511fec2cd9e3028f3701",
+        "bytes": 9300,
+        "github_blob_sha": "6c031d8845b15b1063a2d0d87237c54d8b1d2351"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-toolkit/ef074d58a2e7b03625aae7cd3aff87a8ee46c38b/LICENSE",
+        "sha256": "dba1df2d41e5a60c1cfd8a4a5c3985340bc4c16825bfa4e2c7dc3a7dfba1611e",
+        "bytes": 1089,
+        "github_blob_sha": "8775d11282454d0da360f00ad901b27652b6b3d3"
+      },
+      {
+        "path": "openff/toolkit/utils/nagl_wrapper.py",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-toolkit/ef074d58a2e7b03625aae7cd3aff87a8ee46c38b/openff/toolkit/utils/nagl_wrapper.py",
+        "sha256": "3a4d57b91a4d20996c1654fc697b5739d5dbe70f28214e8b4c42ba3bee596d68",
+        "bytes": 5919,
+        "github_blob_sha": "7587ce2ff264d9b23f5c49bfba87b6f264a3b9f3"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "openff/toolkit/utils/nagl_wrapper.py",
+        "needle": "class NAGLToolkitWrapper",
+        "purpose": "Optional learned partial-charge interface; model/domain required"
+      }
+    ],
+    "commit": "ef074d58a2e7b03625aae7cd3aff87a8ee46c38b",
+    "resolved_at": "2026-10-22T04:25:44.436468+00:00"
+  },
+  {
+    "id": "openff-nagl",
+    "repository": "openforcefield/openff-nagl",
+    "url": "https://github.com/openforcefield/openff-nagl",
+    "license": "MIT; third-party licenses also apply",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-nagl/9cc2af72083a756e21dd6574fa6c3b09d2d7feab/README.md",
+        "sha256": "d2020758c3351dd461429f1be167aa48cbc40c34e6d03e0bc9499925560c5995",
+        "bytes": 3614,
+        "github_blob_sha": "4110c275de075b909fe89e3d7752bcf15e8dcc30"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-nagl/9cc2af72083a756e21dd6574fa6c3b09d2d7feab/LICENSE",
+        "sha256": "e7f67af0a363a17b42589e48078fb1a0312c4cdd8102302e66aab7b35077cecb",
+        "bytes": 1066,
+        "github_blob_sha": "002bc28944ee31a4e8abdc888dffd80de1160236"
+      },
+      {
+        "path": "LICENSE-3RD-PARTY",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-nagl/9cc2af72083a756e21dd6574fa6c3b09d2d7feab/LICENSE-3RD-PARTY",
+        "sha256": "19fe9a16d7afd0d0ef85a71e73e52e1f196084d34fe5dff7b9ae9808cb3b18f0",
+        "bytes": 13101,
+        "github_blob_sha": "ff9a8f13e01db3ecadfc31cd27a1adbb6814f63d"
+      },
+      {
+        "path": "pyproject.toml",
+        "source_url": "https://raw.githubusercontent.com/openforcefield/openff-nagl/9cc2af72083a756e21dd6574fa6c3b09d2d7feab/pyproject.toml",
+        "sha256": "dbd181564f5bdc274f125d97cfefef3ad92f4cd80c0a16447a2833c35253d99c",
+        "bytes": 1579,
+        "github_blob_sha": "5e277f639c542844d3ff3077d6a96d1ca8b752b2"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "README.md",
+        "needle": "still in development",
+        "purpose": "Upstream explicitly warns API is evolving"
+      }
+    ],
+    "commit": "9cc2af72083a756e21dd6574fa6c3b09d2d7feab",
+    "resolved_at": "2026-10-22T04:25:44.484966+00:00"
+  },
+  {
+    "id": "martinize2",
+    "repository": "marrink-lab/vermouth-martinize",
+    "url": "https://github.com/marrink-lab/vermouth-martinize",
+    "license": "Apache-2.0",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/vermouth-martinize/a9b62eed6eec028c486ab6369a13cdd9c31f4561/README.md",
+        "sha256": "2e25556d9e4fd55c361df4d1f9fc0a1b00335fbdc4ca9a331c701c511f7bcf95",
+        "bytes": 5898,
+        "github_blob_sha": "bfe24086c7c819daccc40f182195f0eddce4a4da"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/vermouth-martinize/a9b62eed6eec028c486ab6369a13cdd9c31f4561/LICENSE",
+        "sha256": "d4ed38a5173d03094b131793ab2a3ae16580159af5df7d9a337eef661fb99b53",
+        "bytes": 11528,
+        "github_blob_sha": "974f64483008440ea681df1360b39c4ec7bc424e"
+      },
+      {
+        "path": "vermouth/bin/martinize2.py",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/vermouth-martinize/a9b62eed6eec028c486ab6369a13cdd9c31f4561/vermouth/bin/martinize2.py",
+        "sha256": "6874fd03fe0ff2ce721c71df0446c43f661d5b5da16c80c0b487c14faaa48b90",
+        "bytes": 44036,
+        "github_blob_sha": "01db67d763633099a647bae408567635e566311f"
+      },
+      {
+        "path": "doc/source/tutorials/basic_usage.rst",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/vermouth-martinize/a9b62eed6eec028c486ab6369a13cdd9c31f4561/doc/source/tutorials/basic_usage.rst",
+        "sha256": "b1974efe42d709edf007f7ce72360463678e4df7e30301d309e88920027b90de",
+        "bytes": 8936,
+        "github_blob_sha": "4e775954e50ec3ac5402e514ef883b1a95e50e13"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "vermouth/bin/martinize2.py",
+        "needle": "\"-ss\"",
+        "purpose": "Explicit secondary-structure input"
+      },
+      {
+        "path": "doc/source/tutorials/basic_usage.rst",
+        "needle": "-ff martini3001",
+        "purpose": "Protein Martini 3 parameterization recipe"
+      }
+    ],
+    "commit": "a9b62eed6eec028c486ab6369a13cdd9c31f4561",
+    "resolved_at": "2026-10-22T04:25:45.688442+00:00"
+  },
+  {
+    "id": "insane",
+    "repository": "Tsjerk/Insane",
+    "url": "https://github.com/Tsjerk/Insane",
+    "license": "GPL-2.0",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/Tsjerk/Insane/e23a501036c683f2652fe07a66ba941195d7b8f6/README.md",
+        "sha256": "9a3685dde7b550274c9cbf635674abbf0a01e716452cbc745219edd75eb5c834",
+        "bytes": 7766,
+        "github_blob_sha": "18f144f1d13e18fb68673d6e91ca3314ac2d9c0a"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/Tsjerk/Insane/e23a501036c683f2652fe07a66ba941195d7b8f6/LICENSE",
+        "sha256": "db296f2f7f35bca3a174efb0eb392b3b17bd94b341851429a3dff411b1c2fc73",
+        "bytes": 18046,
+        "github_blob_sha": "23cb790338e191e29205d6f4123882c0583ef8eb"
+      },
+      {
+        "path": "insane/core.py",
+        "source_url": "https://raw.githubusercontent.com/Tsjerk/Insane/e23a501036c683f2652fe07a66ba941195d7b8f6/insane/core.py",
+        "sha256": "1c3598e982e448361409c6bfdd7cfff7c2e8ff4293dbae75fde79a083d1dba03",
+        "bytes": 33230,
+        "github_blob_sha": "1ec2f9618063406feee48b37ae0ba2558ad4da14"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "README.md",
+        "needle": "Solvate a protein",
+        "purpose": "Solvation needs already coarse-grained solute input"
+      }
+    ],
+    "commit": "e23a501036c683f2652fe07a66ba941195d7b8f6",
+    "resolved_at": "2026-10-22T04:25:44.993446+00:00"
+  }
+]

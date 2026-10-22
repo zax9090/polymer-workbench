@@ -15,16 +15,20 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .jobs import JobManager, ROOT
 from .models import JobConfig
 from .paths import default_jobs_root
+from . import __version__
 
 
 def create_app(data_root=None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.manager = JobManager(Path(data_root or default_jobs_root()))
+        from .research_api import initialize_research
+        initialize_research(app, app.state.manager)
         yield
+        app.state.campaigns.close()
         app.state.manager.close()
 
-    app = FastAPI(title="Polymer Lab", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Polymer Lab", version=__version__, lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
 
     @app.middleware("http")
@@ -50,7 +54,7 @@ def create_app(data_root=None):
 
     @app.get("/api/health")
     def health():
-        return {"ok": True, "name": "Polymer Lab", "version": "0.2.0", "local_only": True}
+        return {"ok": True, "name": "Polymer Lab", "version": __version__, "local_only": True}
 
     @app.get("/api/capabilities")
     def capabilities():
@@ -81,6 +85,7 @@ def create_app(data_root=None):
             "polyply": ("polyply → GROMACS", "토폴로지 생성. 좌표·MD는 전체 힘장 파일 및 GROMACS 필요", ["polyply"]),
             "hoomd": ("HOOMD-blue", "별도 HOOMD 환경에서 조대화 계산", ["hoomd"]),
             "pysimm": ("pysimm → LAMMPS", "별도 pysimm 환경에서 모델링·계산", ["pysimm", "lammps"]),
+            "mixture": ("단백질–고분자 브릿지", "Martini 3 또는 AMBER 준비 계획·단계별 평형화 입력. 검증된 전체 힘장은 별도 필요", []),
         }
         found = {e["id"]: e["available"] for e in engines}
         import shutil
@@ -105,8 +110,8 @@ def create_app(data_root=None):
         manager = request.app.state.manager
         if config.source_job_id:
             source = manager.get(config.source_job_id)
-            if config.route != "packmol" or source["status"] not in {"completed", "prepared"}:
-                raise HTTPException(422, "완료된 원자 구조 작업을 PACKMOL로 이어갈 수 있습니다.")
+            if config.route not in {"packmol", "mixture"} or source["status"] not in {"completed", "prepared"}:
+                raise HTTPException(422, "완료된 원자 구조 작업을 PACKMOL 또는 혼합계 브릿지로 이어갈 수 있습니다.")
             if source["config"]["route"] in {"polymer_cg", "hoomd"}:
                 raise HTTPException(422, "조대화 비드 좌표는 원자 구조와 단위·모델이 달라 직접 연결할 수 없습니다.")
             directory = manager.directory(config.source_job_id)
@@ -166,7 +171,11 @@ def create_app(data_root=None):
         path = ROOT / "evidence" / "repositories.json"
         if not path.exists():
             return {"schema_version": 1, "repositories": [], "rea": {"status": "pending", "limitations": ["분석 자료 준비 중"]}}
-        return json.loads(path.read_text())
+        result = json.loads(path.read_text())
+        extensions = ROOT / "evidence" / "extensions" / "audit.json"
+        if extensions.is_file():
+            result["extensions"] = json.loads(extensions.read_text())
+        return result
 
     @app.get("/api/evidence/files/{name:path}")
     def evidence_file(name: str):
@@ -176,6 +185,8 @@ def create_app(data_root=None):
             raise HTTPException(404, "분석 자료를 찾을 수 없습니다.")
         return FileResponse(path, media_type="text/plain; charset=utf-8")
 
+    from .research_api import router as research_router
+    app.include_router(research_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")
     app.mount("/", StaticFiles(directory=ROOT / "workbench" / "static", html=True), name="frontend")
     return app

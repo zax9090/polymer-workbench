@@ -288,7 +288,7 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True, help="Bundle directory or PolymerLab executable")
     parser.add_argument("--report", type=Path, help="Write incremental and final JSON verification evidence")
     parser.add_argument("--job-timeout", type=float, default=180, help="Maximum seconds per real calculation (default: 180)")
-    parser.add_argument("--expected-version", default="0.2.0")
+    parser.add_argument("--expected-version", default="0.3.0")
     parser.add_argument("--with-alphafold-db", action="store_true", help="Also download public P69905 from AlphaFold DB and pack it with a polymer; no new folding inference")
     parser.add_argument("--keep-workspace", action="store_true", help="Keep temporary calculations and logs for diagnosis")
     args = parser.parse_args()
