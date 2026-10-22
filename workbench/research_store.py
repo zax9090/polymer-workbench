@@ -20,6 +20,7 @@ PROPERTY_UNITS = {
     "tg": "K", "young_modulus": "MPa", "tensile_strength": "MPa",
     "binding_affinity": "nM", "contact_count": "count", "hbond_count": "count",
     "protein_rmsd": "angstrom", "molecular_weight": "g/mol",
+    "mn": "g/mol", "mw": "g/mol", "dispersity": "dimensionless", "decomposition_temperature": "K",
 }
 
 
@@ -108,13 +109,19 @@ def validate_measurement(record: dict) -> dict:
         "contact_count": {"count": (1, 0)}, "hbond_count": {"count": (1, 0)},
         "protein_rmsd": {"angstrom": (1, 0), "Å": (1, 0), "nm": (10, 0)},
         "molecular_weight": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
+        "mn": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
+        "mw": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
+        "dispersity": {"dimensionless": (1, 0)},
+        "decomposition_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
     }
     if unit not in units[prop]:
         raise ValueError(f"Unit {unit!r} is incompatible with {prop}")
     factor, offset = units[prop][unit]
     converted = value * factor + offset
-    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight"} and converted == 0):
+    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature"} and converted == 0):
         raise ValueError(f"Invalid physical value for {prop}")
+    if prop == "dispersity" and converted < 1:
+        raise ValueError("Dispersity Mw/Mn cannot be below 1")
     if not str(row.get("method", "")).strip() or not row.get("source"):
         raise ValueError("Measurement method and source are required")
     if row.get("origin") not in {"experimental", "literature", "simulation", "demo"}:

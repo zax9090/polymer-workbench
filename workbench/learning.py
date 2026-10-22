@@ -21,6 +21,8 @@ import numpy as np
 PROPERTIES = {
     "tg": ("K", "polymer"), "young_modulus": ("MPa", "polymer"),
     "tensile_strength": ("MPa", "polymer"), "molecular_weight": ("g/mol", "polymer"),
+    "mn": ("g/mol", "polymer"), "mw": ("g/mol", "polymer"), "dispersity": ("dimensionless", "polymer"),
+    "decomposition_temperature": ("K", "polymer"),
     "binding_affinity": ("nM", "protein_polymer"), "contact_count": ("count", "protein_polymer"),
     "hbond_count": ("count", "protein_polymer"), "protein_rmsd": ("angstrom", "protein_polymer"),
 }

@@ -113,3 +113,20 @@ def test_bridge_preparation_is_not_simulation(client):
     diagnosis = client.get("/api/research/diagnostics/" + identifier).json()
     assert diagnosis["llm_used"] is False
     assert client.post(f"/api/research/diagnostics/{identifier}/retry", json={"rule_id": "unstable_atoms"}).status_code in {409, 422}
+
+
+def test_gpc_curve_drafts_keep_analysis_provenance_when_saved(client):
+    from tests.test_research_data import gpc_fixture
+    text, options = gpc_fixture()
+    response = client.post("/api/research/curves", json={"kind": "gpc", "text": text, "options": options})
+    assert response.status_code == 200, response.text
+    drafts = response.json()["measurement_drafts"]
+    assert [d["property"] for d in drafts] == ["mn", "mw", "dispersity"]
+    assert client.get("/api/research/measurements").json() == []
+    saved = client.post("/api/research/measurements", json={**drafts[2], "material": {"repeat_smiles": "[*]CC[*]"},
+                        "source": "synthetic API test fixture, not research evidence", "origin": "demo"})
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["verified"] is False
+    assert saved.json()["analysis"]["calibration_sha256"] == drafts[2]["analysis"]["calibration_sha256"]
+    bad = client.post("/api/research/curves", json={"kind": "gpc", "text": text, "options": {**options, "calibration_order": 4}})
+    assert bad.status_code == 422
