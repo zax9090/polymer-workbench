@@ -68,3 +68,20 @@ def test_main_writes_a_private_drive_file_config(tmp_path, monkeypatch, capsys):
     assert drive_backup_config.main([str(missing)]) == 1
     output = capsys.readouterr().out
     assert output.startswith("::error::") and "1//0g" not in output and not missing.exists()
+
+
+def test_an_own_oauth_client_goes_into_the_config(tmp_path, monkeypatch):
+    config = tmp_path / "rclone.conf"
+    monkeypatch.setenv("RCLONE_DRIVE_TOKEN", blob({"token": json.dumps(TOKEN)}))
+    monkeypatch.setenv("DRIVE_CLIENT_ID", " 1234-abc.apps.googleusercontent.com\n")
+    monkeypatch.setenv("DRIVE_CLIENT_SECRET", "GOCSPX-example")
+    assert drive_backup_config.main([str(config)]) == 0
+    assert config.read_text().startswith("[gdrive]\ntype = drive\nscope = drive.file\n"
+                                         "client_id = 1234-abc.apps.googleusercontent.com\nclient_secret = GOCSPX-example\ntoken = {")
+
+
+@pytest.mark.parametrize("client_id, client_secret", [("1234-abc.apps.googleusercontent.com", ""), ("", "GOCSPX-x"),
+                                                      ("not-a-client", "GOCSPX-x"), ("1234-abc.apps.googleusercontent.com", "a b")])
+def test_a_partial_or_malformed_client_is_refused(client_id, client_secret):
+    with pytest.raises(ValueError, match="DRIVE_CLIENT"):
+        drive_backup_config.drive_client(client_id, client_secret)

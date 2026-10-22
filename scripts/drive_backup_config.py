@@ -5,6 +5,9 @@ The secret is what `rclone authorize "drive" <config blob>` printed (docs/DRIVE_
 blob, rclone answers with one: unpadded standard base64 of a JSON map whose "token" entry is the OAuth
 token. Without a blob, and in older rclone, the answer is the token JSON itself. rclone config accepts
 both, and so does this; the "--->" and "<---End paste" lines around the answer may be pasted along.
+
+DRIVE_CLIENT_ID and DRIVE_CLIENT_SECRET name the user's own Google OAuth client, which the token must
+have been authorized with. Without them rclone uses its shared client, which rclone retires during 2026.
 """
 from __future__ import annotations
 import base64
@@ -12,8 +15,20 @@ import json
 import os
 import sys
 
-# rclone's own OAuth client, limited to the files rclone creates.
-CONFIG = "[gdrive]\ntype = drive\nscope = drive.file\ntoken = {token}\n"
+# Limited to the files rclone creates.
+CONFIG = "[gdrive]\ntype = drive\nscope = drive.file\n{client}token = {token}\n"
+
+
+def drive_client(client_id, client_secret):
+    """Return the config lines for an own OAuth client, or "" for rclone's shared one."""
+    client_id, client_secret = client_id.strip(), client_secret.strip()
+    if bool(client_id) != bool(client_secret):
+        raise ValueError("set both DRIVE_CLIENT_ID and DRIVE_CLIENT_SECRET, or neither")
+    if not client_id:
+        return ""
+    if not client_id.endswith(".apps.googleusercontent.com") or any(c.isspace() for c in client_id + client_secret):
+        raise ValueError("DRIVE_CLIENT_ID must be a Google OAuth client ID (...apps.googleusercontent.com)")
+    return f"client_id = {client_id}\nclient_secret = {client_secret}\n"
 
 
 def drive_token(secret):
@@ -44,12 +59,13 @@ def main(argv=None):
         return 2
     try:
         token = drive_token(os.environ.get("RCLONE_DRIVE_TOKEN", ""))
+        client = drive_client(os.environ.get("DRIVE_CLIENT_ID", ""), os.environ.get("DRIVE_CLIENT_SECRET", ""))
     except ValueError as error:
         print(f"::error::{error}")
         return 1
     descriptor = os.open(argv[0], os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as config:
-        config.write(CONFIG.format(token=token))
+        config.write(CONFIG.format(client=client, token=token))
     return 0
 
 
