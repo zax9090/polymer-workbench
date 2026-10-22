@@ -29,9 +29,10 @@ jobs:
 
       # GROMACS runs the Martini 3 mixture tests; Ubuntu 24.04 ships 2023.3, the version they were validated with.
       - name: Install GROMACS
+        timeout-minutes: 10
         run: |
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gromacs
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq --no-install-recommends gromacs strace
           gmx --version | head -n 1
 
       - name: Install pinned research environment
@@ -53,8 +54,8 @@ jobs:
       # TEMPORARY diagnosis of the SIGTERM seen during the in-process LAMMPS test; removed with the fix.
       - name: Diagnose in-process MPI initialization
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt-get install -y -qq strace >/dev/null
           export PATH="$PWD/.venv/bin:$PATH"
           export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
           ls -l /dev/infiniband 2>&1 | head -5 || true
@@ -65,6 +66,7 @@ jobs:
           setsid bash -c '.venv/bin/python -m pytest -q -p no:cacheprovider "tests/test_science.py::ScientificChecks::test_lammps_matches_independent_potential"; echo "isolated test exit $?"' || true
 
       - name: Run pytest
+        timeout-minutes: 30
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
           export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
