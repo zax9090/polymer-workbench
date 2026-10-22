@@ -31,6 +31,12 @@ def sha256(path):
 
 def installed_root(package_file):
     top = package_file.split("/", 1)[0]
+    if top == package_file and top.endswith(".py"):
+        # Single-module distribution (jcamp.py): the module sits directly in site-packages.
+        spec = importlib.util.find_spec(top[:-3])
+        if spec is None or not spec.origin:
+            raise SystemExit(f"{top[:-3]} is not installed in {sys.executable}")
+        return Path(spec.origin).parent
     spec = importlib.util.find_spec(top)
     if spec is None or not spec.submodule_search_locations:
         raise SystemExit(f"{top} is not installed in {sys.executable}")

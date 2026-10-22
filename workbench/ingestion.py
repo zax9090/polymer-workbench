@@ -52,7 +52,7 @@ def parse_measurements_csv(text: str) -> list[dict]:
     return records
 
 
-def _curve(text, x_column, y_column):
+def _points(text, x_column, y_column):
     if len(text.encode("utf-8")) > 10_000_000:
         raise ValueError("Curve CSV exceeds 10 MB")
     reader = csv.DictReader(io.StringIO(text.lstrip("\ufeff")))
@@ -76,9 +76,37 @@ def _curve(text, x_column, y_column):
     if len(points) < 3:
         raise ValueError("A curve requires at least three points")
     data = np.asarray(points)
-    if np.any(np.diff(data[:, 0]) <= 0):
-        raise ValueError("Choose one monotonic loading/heating branch with strictly increasing x values")
     return data[:, 0], data[:, 1]
+
+
+def _curve(text, x_column, y_column):
+    x, y = _points(text, x_column, y_column)
+    if np.any(np.diff(x) <= 0):
+        raise ValueError("Choose one monotonic loading/heating branch with strictly increasing x values")
+    return x, y
+
+
+def _new_draft(kind, text, options, x, y, x_column, y_column):
+    step = max(1, len(x) // 500)
+    return {"kind": kind, "review_required": True, "verified": False, "origin": "experimental",
+            "source_sha256": hashlib.sha256(text.encode()).hexdigest(), "options": options,
+            "points": len(x), "measurement_draft": None,
+            "preview": {"x": x[::step].tolist(), "y": y[::step].tolist(), "x_column": x_column, "y_column": y_column}, "warnings": []}
+
+
+def _smoothed_derivative(x, y, span):
+    """Savitzky-Golay (quadratic) smoothing and first derivative over `span` x units, on a uniform resampling of x."""
+    from scipy.signal import savgol_filter
+    grid = np.linspace(x[0], x[-1], max(len(x), 101))
+    step = float(grid[1] - grid[0])
+    values = np.interp(grid, x, y)
+    window = max(5, int(round(span / step)) | 1)
+    if window > len(grid):
+        window = len(grid) if len(grid) % 2 else len(grid) - 1
+    smooth = savgol_filter(values, window, 2)
+    slope = savgol_filter(values, window, 2, deriv=1, delta=step)
+    return grid, smooth, slope, {"method": "Savitzky-Golay, quadratic, on a uniform resampling", "window_points": window,
+                                 "span_input_units": window * step}
 
 
 def _window(value, label):
@@ -168,14 +196,81 @@ def _tga(x, y, options, draft):
                 "crossing_input_units": crossing,
                 "bracketing_points": [[float(tx[i - 1]), float(remaining[i - 1])], [float(tx[i]), float(remaining[i])]],
                 "final_temperature_K": float(x[-1] + offset), "remaining_mass_percent_at_final": float(y[-1] / reference_mass * 100)}
+    conditions = {"mass_loss_percent": loss, "atmosphere": atmosphere, "heating_rate_K_min": rate,
+                  "reference_temperature_K": round(reference + offset, 2)}
+    dtg = _tga_derivative(tx, remaining, options, offset)
+    analysis["dtg"] = dtg
+    definition = options.get("td_definition", "mass_loss")
+    if definition not in {"mass_loss", "onset"}:
+        raise ValueError("td_definition must be mass_loss or onset")
+    if definition == "onset":
+        # ISO 11358-1 extrapolated onset: starting-mass line meets the tangent at the steepest mass loss.
+        onset = dtg["extrapolated_onset_K"]
+        if onset is None or onset - offset <= reference:
+            raise ValueError("The extrapolated onset falls at or before the reference temperature; widen the curve or choose td_definition mass_loss")
+        decomposition = {"property": "decomposition_temperature", "value": onset, "unit": "K",
+                         "method": "TGA extrapolated onset: intersection of the starting-mass line with the tangent at the maximum mass-loss rate",
+                         "conditions": {"atmosphere": atmosphere, "heating_rate_K_min": rate, "reference_temperature_K": conditions["reference_temperature_K"],
+                                        "onset_baseline": dtg["onset_baseline"]["source"]}, "analysis": analysis}
+    else:
+        decomposition = {"property": "decomposition_temperature", "value": crossing + offset, "unit": "K",
+                         "method": "TGA first-crossing temperature at a stated mass loss relative to the mass at a stated reference temperature",
+                         "conditions": conditions, "analysis": analysis}
+    drafts = [decomposition,
+              {"property": "dtg_peak_temperature", "value": dtg["peak_K"], "unit": "K",
+               "method": "TGA temperature of the maximum mass-loss rate (Savitzky-Golay derivative)",
+               "conditions": {"atmosphere": atmosphere, "heating_rate_K_min": rate}, "analysis": analysis}]
+    if options.get("residue_temperature") is not None:
+        residue_at = options["residue_temperature"]
+        if isinstance(residue_at, bool) or not isinstance(residue_at, (int, float)) or not tx[0] < residue_at <= tx[-1]:
+            raise ValueError("residue_temperature must lie after the reference temperature and inside the uploaded range")
+        residue = float(np.interp(residue_at, tx, remaining)) / 100
+        analysis["residue_fraction"] = residue
+        drafts.append({"property": "char_yield", "value": min(max(residue, 0.0), 1.0), "unit": "fraction",
+                       "method": "TGA remaining mass at a stated temperature relative to the mass at a stated reference temperature",
+                       "conditions": {"atmosphere": atmosphere, "heating_rate_K_min": rate, "reference_temperature_K": conditions["reference_temperature_K"],
+                                      "residue_temperature_K": round(float(residue_at) + offset, 2)}, "analysis": analysis})
+        if residue > 1:
+            draft["warnings"].append("The residue exceeds the reference mass (oxidation or buoyancy); char yield was capped at 1.")
+        if any(word in atmosphere.lower() for word in ("air", "o2", "oxygen")):
+            draft["warnings"].append("In an oxidizing atmosphere the residue is ash or oxide, not char.")
     draft["fit"] = analysis
-    draft["measurement_drafts"] = [{
-        "property": "decomposition_temperature", "value": crossing + offset, "unit": "K",
-        "method": "TGA first-crossing temperature at a stated mass loss relative to the mass at a stated reference temperature",
-        "conditions": {"mass_loss_percent": loss, "atmosphere": atmosphere, "heating_rate_K_min": rate,
-                       "reference_temperature_K": round(reference + offset, 2)},
-        "analysis": analysis}]
-    draft["warnings"].append("Td depends on heating rate, atmosphere, sample mass, pan and buoyancy correction; no blank subtraction or extrapolated tangent onset is applied.")
+    draft["measurement_drafts"] = drafts
+    if len(dtg["peaks"]) > 1:
+        draft["warnings"].append(f"The DTG curve shows {len(dtg['peaks'])} mass-loss steps; the DTG peak and onset refer to the fastest one.")
+    draft["warnings"].append("Td depends on heating rate, atmosphere, sample mass, pan and buoyancy correction; no blank subtraction is applied.")
+
+
+def _tga_derivative(tx, remaining, options, offset):
+    """DTG (-d mass%/dT), its peaks, and the ISO 11358-1 extrapolated onset of the fastest step."""
+    from scipy.signal import find_peaks
+    span = _positive(options, "dtg_smoothing", "dtg_smoothing") if options.get("dtg_smoothing") is not None else 5.0
+    grid, smooth, slope, smoothing = _smoothed_derivative(tx, remaining, span)
+    rate = -slope  # % per kelvin (identical per degree Celsius)
+    search = np.ones_like(grid, dtype=bool)
+    window = None
+    if options.get("dtg_window") is not None:
+        window = _window(options["dtg_window"], "dtg_window")
+        search = (grid >= window[0]) & (grid <= window[1])
+        if search.sum() < 3:
+            raise ValueError("dtg_window must contain at least three points after the reference temperature")
+    if np.max(rate[search]) <= 0:
+        raise ValueError("No mass loss in the DTG search range")
+    main = int(np.flatnonzero(search)[np.argmax(rate[search])])
+    found, props = find_peaks(rate, prominence=0.05 * float(np.max(rate)))
+    peaks = [{"temperature_K": float(grid[j] + offset), "rate_percent_per_K": float(rate[j])} for j in found]
+    baseline = {"level_percent": 100.0, "source": "reference mass"}
+    if options.get("onset_baseline_window") is not None:
+        low, high = _window(options["onset_baseline_window"], "onset_baseline_window")
+        mask = (tx >= low) & (tx <= high)
+        if mask.sum() < 3:
+            raise ValueError("onset_baseline_window must contain at least three points after the reference temperature")
+        baseline = {"level_percent": float(np.mean(remaining[mask])), "source": "mean of onset_baseline_window", "window_input_units": [low, high]}
+    onset = None
+    if slope[main] < 0:
+        onset = float(grid[main] + (baseline["level_percent"] - smooth[main]) / slope[main] + offset)
+    return {"peak_K": float(grid[main] + offset), "peak_rate_percent_per_K": float(rate[main]), "window_input_units": list(window) if window else None,
+            "peaks": peaks, "extrapolated_onset_K": onset, "onset_baseline": baseline, "smoothing": smoothing}
 
 
 GPC_DETECTORS = {"RI", "UV", "ELSD"}
@@ -201,8 +296,22 @@ def _arpls(x, y, lam):
                       "iterations": len(params.get("tol_history", []))}
 
 
+def _window_excess(x, signal, low, high, baseline=None):
+    """Signal minus a baseline from low to high, with the window limits interpolated.
+
+    The baseline is the given array, or the straight line joining the curve at the two limits.
+    """
+    inside = (x >= low) & (x <= high)
+    if inside.sum() < 5:
+        raise ValueError("Each integration window needs at least five data points")
+    xs = np.concatenate([[low], x[inside], [high]])
+    ys = np.interp(xs, x, signal)
+    base = np.interp(xs, x, baseline) if baseline is not None else ys[0] + (ys[-1] - ys[0]) * (xs - low) / (high - low)
+    return xs, ys - base
+
+
 def _dsc_melting(x, y, options, draft, temperature_unit):
-    """Melting endotherm: arPLS baseline, peak temperature and enthalpy from the heat-flow area."""
+    """Melting endotherm above an arPLS or linear baseline; optional cold-crystallization exotherm."""
     direction = options.get("endotherm")
     if direction not in {"up", "down"}:
         raise ValueError("endotherm must state whether endothermic heat flow points up or down")
@@ -211,41 +320,163 @@ def _dsc_melting(x, y, options, draft, temperature_unit):
         raise ValueError("Melting enthalpy needs heat_flow_unit W/g, mW/mg (both per mass) or mW with sample_mass_mg")
     rate = _positive(options, "heating_rate_k_per_min", "heating_rate_k_per_min", 200)
     low, high = _window(options.get("integration_window"), "integration_window")
+    method = options.get("baseline", "arpls")
+    if method not in {"arpls", "linear"}:
+        raise ValueError("baseline must be arpls or linear")
     signal = y if direction == "up" else -y
-    baseline, fit = _arpls(x, signal, options.get("baseline_lam", BASELINE_LAM))
-    inside = (x >= low) & (x <= high)
-    if inside.sum() < 5:
-        raise ValueError("The integration window needs at least five data points")
-    tx, excess = x[inside], (signal - baseline)[inside]
-    weights = _trapezoid_weights(tx)
-    area = float(np.sum(weights * excess))  # heat-flow unit x temperature unit
-    negative = float(np.sum(weights * np.clip(excess, None, 0)))
+    if method == "arpls":
+        if options.get("cold_crystallization_window") is not None:
+            raise ValueError("With a cold-crystallization exotherm use baseline linear: arPLS takes every point below its curve as baseline and follows the exotherm")
+        baseline, fit = _arpls(x, signal, options.get("baseline_lam", BASELINE_LAM))
+        description = "an arPLS baseline"
+    else:
+        baseline, fit = None, {"method": "linear", "description": "straight line joining the curve at the integration limits"}
+        description = "a linear baseline between the integration limits"
+    tx, excess = _window_excess(x, signal, low, high, baseline)
+    if baseline is not None:
+        # A window that brackets the peak meets the baseline at both limits. A gap there means a truncated
+        # peak or a displaced baseline: an exotherm anywhere in the upload drags arPLS, which treats
+        # negative peaks as baseline.
+        gap = float(max(abs(excess[0]), abs(excess[-1])) / max(float(np.max(excess)), 1e-12))
+        fit["limit_gap_fraction_of_peak"] = gap
+        if gap > 0.05:
+            draft["warnings"].append(f"At the integration limits the curve is {gap:.0%} of the peak height away from the arPLS baseline: the window cuts the peak, or an exotherm or step elsewhere in the curve displaced the baseline. Widen the window, trim the curve or use baseline linear.")
+    area = float(np.trapezoid(excess, tx))  # heat-flow unit x temperature unit
+    negative = float(np.trapezoid(np.clip(excess, None, 0), tx))
     if area <= 0:
         raise ValueError("No endothermic area above the baseline inside the integration window")
     if abs(negative) > 0.05 * area:
         draft["warnings"].append("More than 5% of the window lies below the baseline; check the window and the endotherm direction.")
     # dT = beta dt, so area / beta (K/s) is energy per mass: 1 W/g x 1 s = 1 J/g, and 1 mW/mg = 1 W/g.
-    per_mass = area / (rate / 60.0)
+    to_j_per_g = 1 / (rate / 60.0)
     if unit == "mW":
-        per_mass /= _positive(options, "sample_mass_mg", "sample_mass_mg")
+        to_j_per_g /= _positive(options, "sample_mass_mg", "sample_mass_mg")
+    per_mass = area * to_j_per_g
     peak_input = float(tx[int(np.argmax(excess))])
     peak = peak_input + (0 if temperature_unit == "K" else 273.15)
-    conditions = {"integration_window": [low, high], "heating_rate_k_per_min": rate, "endotherm": direction,
-                  "baseline": fit, "heat_flow_unit": unit, "temperature_unit_input": temperature_unit}
-    drafts = [{"property": "melting_temperature", "value": peak, "unit": "K", "method": "DSC endotherm peak temperature above an arPLS baseline", "conditions": conditions},
-              {"property": "melting_enthalpy", "value": per_mass, "unit": "J/g", "method": "DSC endotherm area above an arPLS baseline divided by the heating rate", "conditions": conditions}]
+    # Conditions are what replicates share (training pools identical method and conditions); the
+    # windows and baseline fit chosen for this curve are kept in analysis.
+    conditions = {"heating_rate_k_per_min": rate, "baseline": method}
+    report = {"integration_window": [low, high], "endotherm": direction, "heat_flow_unit": unit, "temperature_unit_input": temperature_unit,
+              "baseline": fit, "peak_input_units": peak_input, "area_input_units": area}
+    drafts = [{"property": "melting_temperature", "value": peak, "unit": "K", "method": f"DSC endotherm peak temperature above {description}",
+               "conditions": conditions, "analysis": report},
+              {"property": "melting_enthalpy", "value": per_mass, "unit": "J/g", "method": f"DSC endotherm area above {description} divided by the heating rate",
+               "conditions": conditions, "analysis": report}]
+    cold = 0.0
+    if options.get("cold_crystallization_window") is not None:
+        c_low, c_high = _window(options["cold_crystallization_window"], "cold_crystallization_window")
+        if c_high > low and c_low < high:
+            raise ValueError("cold_crystallization_window must not overlap the melting integration window")
+        # Linear baseline per exotherm: arPLS treats points below its curve as baseline and would follow the exotherm.
+        cx, c_excess = _window_excess(x, signal, c_low, c_high)
+        exotherm = -float(np.trapezoid(c_excess, cx))
+        if exotherm <= 0:
+            raise ValueError("No exothermic area below the baseline inside cold_crystallization_window")
+        cold = exotherm * to_j_per_g
+        report["cold_crystallization"] = {"window": [c_low, c_high], "enthalpy_j_per_g": cold, "baseline": "linear between the window limits",
+                                          "peak_input_units": float(cx[int(np.argmin(c_excess))])}
     if options.get("reference_enthalpy_j_per_g") is not None:
         reference = _positive(options, "reference_enthalpy_j_per_g", "reference_enthalpy_j_per_g")
-        if per_mass > reference:
+        fraction = 1.0
+        if options.get("polymer_weight_fraction") is not None:
+            fraction = _positive(options, "polymer_weight_fraction", "polymer_weight_fraction")
+            if fraction > 1:
+                raise ValueError("polymer_weight_fraction must be in (0, 1]")
+        # Crystallinity of the sample as loaded: Xc = (dHm - dHcc) / (w dH0).
+        crystallinity = (per_mass - cold) / (fraction * reference)
+        if crystallinity < 0:
+            raise ValueError("Cold-crystallization enthalpy exceeds the melting enthalpy; check both windows")
+        if crystallinity > 1:
             draft["warnings"].append("Measured enthalpy exceeds the 100%-crystalline reference; crystallinity is not reported.")
         else:
-            drafts.append({"property": "crystallinity", "value": per_mass / reference, "unit": "fraction",
-                           "method": "DSC melting enthalpy divided by the stated 100%-crystalline reference enthalpy",
-                           "conditions": {**conditions, "reference_enthalpy_j_per_g": reference}})
-    draft["fit"] = {"baseline": fit, "peak_input_units": peak_input, "area_input_units": area}
-    draft["baseline_preview"] = (baseline if direction == "up" else -baseline)[::max(1, len(x) // 500)].tolist()
+            method_text = "DSC melting enthalpy divided by the stated 100%-crystalline reference enthalpy"
+            if cold or fraction != 1.0:
+                method_text = "DSC (melting minus cold-crystallization enthalpy) divided by the polymer weight fraction and the stated 100%-crystalline reference enthalpy"
+            drafts.append({"property": "crystallinity", "value": crystallinity, "unit": "fraction", "method": method_text,
+                           "conditions": {**conditions, "reference_enthalpy_j_per_g": reference},
+                           "analysis": {**report, "melting_enthalpy_j_per_g": per_mass, "cold_crystallization_enthalpy_j_per_g": cold, "polymer_weight_fraction": fraction}})
+    draft["fit"] = report
+    if baseline is not None:
+        draft["baseline_preview"] = (baseline if direction == "up" else -baseline)[::max(1, len(x) // 500)].tolist()
     draft["measurement_drafts"] = drafts
-    draft["warnings"].append("Melting enthalpy depends on the integration limits, baseline, heating rate and thermal history; cold crystallization and overlapping transitions are not separated.")
+    if cold:
+        draft["warnings"].append("Melting enthalpy depends on the integration limits, baseline, heating rate and thermal history; overlapping transitions are not separated.")
+    else:
+        draft["warnings"].append("Melting enthalpy depends on the integration limits, baseline, heating rate and thermal history; cold crystallization and overlapping transitions are not separated.")
+
+
+TG_DEFINITIONS = {"midpoint": "DSC halfway-heat-flow crossing between two manually selected linear baselines",
+                  "inflection": "DSC Tg inflection: maximum slope of the heat-flow step between two manually selected linear baselines",
+                  "onset": "DSC Tg extrapolated onset: pre-transition baseline meets the inflection tangent (manually selected linear baselines)",
+                  "endset": "DSC Tg extrapolated end: post-transition baseline meets the inflection tangent (manually selected linear baselines)"}
+
+
+def _dsc_tg(x, y, options, draft, temperature_unit):
+    """Tg midpoint, inflection and extrapolated onset/end between two baselines (the ISO 11357-2 construction)."""
+    definition = options.get("tg_definition", "midpoint")
+    if definition not in TG_DEFINITIONS:
+        raise ValueError("tg_definition must be midpoint, inflection, onset or endset")
+    before = _window(options.get("baseline_before"), "baseline_before")
+    after = _window(options.get("baseline_after"), "baseline_after")
+    if before[1] >= after[0]:
+        raise ValueError("DSC baselines must be disjoint and ordered before then after transition")
+    a, fit_a = _fit(x, y, before, "baseline_before")
+    b, fit_b = _fit(x, y, after, "baseline_after")
+    transition = (x > before[1]) & (x < after[0])
+    tx, ty = x[transition], y[transition]
+    if len(tx) < 3:
+        raise ValueError("At least three transition points are required between baselines")
+    if np.any(np.abs(np.polyval(a - b, tx)) < 1e-10):
+        raise ValueError("DSC baseline separation is too small for a Tg midpoint estimate")
+    residual = ty - (np.polyval(a, tx) + np.polyval(b, tx)) / 2
+    roots = []
+    for i in range(len(tx) - 1):
+        if residual[i] == 0:
+            roots.append(float(tx[i]))
+        elif residual[i] * residual[i + 1] < 0:
+            roots.append(float(tx[i] - residual[i] * (tx[i + 1] - tx[i]) / (residual[i + 1] - residual[i])))
+    if residual[-1] == 0:
+        roots.append(float(tx[-1]))
+    if len(roots) != 1:
+        raise ValueError("Selected DSC region does not have one unambiguous midpoint crossing; refine baseline windows or pre-process with a documented method")
+    midpoint = roots[0]
+    offset = 0 if temperature_unit == "K" else 273.15
+    fit = {"before": fit_a, "after": fit_b, "midpoint_input_units": midpoint}
+    if len(tx) >= 5:
+        # Steepest point in the step's own direction, so the falling flank of an enthalpy-recovery peak is not chosen.
+        span = _positive(options, "derivative_smoothing", "derivative_smoothing") if options.get("derivative_smoothing") is not None else (after[0] - before[1]) / 20
+        grid, smooth, slope, smoothing = _smoothed_derivative(tx, ty, span)
+        sign = 1.0 if np.polyval(b - a, midpoint) > 0 else -1.0
+        i = int(np.argmax(sign * slope))
+        ti, yi, si = float(grid[i]), float(smooth[i]), float(slope[i])
+        if sign * si > 0:
+            values = {"inflection": ti}
+            for name, line in (("onset", a), ("endset", b)):
+                if abs(line[0] - si) > 1e-12 * max(1.0, abs(si)):
+                    values[name] = float((yi - si * ti - line[1]) / (line[0] - si))
+            fit.update({"inflection_input_units": ti, "inflection_slope": si, "onset_input_units": values.get("onset"),
+                        "endset_input_units": values.get("endset"), "derivative": smoothing})
+            if "onset" in values and "endset" in values and not values["onset"] < midpoint < values["endset"]:
+                draft["warnings"].append("Onset, midpoint and endset are not in ascending order; check the baseline windows and derivative_smoothing.")
+    values = {"midpoint": midpoint, **{k: fit.get(f"{k}_input_units") for k in ("inflection", "onset", "endset")}}
+    if values[definition] is None:
+        raise ValueError(f"The {definition} construction is undefined for this step (too few points or a tangent parallel to a baseline)")
+    kelvin = values[definition] + offset
+    if kelvin <= 0:
+        raise ValueError("DSC temperature is below absolute zero")
+    fit["tg_K"] = {k: v + offset for k, v in values.items() if v is not None}
+    unit = options.get("heat_flow_unit")
+    if options.get("heating_rate_k_per_min") is not None and unit in {"W/g", "mW/mg", "mW"}:
+        rate = _positive(options, "heating_rate_k_per_min", "heating_rate_k_per_min", 200)
+        step = abs(float(np.polyval(b - a, midpoint))) / (rate / 60.0)
+        if unit == "mW":
+            step /= _positive(options, "sample_mass_mg", "sample_mass_mg")
+        fit["heat_capacity_step_j_per_g_k"] = step
+    draft["fit"] = fit
+    draft["measurement_draft"] = {"property": "tg", "value": kelvin, "unit": "K", "method": TG_DEFINITIONS[definition],
+                                  "conditions": {"baseline_before": list(before), "baseline_after": list(after), "temperature_unit_input": temperature_unit}}
+    draft["warnings"].append("Review heating cycle, rate, thermal history, endothermic overshoot and baseline selection; midpoint Tg is method dependent.")
 
 
 def _gpc_calibration(options):
@@ -337,9 +568,16 @@ def _gpc(x, y, options, draft):
     corrected = np.clip(signal, 0, None)
     # Concentration detector: corrected signal × slice width is the mass fraction.
     fraction = corrected * widths / positive
-    molar_mass = 10 ** np.polyval(coefficients, tx)
+    log_m = np.polyval(coefficients, tx)
+    universal = _mark_houwink(options.get("mark_houwink")) if options.get("mark_houwink") is not None else None
+    if universal:
+        # Benoit universal calibration: equal hydrodynamic volume [eta]M = K M^(1+a) at each elution slice.
+        s, u = universal["standard"], universal["sample"]
+        log_m = (math.log10(s["K"] / u["K"]) + (1 + s["a"]) * log_m) / (1 + u["a"])
+    molar_mass = 10 ** log_m
     mn = float(1 / np.sum(fraction / molar_mass))
     mw = float(np.sum(fraction * molar_mass))
+    mz = float(np.sum(fraction * molar_mass ** 2) / mw)
     peak = float(corrected.max())
     if max(corrected[0], corrected[-1]) > 0.05 * peak:
         draft["warnings"].append("Signal at an integration limit exceeds 5% of the peak height; the distribution may be truncated.")
@@ -355,12 +593,39 @@ def _gpc(x, y, options, draft):
                 "slices": int(inside.sum()), "clipped_negative_area_fraction": negative / (positive + negative),
                 "peak_molar_mass_g_mol": float(molar_mass[int(np.argmax(corrected))])}
     method = "SEC/GPC conventional calibration slice method on a baseline-corrected concentration-detector signal"
+    if universal:
+        conditions["universal_calibration"] = {"standard": universal["standard"], "K_unit": universal["K_unit"]}
+        analysis["mark_houwink"] = universal
+        method = "SEC/GPC universal calibration (Benoit, stated Mark-Houwink constants) slice method on a baseline-corrected concentration-detector signal"
     draft["fit"] = analysis
     draft["measurement_drafts"] = [
         {"property": prop, "value": value, "unit": unit, "method": method, "conditions": conditions, "analysis": analysis}
         # Mw/Mn >= 1 exactly; the bound only absorbs rounding for very narrow peaks.
-        for prop, value, unit in (("mn", mn, "g/mol"), ("mw", mw, "g/mol"), ("dispersity", max(1.0, mw / mn), "dimensionless"))]
-    draft["warnings"].append(f"Molar masses are {standard}-equivalent relative values, not absolute; no universal calibration, light scattering or band-broadening correction is applied.")
+        for prop, value, unit in (("mn", mn, "g/mol"), ("mw", mw, "g/mol"), ("dispersity", max(1.0, mw / mn), "dimensionless"), ("mz", max(mz, mw), "g/mol"))]
+    if universal:
+        draft["warnings"].append("Universal-calibration molar masses are only as good as the Mark-Houwink constants, which must hold for this eluent, temperature and molar-mass range; no light scattering or band-broadening correction is applied.")
+    else:
+        draft["warnings"].append(f"Molar masses are {standard}-equivalent relative values, not absolute; no universal calibration, light scattering or band-broadening correction is applied.")
+
+
+def _mark_houwink(value):
+    if not isinstance(value, dict):
+        raise ValueError("mark_houwink must be {standard: {K, a}, sample: {K, a}, K_unit, source}")
+    constants = {}
+    for role in ("standard", "sample"):
+        pair = value.get(role)
+        if not isinstance(pair, dict):
+            raise ValueError(f"mark_houwink.{role} needs K and a")
+        k, a = pair.get("K"), pair.get("a")
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (k, a)) or k <= 0 or not 0 < a < 2:
+            raise ValueError(f"mark_houwink.{role} needs K > 0 and 0 < a < 2")
+        constants[role] = {"K": float(k), "a": float(a)}
+    if value.get("K_unit") not in {"mL/g", "dL/g"}:
+        raise ValueError("mark_houwink.K_unit must be mL/g or dL/g (the same for both polymers)")
+    return {**constants, "K_unit": value["K_unit"], "source": _text(value, "source", "mark_houwink.source (where the constants come from)", 300)}
+
+
+CURVE_KINDS = ("dsc", "tensile", "tga", "gpc", "ir", "uvvis", "turbidity")
 
 
 def analyze_curve(kind: str, text: str, options: dict | None = None) -> dict:
@@ -368,15 +633,16 @@ def analyze_curve(kind: str, text: str, options: dict | None = None) -> dict:
     kind = kind.lower()
     default = {"dsc": ("temperature", "heat_flow"), "tensile": ("strain", "stress"),
                "tga": ("temperature", "mass"), "gpc": ("retention_time", "signal")}
+    if kind in {"ir", "uvvis", "turbidity"}:
+        from .spectra import analyze_spectrum
+        draft = analyze_spectrum(kind, text, options)
+        draft["measurement_draft"] = draft["measurement_drafts"][0] if draft["measurement_drafts"] else None
+        return draft
     if kind not in default:
-        raise ValueError("Supported curve kinds: dsc, tensile, tga, gpc")
+        raise ValueError("Supported curve kinds: " + ", ".join(CURVE_KINDS))
     x_column, y_column = (options.get("x_column", default[kind][0]), options.get("y_column", default[kind][1]))
     x, y = _curve(text, x_column, y_column)
-    draft = {"kind": kind, "review_required": True, "verified": False, "origin": "experimental",
-             "source_sha256": hashlib.sha256(text.encode()).hexdigest(), "options": options,
-             "points": len(x), "measurement_draft": None,
-             "preview": {"x": x[::max(1, len(x) // 500)].tolist(), "y": y[::max(1, len(x) // 500)].tolist(),
-                         "x_column": x_column, "y_column": y_column}, "warnings": []}
+    draft = _new_draft(kind, text, options, x, y, x_column, y_column)
     if kind == "tensile":
         strain_unit, stress_unit = options.get("strain_unit"), options.get("stress_unit")
         if strain_unit not in {"fraction", "%"}:
@@ -404,37 +670,7 @@ def analyze_curve(kind: str, text: str, options: dict | None = None) -> dict:
         temperature_unit = options.get("temperature_unit")
         if temperature_unit not in {"K", "C", "°C"} or not options.get("heat_flow_unit"):
             raise ValueError("Explicit temperature_unit (K/C) and heat_flow_unit are required")
-        before = _window(options.get("baseline_before"), "baseline_before")
-        after = _window(options.get("baseline_after"), "baseline_after")
-        if before[1] >= after[0]:
-            raise ValueError("DSC baselines must be disjoint and ordered before then after transition")
-        a, fit_a = _fit(x, y, before, "baseline_before")
-        b, fit_b = _fit(x, y, after, "baseline_after")
-        transition = (x > before[1]) & (x < after[0])
-        tx, ty = x[transition], y[transition]
-        if len(tx) < 3:
-            raise ValueError("At least three transition points are required between baselines")
-        if np.any(np.abs(np.polyval(a - b, tx)) < 1e-10):
-            raise ValueError("DSC baseline separation is too small for a Tg midpoint estimate")
-        residual = ty - (np.polyval(a, tx) + np.polyval(b, tx)) / 2
-        roots = []
-        for i in range(len(tx) - 1):
-            if residual[i] == 0:
-                roots.append(float(tx[i]))
-            elif residual[i] * residual[i + 1] < 0:
-                roots.append(float(tx[i] - residual[i] * (tx[i + 1] - tx[i]) / (residual[i + 1] - residual[i])))
-        if residual[-1] == 0:
-            roots.append(float(tx[-1]))
-        if len(roots) != 1:
-            raise ValueError("Selected DSC region does not have one unambiguous midpoint crossing; refine baseline windows or pre-process with a documented method")
-        kelvin = roots[0] + (0 if temperature_unit == "K" else 273.15)
-        if kelvin <= 0:
-            raise ValueError("DSC temperature is below absolute zero")
-        draft["fit"] = {"before": fit_a, "after": fit_b, "midpoint_input_units": roots[0]}
-        draft["measurement_draft"] = {"property": "tg", "value": kelvin, "unit": "K",
-                                      "method": "DSC halfway-heat-flow crossing between two manually selected linear baselines",
-                                      "conditions": {"baseline_before": list(before), "baseline_after": list(after), "temperature_unit_input": temperature_unit}}
-        draft["warnings"].append("Review heating cycle, rate, thermal history, endothermic overshoot and baseline selection; midpoint Tg is method dependent.")
+        _dsc_tg(x, y, options, draft, temperature_unit)
     elif kind == "gpc":
         if "calibration" in options:
             _gpc(x, y, options, draft)

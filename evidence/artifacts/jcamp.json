@@ -1,0 +1,54 @@
+{
+  "id": "jcamp",
+  "version": "1.3.2",
+  "license": "MIT",
+  "artifact": "jcamp-1.3.2-py3-none-any.whl",
+  "sha256": "32af6f5322d867bc85446b7f5feea78576c64a1c00f90b71488337be9502a168",
+  "purpose": "JCAMP-DX (.jdx/.dx) spectrum import for IR and UV-vis analysis (workbench/spectra.py); its print-only X/Y checks are turned into errors there",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "jcamp-1.3.2-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 6,
+    "integrity_contradictions": [],
+    "output": "jcamp.inspect.json"
+  },
+  "files": [
+    {
+      "path": "jcamp.py",
+      "artifact_sha256": "e25dab4bdf025612404df522597a2a4229669e5a152eafff864da74696f13317",
+      "installed_sha256": "e25dab4bdf025612404df522597a2a4229669e5a152eafff864da74696f13317",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "jcamp.py",
+      "needle": "def read(filehandle):",
+      "line": 107,
+      "purpose": "Header and XYDATA parser, including ASDF (SQZ/DIF/DUP) decompression"
+    },
+    {
+      "path": "jcamp.py",
+      "needle": "                        print(f\"Y-Check failed.",
+      "line": 252,
+      "purpose": "Line-integrity check that only prints; workbench/spectra.py raises on it"
+    }
+  ],
+  "audited_at": "2026-10-22T16:44:05.719982+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}

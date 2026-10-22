@@ -76,7 +76,7 @@ for distribution in (
     "pyside6-webengine", "pyside6-pdf",
     "duckdb", "scikit-learn", "pymbar", "pypdf", "narwhals", "numexpr",
     "baybe", "botorch", "gpytorch", "linear_operator", "torch", "attrs", "cattrs", "propka", "pdb2pqr",
-    "pybaselines", "pdbfixer", "OpenMM",
+    "pybaselines", "jcamp", "pdbfixer", "OpenMM",
 ):
     try:
         datas += copy_metadata(distribution)

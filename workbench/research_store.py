@@ -22,6 +22,9 @@ PROPERTY_UNITS = {
     "protein_rmsd": "angstrom", "molecular_weight": "g/mol",
     "mn": "g/mol", "mw": "g/mol", "dispersity": "dimensionless", "decomposition_temperature": "K",
     "density": "g/cm^3", "melting_temperature": "K", "melting_enthalpy": "J/g", "crystallinity": "fraction",
+    "mz": "g/mol", "dtg_peak_temperature": "K", "char_yield": "fraction",
+    "carbonyl_index": "dimensionless", "ir_band_ratio": "dimensionless", "epoxide_conversion": "fraction",
+    "absorption_max_wavelength": "nm", "optical_band_gap": "eV", "cloud_point_temperature": "K",
     "hsp_delta_d": "MPa^0.5", "hsp_delta_p": "MPa^0.5", "hsp_delta_h": "MPa^0.5", "hsp_radius": "MPa^0.5",
 }
 
@@ -124,16 +127,26 @@ def validate_measurement(record: dict) -> dict:
         "melting_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
         "melting_enthalpy": {"J/g": (1, 0), "kJ/kg": (1, 0)},
         "crystallinity": {"fraction": (1, 0), "%": (0.01, 0)},
+        "mz": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
+        "dtg_peak_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
+        "char_yield": {"fraction": (1, 0), "%": (0.01, 0)},
+        "carbonyl_index": {"dimensionless": (1, 0)}, "ir_band_ratio": {"dimensionless": (1, 0)},
+        "epoxide_conversion": {"fraction": (1, 0), "%": (0.01, 0)},
+        "absorption_max_wavelength": {"nm": (1, 0), "um": (1e3, 0), "µm": (1e3, 0)},
+        "optical_band_gap": {"eV": (1, 0)},
+        "cloud_point_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
         **{name: {"MPa^0.5": (1, 0), "(cal/cm^3)^0.5": (2.0455, 0)} for name in ("hsp_delta_d", "hsp_delta_p", "hsp_delta_h", "hsp_radius")},
     }
     if unit not in units[prop]:
         raise ValueError(f"Unit {unit!r} is incompatible with {prop}")
     factor, offset = units[prop][unit]
     converted = value * factor + offset
-    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature", "density", "hsp_radius"} and converted == 0):
+    positive = {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "mz", "decomposition_temperature", "density", "hsp_radius",
+                "dtg_peak_temperature", "absorption_max_wavelength", "optical_band_gap", "cloud_point_temperature"}
+    if not math.isfinite(converted) or converted < 0 or (prop in positive and converted == 0):
         raise ValueError(f"Invalid physical value for {prop}")
-    if prop == "crystallinity" and converted > 1:
-        raise ValueError("Crystallinity cannot exceed 1 (100 %)")
+    if prop in {"crystallinity", "char_yield", "epoxide_conversion"} and converted > 1:
+        raise ValueError(f"{prop} cannot exceed 1 (100 %)")
     if prop == "melting_temperature" and converted == 0:
         raise ValueError("Invalid physical value for melting_temperature")
     if prop == "dispersity" and converted < 1:

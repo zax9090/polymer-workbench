@@ -31,7 +31,8 @@ def test_dsc_melting_enthalpy_and_crystallinity_from_an_arpls_baseline():
     assert values["melting_enthalpy"]["value"] == pytest.approx(expected, rel=1e-3)
     assert values["melting_temperature"]["value"] == pytest.approx(centre + 273.15, abs=0.11)
     assert values["crystallinity"]["value"] == pytest.approx(expected / 293, rel=1e-3) and values["crystallinity"]["unit"] == "fraction"
-    assert values["melting_enthalpy"]["conditions"]["baseline"]["method"] == "arpls" and draft["review_required"]
+    assert values["melting_enthalpy"]["conditions"] == {"heating_rate_k_per_min": rate, "baseline": "arpls"} and draft["review_required"]
+    assert values["melting_enthalpy"]["analysis"]["baseline"]["method"] == "arpls" and values["melting_enthalpy"]["analysis"]["integration_window"] == [110, 160]
     # Exo-up instruments: the same data mirrored gives the same enthalpy only when the direction is stated.
     flipped = analyze_curve("dsc", _csv(temperature, -heat_flow), {**options, "endotherm": "down"})
     assert flipped["measurement_drafts"][1]["value"] == pytest.approx(expected, rel=1e-3)

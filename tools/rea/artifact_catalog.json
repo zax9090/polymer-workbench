@@ -260,6 +260,29 @@
     ]
   },
   {
+    "id": "jcamp",
+    "version": "1.3.2",
+    "license": "MIT",
+    "artifact": "jcamp-1.3.2-py3-none-any.whl",
+    "sha256": "32af6f5322d867bc85446b7f5feea78576c64a1c00f90b71488337be9502a168",
+    "purpose": "JCAMP-DX (.jdx/.dx) spectrum import for IR and UV-vis analysis (workbench/spectra.py); its print-only X/Y checks are turned into errors there",
+    "files": [
+      "jcamp.py"
+    ],
+    "anchors": [
+      [
+        "jcamp.py",
+        "def read(filehandle):",
+        "Header and XYDATA parser, including ASDF (SQZ/DIF/DUP) decompression"
+      ],
+      [
+        "jcamp.py",
+        "                        print(f\"Y-Check failed.",
+        "Line-integrity check that only prints; workbench/spectra.py raises on it"
+      ]
+    ]
+  },
+  {
     "id": "hiplot",
     "version": "0.1.33",
     "license": "MIT",
