@@ -10,6 +10,7 @@
   <script defer src="/static/vendor/3Dmol-min.js"></script>
   <script defer src="/static/app.js"></script>
   <script defer src="/static/research.js"></script>
+  <script defer src="/static/screening.js"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -21,6 +22,7 @@
       <button class="nav-item" data-view="research"><span class="nav-icon">▤</span>연구 데이터</button>
       <button class="nav-item" data-view="measurements"><span class="nav-icon">◈</span>실험 데이터</button>
       <button class="nav-item" data-view="models"><span class="nav-icon">⌁</span>물성 학습 · 예측</button>
+      <button class="nav-item" data-view="screening"><span class="nav-icon">◎</span>빠른 예측 · 상용성</button>
       <button class="nav-item" data-view="campaigns"><span class="nav-icon">↻</span>탐색 캠페인</button>
       <button class="nav-item" data-view="bridges"><span class="nav-icon">⌬</span>혼합계 준비</button>
       <button class="nav-item" data-view="evidence"><span class="nav-icon">⌕</span>REA 분석 근거</button>
@@ -101,6 +103,65 @@
     <section class="view research-view hidden" id="view-models">
       <div class="page-heading"><div><div class="eyebrow">LEARN FROM VERIFIED MEASUREMENTS</div><h1>물성 학습 · 예측<span>.</span></h1><p>실제 실험·문헌 데이터로 학습하고, 재료 그룹을 분리해 검증합니다.</p></div><span class="outline-pill">사용자 데이터 기반 GP</span></div>
       <div class="research-grid"><section class="panel"><div class="panel-title"><h2>대리 모델 학습</h2><span class="tiny-label">DESCRIPTORS + MEASUREMENTS</span></div><form id="model-train-form" class="research-body"><p class="notice">검토 완료된 실험·문헌 데이터에서 서로 다른 재료·반복단위 화학구조 그룹이 최소 8개 필요합니다. 데이터가 없으면 예측 모델을 만들지 않습니다.</p><label class="field"><span>목표 물성</span><select id="model-property" class="property-select"></select></label><label class="field"><span>측정법으로 선택 <small>선택</small></span><input id="model-method" placeholder="예: DSC"></label><label class="field"><span>일치시킬 측정 조건 JSON <small>선택</small></span><textarea id="model-conditions" class="mono" rows="3" placeholder='비워두면 전체 집합의 조건 일치 여부를 검사합니다.'></textarea></label><details class="advanced"><summary>연결된 MD 피처 추가</summary><label class="field"><span>피처 키 <small>쉼표로 구분</small></span><input id="model-feature-keys" class="mono" placeholder="rg_mean, rg_std"><small class="field-help">완료된 비데모 계산에 직접 연결된 측정값만 사용할 수 있습니다. 힘장·단위·분석법·온도가 같은 피처를 요구합니다.</small></label></details><button class="primary-button" type="submit"><span>데이터 검증 및 학습</span><span>↗</span></button><div id="model-train-result" class="research-result" aria-live="polite"></div></form></section><section class="panel"><div class="panel-title"><h2>후보 물성 예측</h2><span class="tiny-label">MODEL COVERAGE</span></div><form id="model-predict-form" class="research-body"><label class="field"><span>학습한 모델</span><select id="prediction-model" required><option value="">먼저 모델을 학습하세요</option></select></label><div id="prediction-context" class="research-result"></div><label class="field"><span>후보 반복단위 SMILES</span><input id="prediction-smiles" class="mono" required placeholder="[*]CC[*]"></label><div id="prediction-features"></div><label class="checkbox-field hidden" id="prediction-compatibility"><input id="prediction-compatibility-confirm" type="checkbox"><span>입력 피처의 단위·분석법·계산 조건이 위 모델 조건과 같음을 확인했습니다.</span></label><button class="secondary-button" type="submit" id="prediction-submit" disabled>예측과 적용 범위 확인</button><div id="prediction-result" class="research-result" aria-live="polite"></div></form></section></div><div class="research-bottom" id="model-list"></div><p class="research-copy">현재 모델은 반복단위 기술자 또는 MD 피처와 측정값을 연결하는 기준 회귀 모델입니다. 다중 충실도 학습, 실험 정확도 보장 또는 평형 벌크 MD를 대신한다고 해석하지 않습니다.</p>
+    </section>
+    <section class="view research-view hidden" id="view-screening">
+      <div class="page-heading"><div><div class="eyebrow">SCREEN BEFORE YOU SIMULATE</div><h1>빠른 예측 · 상용성<span>.</span></h1><p>계산을 돌리기 전에 공개 MD 데이터 기반 물성 예측과 Hansen 용해도 파라미터로 후보를 좁힙니다.</p></div><span class="outline-pill">참조 데이터 · 측정값 아님</span></div>
+      <section class="panel"><div class="panel-title"><h2>계산 전 물성 예측</h2><span class="tiny-label">RADONPY PI1070 · GP</span></div>
+          <form id="screen-form" class="research-body">
+            <p class="notice">RadonPy 전원자 MD(300 K, 1 atm)로 계산된 1,077개 고분자(PI1070)로 학습한 가우스 과정 모델입니다. 결과는 같은 MD 워크플로우가 낼 값의 예측이며 실험값이 아닙니다.</p>
+            <label class="field"><span>반복단위 SMILES <small>한 줄에 하나, 최대 20개</small></span><textarea id="screen-smiles" class="mono" rows="3" required>*CC(*)c1ccccc1
+*CC(C)(*)C(=O)OC</textarea></label>
+            <div class="research-actions"><button class="primary-button" type="submit"><span>예측</span><span>↗</span></button><button class="text-button" type="button" id="screen-validation">교차검증 결과 보기</button><button class="text-button hidden" type="button" id="screen-to-campaign">벌크 MD 캠페인 후보로 보내기 →</button></div>
+          </form>
+          <div id="screen-result" class="model-cards screen-results" aria-live="polite"></div>
+        </section>
+        <div class="research-grid research-bottom">
+          <section class="panel"><div class="panel-title"><h2>용매 상용성</h2><span class="tiny-label">HANSEN · RED · χ</span></div>
+            <form id="solvent-form" class="research-body">
+              <div class="field-row"><label class="field"><span>δD <small>MPa½</small></span><input id="solvent-dd" type="number" step="any" min="5" max="30" value="18.5" required></label><label class="field"><span>δP <small>MPa½</small></span><input id="solvent-dp" type="number" step="any" min="0" max="40" value="4.5" required></label></div>
+              <div class="field-row"><label class="field"><span>δH <small>MPa½</small></span><input id="solvent-dh" type="number" step="any" min="0" max="50" value="2.9" required></label><label class="field"><span>상호작용 반경 R0 <small>선택</small></span><input id="solvent-r0" type="number" step="any" min="0.1" max="40" value="8"></label></div>
+              <div class="field-row"><label class="field"><span>온도 <small>K</small></span><input id="solvent-temperature" type="number" step="any" min="1" max="1000" value="298.15" required></label><label class="field"><span>두 용매 혼합 후보 수</span><input id="solvent-blends" type="number" min="0" max="50" value="5"></label></div>
+              <p class="field-help">용매 248종의 Hansen 값(HSPiPy 1.1.8, MIT, REA 감사)을 사용합니다. RED &lt; 1이면 용해 구 안쪽이며, χ는 Lindvig 등(2002)의 α = 0.6 식입니다. 고분자 HSP는 문헌값이나 아래 용해 시험 피팅값을 넣으세요.</p>
+              <button class="secondary-button" type="submit">용매 순위 계산</button>
+              <div id="solvent-result" class="research-result" aria-live="polite"></div>
+            </form>
+          </section>
+          <section class="panel"><div class="panel-title"><h2>용해 시험으로 Hansen 구 피팅</h2><span class="tiny-label">DATAFIT</span></div>
+            <form id="sphere-form" class="research-body">
+              <label class="field"><span>시험 결과 <small>한 줄에 "용매,1(용해·팽윤) 또는 0(불용)" · 직접 값은 "이름,δD,δP,δH,1"</small></span><textarea id="sphere-tests" class="mono" rows="7" required>Toluene,1
+Chloroform,1
+Tetrahydrofuran,1
+Chlorobenzene,1
+Methylene dichloride,1
+Ethyl acetate,1
+Acetone,0
+Ethanol,0
+Methanol,0
+Water,0
+Hexane,0
+Diethyl ether,0
+Dimethyl sulfoxide,0
+Acetonitrile,0</textarea></label>
+              <div class="field-row"><label class="field"><span>용매 찾아 추가</span><input id="sphere-search" list="solvent-names" placeholder="이름 또는 CAS"></label><div class="research-actions"><button class="text-button" type="button" data-sphere-add="1">용해로 추가</button><button class="text-button" type="button" data-sphere-add="0">불용으로 추가</button></div></div>
+              <p class="field-help">용매 이름은 데이터베이스 이름 또는 CAS 번호입니다. 서로 다른 HSP 영역의 용매를 20개 이상 시험하면 중심과 반경이 안정됩니다.</p>
+              <button class="secondary-button" type="submit">구 피팅</button>
+              <div id="sphere-result" class="research-result" aria-live="polite"></div>
+            </form>
+          </section>
+        </div>
+      <section class="panel research-bottom"><div class="panel-title"><h2>고분자 블렌드 상용성</h2><span class="tiny-label">FLORY–HUGGINS</span></div>
+        <form id="blend-form" class="research-body">
+          <div class="research-grid">
+            <div><div class="form-section-label">고분자 A</div><div class="field-row"><label class="field"><span>이름</span><input id="blend-a-name" value="PS"></label><label class="field"><span>중합도</span><input id="blend-a-dp" type="number" min="1" value="1000" required></label></div><label class="field"><span>반복단위 SMILES <small>몰부피를 PI1070 밀도 예측으로 계산</small></span><input id="blend-a-smiles" class="mono" value="*CC(*)c1ccccc1"></label><div class="field-row triple"><label class="field"><span>δD</span><input id="blend-a-dd" type="number" step="any" value="18.5" required></label><label class="field"><span>δP</span><input id="blend-a-dp2" type="number" step="any" value="4.5" required></label><label class="field"><span>δH</span><input id="blend-a-dh" type="number" step="any" value="2.9" required></label></div></div>
+            <div><div class="form-section-label">고분자 B</div><div class="field-row"><label class="field"><span>이름</span><input id="blend-b-name" value="PMMA"></label><label class="field"><span>중합도</span><input id="blend-b-dp" type="number" min="1" value="1000" required></label></div><label class="field"><span>반복단위 SMILES</span><input id="blend-b-smiles" class="mono" value="*CC(C)(*)C(=O)OC"></label><div class="field-row triple"><label class="field"><span>δD</span><input id="blend-b-dd" type="number" step="any" value="18.6" required></label><label class="field"><span>δP</span><input id="blend-b-dp2" type="number" step="any" value="10.5" required></label><label class="field"><span>δH</span><input id="blend-b-dh" type="number" step="any" value="5.1" required></label></div></div>
+          </div>
+          <div class="field-row"><label class="field"><span>온도 <small>K</small></span><input id="blend-temperature" type="number" step="any" value="298.15" required></label><label class="field"><span>기준 부피 <small>cm³/mol</small></span><input id="blend-vref" type="number" step="any" value="100" required></label></div>
+          <p class="field-help">정규 용액 χ = V<sub>ref</sub>·Ra²/(4RT)와 임계값 χ<sub>c</sub> = ½(N<sub>A</sub><sup>-½</sup> + N<sub>B</sub><sup>-½</sup>)²를 비교합니다. 이 χ는 항상 0 이상이라 수소결합·이온 상호작용으로 섞이는 블렌드는 판정할 수 없습니다.</p>
+          <button class="secondary-button" type="submit">상용성 판정</button>
+          <div id="blend-result" class="research-result" aria-live="polite"></div>
+        </form>
+      </section>
+      <datalist id="solvent-names"></datalist>
     </section>
     <section class="view research-view hidden" id="view-campaigns">
       <div class="page-heading"><div><div class="eyebrow">DESIGN → RUN → OBSERVE → RECOMMEND</div><h1>탐색 캠페인<span>.</span></h1><p>후보와 예산을 정하고, 완료된 계산 결과로 다음 배치를 추천합니다.</p></div><span class="outline-pill">유한 후보 · 명시적 시작</span></div>

@@ -36,6 +36,8 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
 - polymer_atomistic with atomistic_mode bulk runs RadonPy's packing + Larsen 21-step + NPT sampling on a periodic cell (>=200 atoms). protocol_scale 1 uses RadonPy's full stage lengths (hours to days); smaller values are exploratory and say so in the result, together with RadonPy's convergence verdict.
 - Protein import/AlphaFold DB/ColabFold results include a SAP (spatial aggregation propensity) screen of one static structure. packmol_target "sap_patch" places polymer chains near the highest-SAP patch; that is a placement choice, not evidence of binding.
+- screen_polymer predicts what RadonPy's published all-atom MD workflow (PI1070, 300 K) would report for a repeat unit, in seconds, with uncertainty, cross-validated error and nearest reference polymers. Treat it as a simulation-fidelity prior for choosing what to compute or make, never as measured data; check applicability.domain.
+- HSP tools rank solvents by RED/chi, fit a Hansen sphere from good/bad solvent tests (drafts only; store them with add_measurement for human review) and screen polymer blends with regular-solution chi, which cannot capture hydrogen-bonded or ionic miscibility.
 - Campaign 'start' runs up to its budget of calculations automatically; confirm budgets with the user first.
 - If lab_status reports no server, ask the user to open Polymer Lab or run ./start.sh, or use start_lab_server (that server stops, cancelling running jobs, when this MCP session ends)."""
 
@@ -334,6 +336,30 @@ class PolymerLabTools:
           _schema({"campaign_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"}, "action": {"type": "string", "enum": ["get", "iterate", "start", "stop"]},
                    "batch_size": {"type": "integer", "minimum": 1, "maximum": 10}, "cancel_active": {"type": "boolean", "default": False}}, ["campaign_id", "action"]),
           self.control_campaign, destructive=True)
+        t("screen_polymer", "Screen polymer properties (seconds)",
+          "Predict RadonPy all-atom MD bulk properties at 300 K and 1 atm (density, Cp, bulk modulus, compressibility, volume expansion, refractive index, thermal conductivity) for up to 20 repeat units "
+          "with a Gaussian process trained on RadonPy PI1070 (1,077 polymers). Returns value, std, 95% interval, applicability domain from nearest-neighbour similarity, the nearest reference polymers "
+          "and this workspace's own bulk runs of the same repeat unit. include_validation adds 5-fold cross-validation metrics.",
+          _schema({"repeat_smiles": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 20, "description": "Repeat units with two attachment points, e.g. *CC(*)c1ccccc1"},
+                   "properties": {"type": "array", "items": {"type": "string", "enum": ["bulk_density", "heat_capacity_cp", "bulk_modulus", "isothermal_compressibility", "volume_expansion", "refractive_index", "thermal_conductivity"]}},
+                   "include_validation": {"type": "boolean", "default": False}}, ["repeat_smiles"]),
+          self.screen_polymer, read_only=True, idempotent=True)
+        t("rank_solvents", "Rank solvents by Hansen distance",
+          "Rank 248 Hansen solvents (or the named subset) for a polymer HSP point: Ra, RED = Ra/R0 when radius is given, and Lindvig chi. blends > 0 also returns the best two-solvent mixtures, including pairs of non-solvents whose mixture lands inside the sphere.",
+          _schema({"polymer": {"type": "object", "description": "{delta_d, delta_p, delta_h, radius?} in MPa^0.5"}, "temperature": {"type": "number", "default": 298.15},
+                   "alpha": {"type": "number", "default": 0.6}, "limit": {"type": "integer", "minimum": 1, "maximum": 300, "default": 25},
+                   "names": {"type": "array", "items": {"type": "string"}}, "blends": {"type": "integer", "minimum": 0, "maximum": 50, "default": 0}}, ["polymer"]),
+          self.rank_solvents, read_only=True, idempotent=True)
+        t("fit_hsp_sphere", "Fit Hansen solubility sphere",
+          "Fit a polymer's HSP center and radius R0 from solvent tests (good = dissolves/swells). Solvents are database names/CAS or explicit delta values. Returns DATAFIT, misclassified solvents, warnings and unsaved measurement drafts.",
+          _schema({"tests": {"type": "array", "items": {"type": "object", "description": "{solvent: name or CAS, good: bool} or {name, delta_d, delta_p, delta_h, good}"}, "minItems": 2, "maxItems": 300}}, ["tests"]),
+          self.fit_hsp_sphere, read_only=True, idempotent=True)
+        t("blend_compatibility", "Polymer blend compatibility",
+          "Regular-solution chi from two polymers' HSP and Flory-Huggins critical chi from degrees of polymerization. Repeat-unit molar volume may be given or estimated from repeat_smiles via the PI1070 density surrogate.",
+          _schema({"a": {"type": "object", "description": "{name?, delta_d, delta_p, delta_h, degree_of_polymerization, molar_volume? | repeat_smiles?}"},
+                   "b": {"type": "object", "description": "same fields as a"}, "temperature": {"type": "number", "default": 298.15},
+                   "reference_volume": {"type": "number", "default": 100.0}}, ["a", "b"]),
+          self.blend_compatibility, read_only=True, idempotent=True)
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
         t("export_research_snapshot", "Export research snapshot", "Write an immutable Parquet snapshot of experiments and measurements (and copy it to the configured sync folder, if any).",
@@ -468,6 +494,22 @@ class PolymerLabTools:
             return _compact_campaign(self.client.request("GET", f"/api/research/campaigns/{identifier}"))
         body = {"cancel_active": args.get("cancel_active", False)} if action == "stop" else {"batch_size": args.get("batch_size")}
         return _compact_campaign(self.client.request("POST", f"/api/research/campaigns/{identifier}/{action}", body, timeout=300))
+
+    def screen_polymer(self, args):
+        body = {"smiles": args["repeat_smiles"], "properties": args.get("properties")}
+        result = self.client.request("POST", "/api/research/screening/predict", body, timeout=180)
+        if args.get("include_validation"):
+            result["cross_validation"] = self.client.request("GET", "/api/research/screening/validation", timeout=180)
+        return result
+
+    def rank_solvents(self, args):
+        return self.client.request("POST", "/api/research/screening/solvents", args, timeout=120)
+
+    def fit_hsp_sphere(self, args):
+        return self.client.request("POST", "/api/research/screening/hsp-fit", args, timeout=120)
+
+    def blend_compatibility(self, args):
+        return self.client.request("POST", "/api/research/screening/blend", args, timeout=180)
 
     def rea_evidence(self, args):
         data = self.client.request("GET", "/api/evidence")

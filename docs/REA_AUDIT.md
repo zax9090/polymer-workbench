@@ -89,6 +89,8 @@ python3 tools/rea/bootstrap.py
 
 SAP 소수성 척도는 `althonos/peptides.py` 고정 커밋 `eedec680`의 `BlackMould.csv`를 확장 감사(`evidence/extensions/`)에 등록해 값 20개와 파일 해시를 검증했습니다. GPL 코드는 가져오지 않고 발표된 수치만 씁니다.
 
+빠른 예측의 참조 데이터도 확장 감사에 등록했습니다. `radonpy-pi1070`은 `RadonPy/RadonPy@8834b907`의 `data/PI1070.csv`(SHA-256 `4ee41d52…`)·README·LICENSE, `hspipy`는 `Gnpd/HSPiPy@b2cd91aa`의 `hspipy/db.csv`(`42cb4179…`)와 구 피팅 코드(`hsp_estimator.py`, `loss.py`, `utils.py`)입니다. 두 항목 모두 REA `import-reference-source` 인벤토리가 `verified_inventory`입니다. PyPI의 HSPiPy 1.1.8 휠(SHA-256 `d916f2d6…`)도 REA `inspect-artifact`로 20개 항목을 목록화해 `db.csv`가 저장소 파일과 바이트 단위로 같음을 확인했습니다(`evidence/artifacts/hspipy.json`, `scripts/build_reference_data.py --audit-wheel`). PolyMetriX 0.2.0 휠(`824d12d4…`)은 35개 항목에 데이터 파일이 없어(정제 Tg CSV는 Zenodo 배포) 사용하지 않았습니다. HSP 구 피팅은 HSPiPy의 DATAFIT 정의와 최소 R0 규칙을 읽고 따로 구현했으며 HSPiPy 결과와 비교했습니다([빠른 예측 문서](SCREENING.md)). `scripts/build_reference_data.py`는 이 고정 원본의 해시를 다시 확인한 뒤 `workbench/data/`의 번들 부분집합을 결정적으로 만들고, `--check`로 커밋된 파일과 비교합니다.
+
 벌크 셀 경로는 RadonPy의 단계 정의(패킹 2단계 가열·변형, 21단계 압력 비율 0.02/0.60/1.00/0.50/0.10/0.01 × 50,000 atm, NPT 샘플링)를 그대로 쓰고 단계 길이에만 배율을 곱합니다. 상용 프로그램의 독점 파라미터·작업 파일은 수집하거나 포함하지 않습니다.
 
 ## 재실행

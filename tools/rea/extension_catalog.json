@@ -437,5 +437,124 @@
     "commit": "eedec6802b9d17d8895fe5686ae9e371f6be551b",
     "resolved_at": "2026-10-22T10:00:00+00:00",
     "note": "Only the 20 published scale values are used, with this file hash as provenance; no GPL code is copied."
+  },
+  {
+    "id": "radonpy-pi1070",
+    "repository": "RadonPy/RadonPy",
+    "url": "https://github.com/RadonPy/RadonPy",
+    "license": "BSD-3-Clause",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/README.md",
+        "sha256": "639450057cb6420917f1e8e70caa44f72bfa23d07e8897c84fcc92544d7d472f",
+        "bytes": 10621,
+        "github_blob_sha": "13652ee7a4e006d12f97f470eb6887b063273452"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/LICENSE",
+        "sha256": "0f660cb23fa6c593637c177cda5b08942a3e433c6a0a0cbb2860fcedf07c72f8",
+        "bytes": 1526,
+        "github_blob_sha": "3d7de701e30705db7e4d08d2a82b02c86d6f14da"
+      },
+      {
+        "path": "data/PI1070.csv",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/data/PI1070.csv",
+        "sha256": "4ee41d526db3d03eb5b83010672b4e63a4d51a114871a2187ca7fd57d30556a4",
+        "bytes": 1598888,
+        "github_blob_sha": "109a773f3da95043cc7861aad3e4e67140865ace"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "data/PI1070.csv",
+        "needle": "monomer_ID,smiles,mol_weight_monomer",
+        "purpose": "PI1070 column header: repeat-unit SMILES and RadonPy MD properties"
+      },
+      {
+        "path": "data/PI1070.csv",
+        "needle": "PI1,*CC*,28.054",
+        "purpose": "First record, polyethylene repeat unit"
+      },
+      {
+        "path": "README.md",
+        "needle": "[1070 amorphous polymers]",
+        "purpose": "Upstream README names the dataset"
+      }
+    ],
+    "commit": "8834b9071ae93d9af36558a3c24545dd52e5ba1a",
+    "resolved_at": "2026-10-22T11:11:00+00:00",
+    "note": "Reference dataset of all-atom MD properties (300 K, 1 atm) for the screening surrogate; the vendored subset is rebuilt by scripts/build_reference_data.py."
+  },
+  {
+    "id": "hspipy",
+    "repository": "Gnpd/HSPiPy",
+    "url": "https://github.com/Gnpd/HSPiPy",
+    "license": "MIT",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/README.md",
+        "sha256": "d4316878d5cb7df7de1d80d6a2fdb5251db5e14179882b7be764e6266004955e",
+        "bytes": 8936,
+        "github_blob_sha": "bbbbbd50cf8d99c48894d9d8196a1e208b707787"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/LICENSE",
+        "sha256": "5bf2c137725e9155271313dad3287f2b896394d149f88d29116079c1120c2dc9",
+        "bytes": 1066,
+        "github_blob_sha": "2142f521fd1edcfdf30be51774e713bcfa9952e0"
+      },
+      {
+        "path": "hspipy/db.csv",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/hspipy/db.csv",
+        "sha256": "42cb4179c9de4b65e5340876de8031df3e385523e1a5ccfdadcdc6d48dce52d2",
+        "bytes": 35035,
+        "github_blob_sha": "204dd15a5c2d012d7084c074de1903fedfd96d07"
+      },
+      {
+        "path": "hspipy/core/hsp_estimator.py",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/hspipy/core/hsp_estimator.py",
+        "sha256": "75fb7b364ddf98f57f11fa6278c97ff08e122409a601b1cb2ceb2790f6a74369",
+        "bytes": 25822,
+        "github_blob_sha": "0c99157c506dd7ff335194ed40a4d7c71b3b0813"
+      },
+      {
+        "path": "hspipy/core/loss.py",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/hspipy/core/loss.py",
+        "sha256": "e37ec791ab0469957f23274491b885109fa0a0d86eff40c2c12a5a48cbf00cb7",
+        "bytes": 6571,
+        "github_blob_sha": "0f763397afe3329968149f1749d14b869a8e0dcd"
+      },
+      {
+        "path": "hspipy/core/utils.py",
+        "source_url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/hspipy/core/utils.py",
+        "sha256": "c3efc4349d307809e834f982323eb4b726bcd995f0fb37b43fae1d07865e2b01",
+        "bytes": 3989,
+        "github_blob_sha": "2cd7775ddc1efd8320b8a6d8454085276768383d"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "hspipy/db.csv",
+        "needle": "No.,CAS,Name,D,P,H,Mole_vol",
+        "purpose": "Solvent table header: Hansen D/P/H (MPa^0.5) and molar volume (cm^3/mol)"
+      },
+      {
+        "path": "hspipy/core/hsp_estimator.py",
+        "needle": "def _classic_fit(",
+        "purpose": "Classic Hansen sphere hill-climb with minimum-radius tie break"
+      },
+      {
+        "path": "hspipy/core/utils.py",
+        "needle": "def compute_datafit(",
+        "purpose": "DATAFIT geometric-mean desirability function"
+      }
+    ],
+    "commit": "b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373",
+    "resolved_at": "2026-10-22T11:12:00+00:00",
+    "note": "db.csv here is byte-identical to the PyPI 1.1.8 wheel (sha256 42cb4179...). The sphere fit in workbench/compatibility.py is an independent implementation checked against HSPiPy."
   }
 ]

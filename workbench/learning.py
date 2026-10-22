@@ -23,6 +23,7 @@ PROPERTIES = {
     "tensile_strength": ("MPa", "polymer"), "molecular_weight": ("g/mol", "polymer"),
     "mn": ("g/mol", "polymer"), "mw": ("g/mol", "polymer"), "dispersity": ("dimensionless", "polymer"),
     "decomposition_temperature": ("K", "polymer"), "density": ("g/cm^3", "polymer"),
+    "hsp_delta_d": ("MPa^0.5", "polymer"), "hsp_delta_p": ("MPa^0.5", "polymer"), "hsp_delta_h": ("MPa^0.5", "polymer"), "hsp_radius": ("MPa^0.5", "polymer"),
     "binding_affinity": ("nM", "protein_polymer"), "contact_count": ("count", "protein_polymer"),
     "hbond_count": ("count", "protein_polymer"), "protein_rmsd": ("angstrom", "protein_polymer"),
 }

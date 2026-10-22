@@ -131,6 +131,15 @@ HOOMD-blue는 별도 CPU 실행 스크립트를 생성하며 설치된 환경을
 
 polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이어가고, **MDP**와 설치된 GROMACS가 있으면 `grompp → mdrun`을 실행합니다. 이번 환경에서는 GROMACS 실행과 전체 힘장 검증을 수행하지 않았습니다. 분자 ITP 생성과 실제 GROMACS 계산은 서로 다른 단계로 표시됩니다. 외부 파일을 include하는 힘장 대신 필요한 정의가 포함된 입력이 필요합니다.
 
+## 계산 전 빠른 예측 · 상용성
+
+**빠른 예측 · 상용성** 화면은 계산을 돌리기 전에 후보를 좁힙니다.
+
+- **물성 예측:** RadonPy가 공개한 비정질 고분자 1,077종의 전원자 MD 결과(PI1070, 300 K)로 학습한 가우스 과정이 반복단위 SMILES에서 밀도·Cp·체적 탄성률·압축률·열팽창·굴절률·열전도도를 몇 초 안에 예측합니다. 5겹 교차검증 기준 밀도 MAE는 0.023 g/cm³(R² 0.93)입니다. 최근접 참조 고분자와 유사도로 적용 범위를 표시하고, 같은 반복단위의 내 RadonPy 벌크 계산이 있으면 나란히 비교합니다. 예측값은 MD 워크플로우가 낼 값의 예측이며 실험값이 아닙니다.
+- **HSP 상용성:** Hansen 용매 248종으로 고분자 HSP에 대한 Ra·RED·χ 순위와 두 용매 혼합(두 비용매로 용매 만들기 포함)을 계산합니다. 용해·팽윤 시험 결과로 Hansen 구(δD·δP·δH·R0)를 피팅하고 측정값 초안으로 넘길 수 있습니다. 고분자 블렌드는 정규 용액 χ와 Flory–Huggins 임계 χ로 판정합니다.
+
+참조 데이터(RadonPy BSD-3, HSPiPy MIT)는 REA로 감사한 고정 커밋에서 `scripts/build_reference_data.py`가 다시 만듭니다. [빠른 예측 문서](docs/SCREENING.md)를 참고하세요.
+
 ## AI 에이전트 연동 (MCP)
 
 Polymer Lab은 MCP stdio 서버(`python -m workbench --mcp`, 데스크톱 `polymer-lab --mcp`)를 제공합니다. Claude Code·Claude Desktop·Codex 같은 에이전트가 계산 작업 실행·대기·결과 읽기, 곡선 분석, 측정값 초안 입력, 모델 학습·예측, 캠페인 제어를 할 수 있습니다. 실행 중인 데스크톱 앱이나 `./start.sh` 서버에 붙고, 없으면 요청 시 세션 소유 서버를 띄웁니다. 에이전트가 입력한 측정값은 항상 검토 전 상태로 저장되며 MCP로 만든 작업에는 요청자가 기록됩니다. 이 저장소의 `.mcp.json`에 등록되어 있습니다. [MCP 연동 안내](docs/MCP.md)를 참고하세요.
@@ -184,6 +193,9 @@ workbench/jobs.py          작업·프로세스·산출물 관리
 workbench/models.py        입력 검증
 workbench/science.py       조대화 계산·분석·RDKit 구조 생성
 workbench/external.py      RadonPy/PACKMOL/단백질/선택 엔진 어댑터
+workbench/screening.py     PI1070 참조 MD 대리 모델(계산 전 물성 예측)
+workbench/compatibility.py Hansen 용매 순위·구 피팅·블렌드 χ
+workbench/data/            감사한 참조 데이터·라이선스·출처 manifest
 workbench/static/          한국어 화면·3D 뷰어
 scripts/engine_worker.py   계산 프로세스 진입점
 scripts/audit_repos.py     REA 재분석·근거 검증

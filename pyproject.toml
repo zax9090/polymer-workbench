@@ -20,7 +20,7 @@ test = ["pytest>=8", "httpx>=0.27"]
 include = ["workbench*"]
 
 [tool.setuptools.package-data]
-workbench = ["static/**/*", "static/*"]
+workbench = ["static/**/*", "static/*", "data/*", "data/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

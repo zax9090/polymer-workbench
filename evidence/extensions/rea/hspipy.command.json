@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/hspipy",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.547,
+  "executed_at": "2026-10-22T11:33:35.625943+00:00",
+  "source_sha256": "2c7b8306aa7d492fd27f1d119905d2503fbf17518abf285b3e311fd5fa79ec3b",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/hspipy.json",
+  "stderr": "evidence/extensions/rea/hspipy.stderr.log"
+}

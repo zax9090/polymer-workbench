@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/radonpy-pi1070",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.346,
+  "executed_at": "2026-10-22T11:33:35.429958+00:00",
+  "source_sha256": "a5c10c63598b74d059552ce530b41bf10c9a80e8297eddcffb936b82799b1c89",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/radonpy-pi1070.json",
+  "stderr": "evidence/extensions/rea/radonpy-pi1070.stderr.log"
+}

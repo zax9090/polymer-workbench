@@ -1,0 +1,39 @@
+{
+  "package": "hspipy",
+  "version": "1.1.8",
+  "artifact": "hspipy-1.1.8-py3-none-any.whl",
+  "sha256": "d916f2d6680a44491c55909efa0694b5d96c5a6dbe20c3fbd89524e9915f0f87",
+  "license": "MIT",
+  "purpose": "Solvent Hansen table vendored (subset) as workbench/data/hsp_solvents.csv",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "hspipy-1.1.8-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "entries": 20,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "integrity_contradictions": [],
+    "output": "hspipy.inspect.json"
+  },
+  "files": [
+    {
+      "path": "hspipy/db.csv",
+      "artifact_sha256": "42cb4179c9de4b65e5340876de8031df3e385523e1a5ccfdadcdc6d48dce52d2",
+      "repository_sha256": "42cb4179c9de4b65e5340876de8031df3e385523e1a5ccfdadcdc6d48dce52d2",
+      "matches_repository": true
+    }
+  ],
+  "audited_at": "2026-10-22T11:50:52.846276+00:00",
+  "status": "verified_vendored_source",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not validate the Hansen values."
+  ]
+}

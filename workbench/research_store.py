@@ -22,6 +22,7 @@ PROPERTY_UNITS = {
     "protein_rmsd": "angstrom", "molecular_weight": "g/mol",
     "mn": "g/mol", "mw": "g/mol", "dispersity": "dimensionless", "decomposition_temperature": "K",
     "density": "g/cm^3",
+    "hsp_delta_d": "MPa^0.5", "hsp_delta_p": "MPa^0.5", "hsp_delta_h": "MPa^0.5", "hsp_radius": "MPa^0.5",
 }
 
 
@@ -115,12 +116,13 @@ def validate_measurement(record: dict) -> dict:
         "dispersity": {"dimensionless": (1, 0)},
         "decomposition_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
         "density": {"g/cm^3": (1, 0), "kg/m^3": (1e-3, 0)},
+        **{name: {"MPa^0.5": (1, 0), "(cal/cm^3)^0.5": (2.0455, 0)} for name in ("hsp_delta_d", "hsp_delta_p", "hsp_delta_h", "hsp_radius")},
     }
     if unit not in units[prop]:
         raise ValueError(f"Unit {unit!r} is incompatible with {prop}")
     factor, offset = units[prop][unit]
     converted = value * factor + offset
-    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature", "density"} and converted == 0):
+    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature", "density", "hsp_radius"} and converted == 0):
         raise ValueError(f"Invalid physical value for {prop}")
     if prop == "dispersity" and converted < 1:
         raise ValueError("Dispersity Mw/Mn cannot be below 1")

@@ -12,6 +12,7 @@ STAGE = ROOT / "build" / "desktop-resources"
 
 datas = [
     (str(ROOT / "workbench" / "static"), "workbench/static"),
+    (str(ROOT / "workbench" / "data"), "workbench/data"),
     (str(ROOT / "evidence"), "evidence"),
     (str(ROOT / "assets"), "assets"),
     (str(ROOT / "scripts" / "engine_worker.py"), "scripts"),
@@ -29,7 +30,7 @@ hiddenimports = [
     "workbench.science", "workbench.external", "workbench.jobs",
     "workbench.research_api", "workbench.research_store", "workbench.descriptors",
     "workbench.ingestion", "workbench.learning", "workbench.campaigns",
-    "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap",
+    "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.screening", "workbench.compatibility",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
