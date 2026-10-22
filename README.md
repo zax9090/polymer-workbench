@@ -191,6 +191,8 @@ CLI 직접 실행은 계산 파일을 만들며 HTTP 작업 관리자의 대기�
 
 GitHub Actions(`.github/workflows/tests.yml`)는 PR과 `main` 푸시마다 Ubuntu 24.04·Python 3.13에서 고정 의존성, GROMACS 2023.3(`scripts/ci_install_gromacs.sh`: Ubuntu 기본 저장소만 갱신·재시도하고, `.deb`를 파일별로 병렬 내려받되 느린 미러는 건너뛰어 다음 미러로 넘어감. 캐시된 파일은 서명된 색인의 해시와 맞을 때만 재사용하며, 러너 이미지가 바뀌어도 이전 캐시에서 바뀐 패키지만 새로 받음), BayBE(CPU torch), SHA-256으로 고정한 EMC 9.4.4·xtb 6.7.1을 설치하고 REA 감사 원본을 받아 전체 pytest를 실행합니다. 건너뛴 테스트와 그 이유는 로그의 `-rs` 요약에 나옵니다.
 
+`main`에 커밋이 올라올 때마다 `.github/workflows/drive-backup.yml`이 그 커밋의 파일을 zip으로 묶어 Google Drive에 올립니다. 처음 한 번 Drive 토큰을 GitHub 비밀 값 `RCLONE_DRIVE_TOKEN`으로 넣어야 하며, 방법은 [Drive 백업 문서](docs/DRIVE_BACKUP.md)에 있습니다.
+
 현재 서버는 개인 PC의 `127.0.0.1` 전용입니다. 다중 사용자 인증·원격 HPC 스케줄러·프로덕션 클러스터 서비스는 포함하지 않습니다.
 
 ## 소스 구성
