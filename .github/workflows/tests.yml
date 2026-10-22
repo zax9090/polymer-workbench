@@ -98,9 +98,33 @@ jobs:
           path: data/engines
           key: engines-emc-9.4.4-xtb-6.7.1-v1
 
+      # The suite starts LAMMPS (pip wheel with MPICH) as a subprocess and in-process. A failed start
+      # inside pytest took the whole run down (exit 143) before any failure was printed, so check
+      # first, each in its own session, that both ways work on this runner.
+      - name: Check that LAMMPS starts
+        timeout-minutes: 3
+        run: |
+          export PATH="$PWD/.venv/bin:$PATH"
+          export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
+          echo "host $(hostname): $(getent hosts "$(hostname)" || echo 'not resolvable'); $(nproc) CPUs"
+          free -h
+          printf 'units lj\natom_style atomic\nregion box block 0 2 0 2 0 2\ncreate_box 1 box\n' > "$RUNNER_TEMP/in.check"
+          setsid --wait lmp -in "$RUNNER_TEMP/in.check" -log none
+          setsid --wait .venv/bin/python -c "from lammps import lammps; engine = lammps(cmdargs=['-screen', 'none', '-log', 'none']); print('LAMMPS', engine.version()); engine.close()"
+
       - name: Run pytest
         timeout-minutes: 30
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
           export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
-          .venv/bin/python -m pytest -q -rs
+          .venv/bin/python -m pytest -v -rs
+
+      # Calculation logs of the failed tests (pytest keeps its temporary directories) and kernel messages.
+      - name: Show calculation logs after a failure
+        if: failure()
+        run: |
+          lscpu | head -n 20 || true
+          sudo dmesg | tail -n 30 || true
+          find /tmp/pytest-of-"$(id -un)" -newer pyproject.toml \( -name 'lammps*.log' -o -name 'log.lammps' -o -name 'emc_*.log' -o -name 'xtb.log' \
+              -o -name 'radonpy*.log' -o -name 'equilibration.log' -o -name 'cure.log' -o -name 'sampling.log' \) 2>/dev/null | head -n 30 |
+            while read -r log; do echo "::group::$log"; tail -n 25 "$log"; echo "::endgroup::"; done
