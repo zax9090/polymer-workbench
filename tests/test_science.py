@@ -63,6 +63,8 @@ class ScientificChecks(unittest.TestCase):
 
     def test_lammps_matches_independent_potential(self):
         try:
+            from workbench.paths import apply_mpi_defaults
+            apply_mpi_defaults()  # the probe initializes MPI in this process, as simulate_lammps does
             from lammps import lammps
             probe = lammps(cmdargs=["-screen", "none", "-log", "none"])
             probe.close()
@@ -104,6 +106,8 @@ class ScientificChecks(unittest.TestCase):
         if not available("radonpy") or not executable("lmp", "LAMMPS_EXEC"):
             self.skipTest("Optional native RadonPy/LAMMPS route unavailable")
         try:
+            from workbench.paths import apply_mpi_defaults
+            apply_mpi_defaults()  # the probe initializes MPI in this process, as simulate_lammps does
             from lammps import lammps
             probe = lammps(cmdargs=["-screen", "none", "-log", "none"])
             probe.close()

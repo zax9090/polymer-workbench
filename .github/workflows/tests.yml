@@ -98,19 +98,20 @@ jobs:
           path: data/engines
           key: engines-emc-9.4.4-xtb-6.7.1-v1
 
-      # The suite starts LAMMPS (pip wheel with MPICH) as a subprocess and in-process. A failed start
-      # inside pytest took the whole run down (exit 143) before any failure was printed, so check
-      # first, each in its own session, that both ways work on this runner.
+      # The suite starts LAMMPS (pip wheel with MPICH) as a subprocess and in-process. When MPI_Init
+      # aborted inside pytest the whole run died (exit 143) before any failure was printed, so check
+      # first, each in its own session, that both ways start with the environment the app sets
+      # (workbench.paths.MPI_DEFAULTS; UCX otherwise aborts on runners with an Azure MANA RDMA adapter).
       - name: Check that LAMMPS starts
         timeout-minutes: 3
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
           export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
-          echo "host $(hostname): $(getent hosts "$(hostname)" || echo 'not resolvable'); $(nproc) CPUs"
+          echo "host $(hostname): $(getent hosts "$(hostname)" || echo 'not resolvable'); $(nproc) CPUs; RDMA devices: $(ls /sys/class/infiniband 2>/dev/null | tr '\n' ' ')"
           free -h
           printf 'units lj\natom_style atomic\nregion box block 0 2 0 2 0 2\ncreate_box 1 box\n' > "$RUNNER_TEMP/in.check"
-          setsid --wait lmp -in "$RUNNER_TEMP/in.check" -log none
-          setsid --wait .venv/bin/python -c "from lammps import lammps; engine = lammps(cmdargs=['-screen', 'none', '-log', 'none']); print('LAMMPS', engine.version()); engine.close()"
+          setsid --wait .venv/bin/python -c "import subprocess, sys; from workbench.paths import runtime_environment; subprocess.run(['lmp', '-in', sys.argv[1], '-log', 'none'], env=runtime_environment(), check=True)" "$RUNNER_TEMP/in.check"
+          setsid --wait .venv/bin/python -c "from workbench.paths import apply_mpi_defaults; apply_mpi_defaults(); from lammps import lammps; engine = lammps(cmdargs=['-screen', 'none', '-log', 'none']); print('LAMMPS', engine.version()); engine.close()"
 
       - name: Run pytest
         timeout-minutes: 30

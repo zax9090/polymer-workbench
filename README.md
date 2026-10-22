@@ -130,6 +130,7 @@ export COLABFOLD_EXEC=/absolute/path/to/colabfold_batch
 | `HOOMD_PYTHON` | 별도 HOOMD-blue Python 환경 |
 | `COLABFOLD_EXEC` | 별도 ColabFold 실행 파일 |
 | `POLYMER_DATA_DIR` | 작업 데이터 저장 폴더 |
+| `UCX_TLS` | LAMMPS가 쓰는 MPICH(UCX) 전송. 기본 `self,sm,tcp`(단일 노드). RDMA 어댑터(예: Azure MANA)가 있는 컴퓨터에서 UCX가 MPI 초기화를 중단하지 않게 함 |
 
 HOOMD-blue는 별도 CPU 실행 스크립트를 생성하며 설치된 환경을 연결하면 실행합니다. 기본 LAMMPS 경로와 다른 Gaussian 반발 모델임을 기록합니다. 이번 환경에서 HOOMD-blue는 실행하지 않았습니다.
 

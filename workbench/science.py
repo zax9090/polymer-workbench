@@ -152,6 +152,8 @@ def write_lammps_data(path, positions, bonds, monomers):
 
 
 def simulate_lammps(config, output: Path, emit):
+    from .paths import apply_mpi_defaults
+    apply_mpi_defaults()  # MPI_Init runs in this process with the first LAMMPS instance
     from lammps import lammps
     positions, bonds = initial_chains(config["monomers"], config["chains"], config["seed"])
     write_lammps_data(output / "initial.data", positions, bonds, config["monomers"])
