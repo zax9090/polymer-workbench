@@ -158,13 +158,13 @@ class JobManager:
 
     def _runtime(self, directory):
         packages = {}
-        for package in ("numpy", "scipy", "rdkit", "MDAnalysis", "lammps", "mpich", "radonpy-pypi", "packmol", "polyply", "pysimm", "hoomd", "colabfold", "vermouth", "duckdb", "scikit-learn", "pymbar", "pypdf", "baybe", "torch"):
+        for package in ("numpy", "scipy", "rdkit", "MDAnalysis", "lammps", "mpich", "radonpy-pypi", "packmol", "polyply", "pysimm", "hoomd", "colabfold", "vermouth", "duckdb", "scikit-learn", "pymbar", "pypdf", "baybe", "torch", "pybaselines", "pdbfixer", "openmm"):
             try:
                 packages[package] = version(package)
             except PackageNotFoundError:
                 packages[package] = None
         files = {}
-        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/sap.py", "workbench/protonation.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
+        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/sap.py", "workbench/protonation.py", "workbench/class2.py", "workbench/pcff.py", "workbench/crosslink.py", "workbench/engines.py", "workbench/repair.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
             path = ROOT / name
             if path.is_file():
                 files[name] = hashlib.sha256(path.read_bytes()).hexdigest()

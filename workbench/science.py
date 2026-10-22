@@ -38,7 +38,7 @@ def get_capabilities():
 
 def validate_config(raw: dict) -> dict:
     config = {**DEFAULTS, **raw}
-    if config["route"] in ("polymer_atomistic", "pysimm") and raw.get("atomistic_mode") != "bulk":
+    if config["route"] in ("polymer_atomistic", "pysimm") and raw.get("atomistic_mode") not in ("bulk", "crosslink"):
         config["chains"] = raw.get("chains", 1)
         if config["chains"] != 1:
             raise ValueError("The atomistic and pysimm routes currently support one isolated chain; set chains=1")
@@ -152,6 +152,8 @@ def write_lammps_data(path, positions, bonds, monomers):
 
 
 def simulate_lammps(config, output: Path, emit):
+    from .paths import apply_mpi_defaults
+    apply_mpi_defaults()  # MPI_Init runs in this process with the first LAMMPS instance
     from lammps import lammps
     positions, bonds = initial_chains(config["monomers"], config["chains"], config["seed"])
     write_lammps_data(output / "initial.data", positions, bonds, config["monomers"])

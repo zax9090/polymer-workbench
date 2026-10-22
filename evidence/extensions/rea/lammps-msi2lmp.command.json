@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/lammps-msi2lmp",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 4.236,
+  "executed_at": "2026-10-22T15:33:06.268162+00:00",
+  "source_sha256": "debd02dff2fe2a06fd39091804e7d89ddb082ce5f1e528dfb9c20a8609b96f8f",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/lammps-msi2lmp.json",
+  "stderr": "evidence/extensions/rea/lammps-msi2lmp.stderr.log"
+}

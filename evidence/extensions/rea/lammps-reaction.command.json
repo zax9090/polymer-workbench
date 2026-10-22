@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/lammps-reaction",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 4.354,
+  "executed_at": "2026-10-22T15:33:06.389971+00:00",
+  "source_sha256": "2c7a34282421644722ea5f1f7d61f54c46fb14fa5e504218a286476368f03e28",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/lammps-reaction.json",
+  "stderr": "evidence/extensions/rea/lammps-reaction.stderr.log"
+}

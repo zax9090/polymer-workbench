@@ -1,0 +1,59 @@
+{
+  "id": "pdbfixer",
+  "version": "1.12.0",
+  "license": "MIT",
+  "artifact": "pdbfixer-1.12.0.tar.gz",
+  "sha256": "82e54074b33eb00270e9a439c8633fcf82cd3ab7a36561b01425a260c0fc4143",
+  "purpose": "Protein repair before SAP/PROPKA/PDB2PQR (protein_repair pdbfixer); PyPI ships only this sdist",
+  "kind": "archive",
+  "url": null,
+  "members": 73,
+  "links": [],
+  "files": [
+    {
+      "path": "pdbfixer-1.12.0/pdbfixer/pdbfixer.py",
+      "archive_sha256": "a52e39125e3e0e2d1b58b83841fb05b8669e0bcdd73461e1b0ed1d5a8e8261b9",
+      "installed_path": "pdbfixer/pdbfixer.py",
+      "installed_sha256": "a52e39125e3e0e2d1b58b83841fb05b8669e0bcdd73461e1b0ed1d5a8e8261b9",
+      "matches_installed": true
+    },
+    {
+      "path": "pdbfixer-1.12.0/LICENSE",
+      "archive_sha256": "f04b00ae2271d70c235eedbea1db38dc361aa27051d81e03f01e4ee17e07dbc8"
+    }
+  ],
+  "anchors": [
+    {
+      "path": "pdbfixer-1.12.0/pdbfixer/pdbfixer.py",
+      "needle": "def findMissingResidues(",
+      "line": 874,
+      "purpose": "SEQRES gaps; Polymer Lab drops terminal ones"
+    },
+    {
+      "path": "pdbfixer-1.12.0/pdbfixer/pdbfixer.py",
+      "needle": "def replaceNonstandardResidues(",
+      "line": 981,
+      "purpose": "Modified residues to their standard parent"
+    },
+    {
+      "path": "pdbfixer-1.12.0/pdbfixer/pdbfixer.py",
+      "needle": "def addMissingAtoms(self, seed=None):",
+      "line": 1207,
+      "purpose": "Heavy atoms and gap residues, seeded"
+    },
+    {
+      "path": "pdbfixer-1.12.0/pdbfixer/pdbfixer.py",
+      "needle": "def removeHeterogens(self, keepWater=True):",
+      "line": 1333,
+      "purpose": "Ligand and water removal"
+    }
+  ],
+  "rea": null,
+  "audited_at": "2026-10-22T15:32:03.234459+00:00",
+  "status": "verified_archive",
+  "limitations": [
+    "REA 6.7.0 inspect-artifact does not open tar archives; member hashes come from Python tarfile.",
+    "REA inspect-with-objdump reads ELF headers and sections; no deep disassembly provider (Ghidra, Hopper, IDA, Kuna) is configured.",
+    "A verified archive shows which release was used, not that its science is correct."
+  ]
+}

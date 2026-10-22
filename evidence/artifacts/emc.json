@@ -1,0 +1,163 @@
+{
+  "id": "emc",
+  "version": "9.4.4",
+  "license": "GPL-3.0 (LICENSE shipped in the archive; the SourceForge listing says MIT)",
+  "artifact": "emc_linux_x86_64_v9.4.4_20260701.tgz",
+  "sha256": "97f8debaa50e5ea50500905c084e9947203a8853b6b09f594c29769b9826c904",
+  "purpose": "PCFF typing, bond-increment charges and chain growth for the PCFF bulk and epoxy cure routes (workbench/engines.py, pcff.py, crosslink.py)",
+  "kind": "archive",
+  "url": "https://sourceforge.net/projects/montecarlo/files/emc_linux_x86_64_v9.4.4_20260701.tgz/download",
+  "members": 521,
+  "links": [
+    {
+      "member": "v9.4.4/scripts/qjobs",
+      "target": "myjobs.pl"
+    },
+    {
+      "member": "v9.4.4/examples/setup/workflow",
+      "target": "environment"
+    },
+    {
+      "member": "v9.4.4/examples/setup/environment/t_glass/setup/t_glass.esh",
+      "target": "2023072601.esh"
+    },
+    {
+      "member": "v9.4.4/examples/setup/environment/field/setup/2018070100.esh",
+      "target": "lj.esh"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/copolymer",
+      "target": "../setup/chemistry/polymer/copolymer"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/graft",
+      "target": "../build/graft"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/bulk",
+      "target": "../setup/chemistry/bulk"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/multiphase",
+      "target": "../setup/chemistry/multiphase"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/surface",
+      "target": "../setup/chemistry/surface"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/t_glass",
+      "target": "../setup/environment/t_glass"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/shear",
+      "target": "../setup/environment/nemd"
+    },
+    {
+      "member": "v9.4.4/examples/tutorial/import",
+      "target": "../setup/chemistry/import/pdb"
+    },
+    {
+      "member": "v9.4.4/field/cff/trix",
+      "target": "../../../../forcefields/trix"
+    },
+    {
+      "member": "v9.4.4/field/cff/pcff+",
+      "target": "../../../../forcefields/pcff+"
+    }
+  ],
+  "files": [
+    {
+      "path": "v9.4.4/LICENSE",
+      "archive_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "v9.4.4/scripts/emc.pl",
+      "archive_sha256": "4bdc967618c5177d35ca4adc58d82a47972f947c375c17b8fc05a0bad63e9bde"
+    },
+    {
+      "path": "v9.4.4/scripts/modules/EMC/Fields.pm",
+      "archive_sha256": "bfb71e2bde2c13bd57772e28cc30b3a18fb64b65d77aa1fe7fa8631eea33426b"
+    },
+    {
+      "path": "v9.4.4/field/cff/pcff/pcff.frc",
+      "archive_sha256": "22974f591c98016c62e6986d8ca831713dbde38a203ed0e5805409b17fb00013"
+    },
+    {
+      "path": "v9.4.4/field/cff/compass/compass_templates.dat",
+      "archive_sha256": "3be0fd759f6cc83eae498980a04f5f7a1033f0cd908fa9cf11506b8264bb3e83"
+    }
+  ],
+  "anchors": [
+    {
+      "path": "v9.4.4/LICENSE",
+      "needle": "GNU GENERAL PUBLIC LICENSE",
+      "line": 1,
+      "purpose": "Shipped license text"
+    },
+    {
+      "path": "v9.4.4/field/cff/pcff/pcff.frc",
+      "needle": "#version\tpcff.frc\t5.1",
+      "line": 12,
+      "purpose": "EMC's own PCFF table (version 5.1, 2020); LAMMPS' msi2lmp copy is 4.0"
+    },
+    {
+      "path": "v9.4.4/scripts/modules/EMC/Fields.pm",
+      "needle": "my %convert = (basf => \"cff\", pcff => \"cff\", compass => \"cff\");",
+      "line": 2178,
+      "purpose": "PCFF is resolved under field/cff"
+    },
+    {
+      "path": "v9.4.4/field/cff/compass/compass_templates.dat",
+      "needle": "COMPASS forcefield (June 2009) as provided with the LAMMPS distribution",
+      "line": 4,
+      "purpose": "The shipped COMPASS is the published LAMMPS subset, not the commercial file"
+    }
+  ],
+  "rea": {
+    "file_headers": {
+      "argv": [
+        "node",
+        "inspect-with-objdump",
+        "emc_linux_x86_64",
+        "file_headers",
+        "--format",
+        "json"
+      ],
+      "returncode": 0,
+      "subject_sha256": "c91e4b384c90694a388983a12cec42b659d2e639de69be25252dbd6eb7343a6c",
+      "stdout_excerpt": [
+        "architecture: i386:x86-64, flags 0x00000102:",
+        "EXEC_P, D_PAGED",
+        "start address 0x0000000000403540"
+      ],
+      "output": "emc.objdump-file_headers.json"
+    },
+    "section_headers": {
+      "argv": [
+        "node",
+        "inspect-with-objdump",
+        "emc_linux_x86_64",
+        "section_headers",
+        "--format",
+        "json"
+      ],
+      "returncode": 0,
+      "subject_sha256": "c91e4b384c90694a388983a12cec42b659d2e639de69be25252dbd6eb7343a6c",
+      "stdout_excerpt": [
+        "                  ALLOC",
+        " 26 .comment      00000012  0000000000000000  0000000000000000  008f6408  2**0",
+        "                  CONTENTS, READONLY"
+      ],
+      "output": "emc.objdump-section_headers.json"
+    },
+    "executable_sha256": "c91e4b384c90694a388983a12cec42b659d2e639de69be25252dbd6eb7343a6c"
+  },
+  "audited_at": "2026-10-22T15:31:41.535987+00:00",
+  "status": "verified_archive",
+  "limitations": [
+    "REA 6.7.0 inspect-artifact does not open tar archives; member hashes come from Python tarfile.",
+    "REA inspect-with-objdump reads ELF headers and sections; no deep disassembly provider (Ghidra, Hopper, IDA, Kuna) is configured.",
+    "A verified archive shows which release was used, not that its science is correct."
+  ]
+}

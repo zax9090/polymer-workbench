@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "numpy>=2,<3", "scipy>=1.14,<2", "duckdb>=1.4,<3", "scikit-learn>=1.6,<2", "pymbar>=4,<5", "pypdf>=6,<7"]
 
 [project.optional-dependencies]
-science = ["rdkit>=2024.9", "MDAnalysis>=2.8", "lammps>=2024.8", "propka>=3.5", "pdb2pqr>=3.7"]
+science = ["rdkit>=2024.9", "MDAnalysis>=2.8", "lammps>=2024.8", "propka>=3.5", "pdb2pqr>=3.7", "pybaselines>=1.2", "jcamp>=1.3", "pdbfixer>=1.12", "openmm>=8.6"]
 builders = ["radonpy-pypi>=0.2.11", "packmol>=21", "polyply>=1.8", "pysmiles>=2.1", "cgsmiles>=1"]
 desktop = ["PySide6>=6.12,<7", "pyinstaller>=6.22,<7"]
 optimization = ["baybe>=0.14,<1"]

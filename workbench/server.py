@@ -102,14 +102,21 @@ def create_app(data_root=None):
                 installed_version = None
             engines.append({"id": name, "name": name, "available": bool(found), "version": installed_version,
                             "detail": "설치 감지됨 · 실제 실행 결과는 작업 기록에서 확인" if found else "현재 환경에 없음 · 별도 환경 연결 가능"})
+        from .engines import ENGINES, status as engine_status
+        for engine_id in ENGINES:
+            pinned = engine_status(engine_id)
+            engines.append({"id": engine_id, "name": pinned["name"], "available": pinned["available"], "version": pinned["version"],
+                            "detail": f"고정 릴리스 확인됨 ({pinned['source']}) · {pinned['license']}" if pinned["available"]
+                            else f"첫 사용 시 고정 릴리스를 내려받아 SHA-256 확인 · {pinned['license']}"})
         engines += [{"id": "3dmol", "name": "3Dmol.js", "available": True, "version": "local vendor", "detail": "로컬 분자 시각화 라이브러리"},
+                    {"id": "hiplot", "name": "HiPlot", "available": True, "version": "0.1.33 bundle", "detail": "로컬 다변수 비교 화면 (브라우저 번들만 사용)"},
                     {"id": "alphafold_db", "name": "AlphaFold DB", "available": True, "version": None, "detail": "공개 예측 구조 조회 · 인터넷 연결 필요"}]
         rea_path = ROOT / "evidence" / "repositories.json"
         rea = json.loads(rea_path.read_text()).get("rea", {}) if rea_path.exists() else {}
         engines.append({"id": "rea", "name": "REA", "available": (ROOT / "tools" / "rea" / "node_modules").exists(), "version": rea.get("version"), "detail": "개발 분석 도구 · 데스크톱 배포본에는 분석 기록을 포함하며 REA 재실행 환경은 별도"})
         route_info = {
             "polymer_cg": ("조대화 고분자", "LAMMPS/NumPy → MDAnalysis → 궤적·관측값", ["numpy"]),
-            "polymer_atomistic": ("전원자 고분자", "RDKit 구조 생성 또는 RadonPy/LAMMPS 고립 사슬 MD", ["rdkit"]),
+            "polymer_atomistic": ("전원자 고분자", "RDKit 구조 생성, RadonPy/LAMMPS MD, GAFF2·PCFF 벌크 셀, 에폭시–아민 가교", ["rdkit"]),
             "protein": ("AlphaFold / ColabFold", "기존 예측 가져오기·PDB 분석·새 예측 입력 내보내기. 새 추론은 별도 ColabFold 필요", []),
             "packmol": ("분자 혼합계", "RDKit 고분자와 이전 구조 배치. 토폴로지·힘장 설정은 후속 작업", ["rdkit", "packmol"]),
             "polyply": ("polyply → GROMACS", "토폴로지 생성. 좌표·MD는 전체 힘장 파일 및 GROMACS 필요", ["polyply"]),

@@ -159,3 +159,14 @@ def test_user_engine_override_survives_bundled_runtime(frozen_release, monkeypat
     native.touch()
     monkeypatch.setenv("LAMMPS_EXEC", "/custom/lammps/lmp")
     assert paths.runtime_environment()["LAMMPS_EXEC"] == "/custom/lammps/lmp"
+
+
+def test_engine_environment_keeps_mpi_on_shared_memory_unless_configured(monkeypatch):
+    # The MPICH wheel's UCX aborted MPI_Init on an Azure MANA adapter (ud_verbs) for a one-process LAMMPS run.
+    monkeypatch.delenv("UCX_TLS", raising=False)
+    assert paths.runtime_environment()["UCX_TLS"] == "self,sm,tcp"
+    assert paths.subprocess_environment("lmp")["UCX_TLS"] == "self,sm,tcp"
+    monkeypatch.setenv("UCX_TLS", "rc,sm")
+    assert paths.runtime_environment()["UCX_TLS"] == "rc,sm"
+    target = {}
+    assert paths.apply_mpi_defaults(target) is target and target == {"UCX_TLS": "self,sm,tcp"}

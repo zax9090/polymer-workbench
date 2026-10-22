@@ -21,7 +21,10 @@ PROPERTY_UNITS = {
     "binding_affinity": "nM", "contact_count": "count", "hbond_count": "count",
     "protein_rmsd": "angstrom", "molecular_weight": "g/mol",
     "mn": "g/mol", "mw": "g/mol", "dispersity": "dimensionless", "decomposition_temperature": "K",
-    "density": "g/cm^3",
+    "density": "g/cm^3", "melting_temperature": "K", "melting_enthalpy": "J/g", "crystallinity": "fraction",
+    "mz": "g/mol", "dtg_peak_temperature": "K", "char_yield": "fraction",
+    "carbonyl_index": "dimensionless", "ir_band_ratio": "dimensionless", "epoxide_conversion": "fraction",
+    "absorption_max_wavelength": "nm", "optical_band_gap": "eV", "cloud_point_temperature": "K",
     "hsp_delta_d": "MPa^0.5", "hsp_delta_p": "MPa^0.5", "hsp_delta_h": "MPa^0.5", "hsp_radius": "MPa^0.5",
 }
 
@@ -58,7 +61,7 @@ def material_identity(material: dict) -> dict:
     if not isinstance(material, dict) or not material:
         raise ValueError("A nonempty material identity is required")
     identity = json.loads(_json(material))
-    for key in ("repeat_smiles", "smiles"):
+    for key in ("repeat_smiles", "smiles", "resin_smiles", "hardener_smiles"):
         if identity.get(key):
             from rdkit import Chem
             mol = Chem.MolFromSmiles(str(identity[key]))
@@ -74,6 +77,11 @@ def material_from_job(job):
     fields = ("repeat_smiles", "monomers", "chains", "sequence", "tacticity", "end_caps",
               "composition", "accession", "source_job_id", "source_artifact", "polyply_library",
               "polyply_residue", "ligand_smiles", "protein_sequence", "material_label")
+    if route == "polymer_atomistic" and config.get("atomistic_mode") == "crosslink":
+        # A cured network is defined by its resin and hardener, not by the form's repeat unit.
+        material = {key: config[key] for key in ("resin_smiles", "hardener_smiles", "resin_count", "hardener_count") if config.get(key) not in (None, "")}
+        material["representation"] = "epoxy_amine_network"
+        return material_identity(material)
     material = {key: config[key] for key in fields if config.get(key) not in (None, "")}
     material["representation"] = "unmapped_soft_bead_chain" if route in {"polymer_cg", "hoomd"} else str(route)
     # The generic bead simulation does not use the form's repeat-unit SMILES or protein fields.
@@ -116,14 +124,31 @@ def validate_measurement(record: dict) -> dict:
         "dispersity": {"dimensionless": (1, 0)},
         "decomposition_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
         "density": {"g/cm^3": (1, 0), "kg/m^3": (1e-3, 0)},
+        "melting_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
+        "melting_enthalpy": {"J/g": (1, 0), "kJ/kg": (1, 0)},
+        "crystallinity": {"fraction": (1, 0), "%": (0.01, 0)},
+        "mz": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
+        "dtg_peak_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
+        "char_yield": {"fraction": (1, 0), "%": (0.01, 0)},
+        "carbonyl_index": {"dimensionless": (1, 0)}, "ir_band_ratio": {"dimensionless": (1, 0)},
+        "epoxide_conversion": {"fraction": (1, 0), "%": (0.01, 0)},
+        "absorption_max_wavelength": {"nm": (1, 0), "um": (1e3, 0), "µm": (1e3, 0)},
+        "optical_band_gap": {"eV": (1, 0)},
+        "cloud_point_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
         **{name: {"MPa^0.5": (1, 0), "(cal/cm^3)^0.5": (2.0455, 0)} for name in ("hsp_delta_d", "hsp_delta_p", "hsp_delta_h", "hsp_radius")},
     }
     if unit not in units[prop]:
         raise ValueError(f"Unit {unit!r} is incompatible with {prop}")
     factor, offset = units[prop][unit]
     converted = value * factor + offset
-    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature", "density", "hsp_radius"} and converted == 0):
+    positive = {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "mz", "decomposition_temperature", "density", "hsp_radius",
+                "dtg_peak_temperature", "absorption_max_wavelength", "optical_band_gap", "cloud_point_temperature"}
+    if not math.isfinite(converted) or converted < 0 or (prop in positive and converted == 0):
         raise ValueError(f"Invalid physical value for {prop}")
+    if prop in {"crystallinity", "char_yield", "epoxide_conversion"} and converted > 1:
+        raise ValueError(f"{prop} cannot exceed 1 (100 %)")
+    if prop == "melting_temperature" and converted == 0:
+        raise ValueError("Invalid physical value for melting_temperature")
     if prop == "dispersity" and converted < 1:
         raise ValueError("Dispersity Mw/Mn cannot be below 1")
     if not str(row.get("method", "")).strip() or not row.get("source"):

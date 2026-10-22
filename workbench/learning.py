@@ -23,6 +23,10 @@ PROPERTIES = {
     "tensile_strength": ("MPa", "polymer"), "molecular_weight": ("g/mol", "polymer"),
     "mn": ("g/mol", "polymer"), "mw": ("g/mol", "polymer"), "dispersity": ("dimensionless", "polymer"),
     "decomposition_temperature": ("K", "polymer"), "density": ("g/cm^3", "polymer"),
+    "melting_temperature": ("K", "polymer"), "melting_enthalpy": ("J/g", "polymer"), "crystallinity": ("fraction", "polymer"),
+    "mz": ("g/mol", "polymer"), "dtg_peak_temperature": ("K", "polymer"), "char_yield": ("fraction", "polymer"),
+    "carbonyl_index": ("dimensionless", "polymer"), "ir_band_ratio": ("dimensionless", "polymer"), "epoxide_conversion": ("fraction", "polymer"),
+    "absorption_max_wavelength": ("nm", "polymer"), "optical_band_gap": ("eV", "polymer"), "cloud_point_temperature": ("K", "polymer"),
     "hsp_delta_d": ("MPa^0.5", "polymer"), "hsp_delta_p": ("MPa^0.5", "polymer"), "hsp_delta_h": ("MPa^0.5", "polymer"), "hsp_radius": ("MPa^0.5", "polymer"),
     "binding_affinity": ("nM", "protein_polymer"), "contact_count": ("count", "protein_polymer"),
     "hbond_count": ("count", "protein_polymer"), "protein_rmsd": ("angstrom", "protein_polymer"),
@@ -180,7 +184,9 @@ class SurrogateManager:
             experiment = experiments.get(item.get("job_id"), {})
             material = item.get("material") or experiment.get("material") or {}
             smiles = material.get("repeat_smiles") or material.get("smiles")
-            if not smiles and experiment.get("route") in {"polymer_atomistic", "packmol", "pysimm"}:
+            # A cured network has no single repeat unit; its form default must not stand in for one.
+            if not smiles and experiment.get("route") in {"polymer_atomistic", "packmol", "pysimm"} \
+                    and experiment.get("config", {}).get("atomistic_mode") != "crosslink":
                 smiles = experiment.get("config", {}).get("repeat_smiles")
             try:
                 canonical, values = molecular_features(smiles)

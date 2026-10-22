@@ -699,5 +699,312 @@
     "commit": "c714997761cf10797c9f3bd9c84af54579337786",
     "resolved_at": "2026-10-22T12:05:00+00:00",
     "note": "Tag v3.7.1, the installed release. The input path must be a local file; PDB2PQR otherwise treats it as an RCSB ID to download."
+  },
+  {
+    "id": "lammps-msi2lmp",
+    "repository": "lammps/lammps",
+    "url": "https://github.com/lammps/lammps",
+    "license": "GPL-2.0 (frc_files: public domain per frc_files/README)",
+    "source_files": [
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/LICENSE",
+        "sha256": "be38e38d9482c2beae35408e413045b4363e0e067b0d9f31549047948637a7ed",
+        "bytes": 17712,
+        "github_blob_sha": "202b8cd796b992878c21245f7b80a51ab54b63c6"
+      },
+      {
+        "path": "tools/msi2lmp/README",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/README",
+        "sha256": "4513583199bd62f0b573ef9feadb7f532ded607b72c16e904cfec65bbf639a7d",
+        "bytes": 10246,
+        "github_blob_sha": "9c9706fc97b53090ff1c8ae410ff9801e505cbcf"
+      },
+      {
+        "path": "tools/msi2lmp/frc_files/README",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/frc_files/README",
+        "sha256": "1921116b540bd5406bffb91eef17fb9ccb31808562fa7a941b78da040ded0978",
+        "bytes": 417,
+        "github_blob_sha": "a453e39666390aa1fcbc28ae29231d7395f1b0f5"
+      },
+      {
+        "path": "tools/msi2lmp/frc_files/pcff.frc",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/frc_files/pcff.frc",
+        "sha256": "e9c9da613d663c9613fba7823839c71cd07b8679363f629d8ad83c1b1349fd4c",
+        "bytes": 337914,
+        "github_blob_sha": "a06b04202a4f9e641d1c8c702ae42301ea38c7f4"
+      },
+      {
+        "path": "tools/msi2lmp/src/GetParameters.c",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/src/GetParameters.c",
+        "sha256": "add196c115ed9066aa5eba6da5bd8036bd29a3619395385140276e108c769591",
+        "bytes": 44457,
+        "github_blob_sha": "f18da6c39e35bbf7f02f0a97c887522c18d91085"
+      },
+      {
+        "path": "tools/msi2lmp/src/SearchAndFill.c",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/src/SearchAndFill.c",
+        "sha256": "b3cf5c0ee6347033d8a0e2b89a3e7ecf116069cf9f79082d7142cc634b374398",
+        "bytes": 7759,
+        "github_blob_sha": "d94ec14e60a082f38ef68c69fa4c8f4482a0c654"
+      },
+      {
+        "path": "tools/msi2lmp/src/InitializeItems.c",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/src/InitializeItems.c",
+        "sha256": "bd466a911304c35c1ba6b8140a24601b4fee6f810e48b82f94246de236300dab",
+        "bytes": 3378,
+        "github_blob_sha": "561e0056f6ee7e7bb6a339e227f1e4132415b9e9"
+      },
+      {
+        "path": "tools/msi2lmp/src/ReadFrcFile.c",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/src/ReadFrcFile.c",
+        "sha256": "bf17237ab5b3d137259f26f3bd24d2f7732545f5db860ada4d4dde2c56878830",
+        "bytes": 4584,
+        "github_blob_sha": "5d7ab9ea5d0c92f632ce9a6190c78bf3dd31949a"
+      },
+      {
+        "path": "tools/msi2lmp/test/ethane-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/ethane-class2b.car",
+        "sha256": "c6d3e1ba38d66e72514fff21ffe9afca9eb0b8c67c520edb179909ec903dc67d",
+        "bytes": 817,
+        "github_blob_sha": "6cb33963b54f7f3c97e3ec83b50bf94595600812"
+      },
+      {
+        "path": "tools/msi2lmp/test/benzene-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/benzene-class2b.car",
+        "sha256": "955b8ed881890698863829a5af9e32c1dd76b3800392a4644391fb08a6a8e1c0",
+        "bytes": 1141,
+        "github_blob_sha": "3fd984e742c628b64def02dd1bd65baebd8fa5a7"
+      },
+      {
+        "path": "tools/msi2lmp/test/naphthalene-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/naphthalene-class2b.car",
+        "sha256": "f5aac99de6e945a8895611caba0f26931b148cf32e5e7a7a8c57a6eb709deff4",
+        "bytes": 1627,
+        "github_blob_sha": "6fd108a51c0c09a5ce3a2d2ea5356f0dbd5f68b1"
+      },
+      {
+        "path": "tools/msi2lmp/test/cnt-hexagonal-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/cnt-hexagonal-class2b.car",
+        "sha256": "96774f759c9c2c705171809cf9aae636d686b46c8350f972f04df046f9923783",
+        "bytes": 49093,
+        "github_blob_sha": "f409efeb76f134fe84e35e82fe69babcc1ea036d"
+      },
+      {
+        "path": "tools/msi2lmp/test/hap_crystal-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/hap_crystal-class2b.car",
+        "sha256": "8bf453f89d6e6a7d103e7a36f66173740c31f97b5ce61437fdf04c3e42b8fe3c",
+        "bytes": 7296,
+        "github_blob_sha": "05f7fa28fa04682f1adde61191021487fac34939"
+      },
+      {
+        "path": "tools/msi2lmp/test/h2-h2o-class2b.car",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/h2-h2o-class2b.car",
+        "sha256": "24beb5c702955566a6d776e636239de4635488293256545eea9d365f640e6f2c",
+        "bytes": 578,
+        "github_blob_sha": "8a95d18cf29d5dd0f81e7410c7148507ae3342d6"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/ethane-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/ethane-class2b.data",
+        "sha256": "290335b8bcc1a99f5cc3702cf217357ec06238cfcd113d721ee826280924e91e",
+        "bytes": 3823,
+        "github_blob_sha": "a81f7d136a0b60b83ba56e11a2cf7163c0563b26"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/benzene-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/benzene-class2b.data",
+        "sha256": "7350e3fab65abadca05d97df1a30fa98f6f4d21d978ec46dc36c44aa87ee3c92",
+        "bytes": 5334,
+        "github_blob_sha": "4dcfeaecc7df9352565e1f98cd6803ee42de988b"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/naphthalene-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/naphthalene-class2b.data",
+        "sha256": "8bc002fbce4a4ea035bb531cfb224218029ff75392418a0e0bbb5c6c47360a92",
+        "bytes": 7911,
+        "github_blob_sha": "82bf7be107579fb63061fac1d1a35ddef1ff66c7"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/cnt-hexagonal-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/cnt-hexagonal-class2b.data",
+        "sha256": "fe6bf7cda1ce1f9416580615107760b8343e3b2e7058091e195b3025cdc3f175",
+        "bytes": 301348,
+        "github_blob_sha": "421d50797ce64151d2ba569ef2c3d02a8505d0ca"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/hap_crystal-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/hap_crystal-class2b.data",
+        "sha256": "a0491a4794544524442b82b57277f0a5c3a2e51280d88a15af437499914766ce",
+        "bytes": 14921,
+        "github_blob_sha": "415962b291a27e2938c6242af3476d7261cc3660"
+      },
+      {
+        "path": "tools/msi2lmp/test/reference/h2-h2o-class2b.data",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/tools/msi2lmp/test/reference/h2-h2o-class2b.data",
+        "sha256": "0cff07c6306577153b6131d36c99a034542afd7e64c924fe9bc1f3d522a66709",
+        "bytes": 1505,
+        "github_blob_sha": "8ed4790175aa00401ac4fefc1da70a6259833c7d"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "tools/msi2lmp/src/GetParameters.c",
+        "needle": "int find_match(int n, char types1[][5],struct FrcFieldItem item,int",
+        "purpose": "Exact, reversed, then wildcard matching (ported in workbench/class2.py)"
+      },
+      {
+        "path": "tools/msi2lmp/src/GetParameters.c",
+        "needle": "void get_equivs(int ic,char potential_types[][5],char equiv_types[][5])",
+        "purpose": "#equivalence column per interaction"
+      },
+      {
+        "path": "tools/msi2lmp/src/SearchAndFill.c",
+        "needle": "if (version > item->data[replace].ver) {",
+        "purpose": "A repeated type tuple keeps the higher version"
+      },
+      {
+        "path": "tools/msi2lmp/src/ReadFrcFile.c",
+        "needle": "ljtypeflag = 1;",
+        "purpose": "class II nonbond rows are r-eps (9-6)"
+      },
+      {
+        "path": "tools/msi2lmp/frc_files/README",
+        "needle": "are openly available files that are in the public domain",
+        "purpose": "pcff.frc may be bundled (workbench/data/forcefields/lammps_pcff.frc)"
+      }
+    ],
+    "commit": "a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b",
+    "resolved_at": "2026-10-22T15:32:46.655040+00:00",
+    "note": "PCFF reference table and the msi2lmp lookup rules; the class2b test inputs and reference data files validate the Python port (tests/test_class2.py)."
+  },
+  {
+    "id": "lammps-reaction",
+    "repository": "lammps/lammps",
+    "url": "https://github.com/lammps/lammps",
+    "license": "GPL-2.0",
+    "source_files": [
+      {
+        "path": "src/REACTION/fix_bond_react.cpp",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/src/REACTION/fix_bond_react.cpp",
+        "sha256": "e7a7a045a38c090b8a1aa08bc8f3f0d477268dc2a258054a3917011eb697a0c1",
+        "bytes": 200911,
+        "github_blob_sha": "8633843fbbea383c956de4d62ef2f74f95bc38f8"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/in.tiny_epoxy.stabilized",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/examples/PACKAGES/reaction/tiny_epoxy/in.tiny_epoxy.stabilized",
+        "sha256": "659a44f91b7ce09cf8da86dcadefa0e32f1a599cd1d61870208cdf16dbc4574a",
+        "bytes": 1243,
+        "github_blob_sha": "87ec15b19353afe1c5785a1f73c6f243b49a3721"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1.map",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1.map",
+        "sha256": "3a8c7fef6c6ddce42afe7ec3246230a57d72c1d2257446a0e8fdf0f307944f7b",
+        "bytes": 271,
+        "github_blob_sha": "9901104f035c770c85808605ab7bcc3460d75125"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1_pre.molecule_template",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1_pre.molecule_template",
+        "sha256": "caa68333fe0bd2dfceb7113c8e71356f815c27f5dbad0130fe64d6549701e450",
+        "bytes": 9379,
+        "github_blob_sha": "35d308c79729c22f0385e25859258e591dc69b15"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1_post.molecule_template",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1_post.molecule_template",
+        "sha256": "589c4dca85128818697e9af6df008f8752d69b8d476a1bbf009c6a60f771cb1b",
+        "bytes": 9730,
+        "github_blob_sha": "4db26814c54d1ab0e65f10a7b8f58e90536841f6"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "src/REACTION/fix_bond_react.cpp",
+        "needle": "atm.recharged = 1; // update all partial charges by default",
+        "purpose": "Every template charge is rewritten unless custom_charges names a fragment"
+      },
+      {
+        "path": "src/REACTION/fix_bond_react.cpp",
+        "needle": "strcmp(arg[iarg],\"custom_charges\") == 0",
+        "purpose": "Fragment of atoms whose charges are updated"
+      },
+      {
+        "path": "src/REACTION/fix_bond_react.cpp",
+        "needle": "strcmp(arg[iarg],\"stabilize_steps\") == 0",
+        "purpose": "nve/limit duration for reacting atoms"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/in.tiny_epoxy.stabilized",
+        "needle": "fix rxns all bond/react stabilization yes statted_grp .03",
+        "purpose": "Stabilized epoxy-amine reference input"
+      },
+      {
+        "path": "examples/PACKAGES/reaction/tiny_epoxy/rxn1_stp1.map",
+        "needle": "InitiatorIDs",
+        "purpose": "Map file layout (InitiatorIDs, EdgeIDs, Equivalences)"
+      }
+    ],
+    "commit": "a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b",
+    "resolved_at": "2026-10-22T15:32:47.849779+00:00",
+    "note": "Template and map format followed by workbench/crosslink.py. The REA finding that edge-atom charges are rewritten by default is why the cure route passes custom_charges."
+  },
+  {
+    "id": "pysimm",
+    "repository": "polysimtools/pysimm",
+    "url": "https://github.com/polysimtools/pysimm",
+    "license": "MIT",
+    "source_files": [
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/LICENSE",
+        "sha256": "6ec396b5bc668be729e0c78a8dfd92ff8cda1146fa359a56d9255c2ec06ee7b7",
+        "bytes": 1105,
+        "github_blob_sha": "10bd50fcbf12346597e8d3097caea0a4d7ecff2b"
+      },
+      {
+        "path": "pysimm/forcefield/pcff.py",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/forcefield/pcff.py",
+        "sha256": "4ed9372aef3446537e1388c1902922d953fc9d0b32bdbe3ca1c5d2b726a459c9",
+        "bytes": 19303,
+        "github_blob_sha": "1da9101cfe4e6badaf4b5e17c0aac82006f91a77"
+      },
+      {
+        "path": "pysimm/apps/polymatic.py",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/apps/polymatic.py",
+        "sha256": "5b77bfa8680ba90f092504084bc61eb2a390ffa63fce61f4d1c4138a0237661b",
+        "bytes": 14112,
+        "github_blob_sha": "b52a07c45581e0c3718bfa041cbffdad02929bf3"
+      },
+      {
+        "path": "pysimm/apps/random_walk.py",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/apps/random_walk.py",
+        "sha256": "9e127e3eaf09045863526485885839b645ee01688157c646d51ceeac870cec09",
+        "bytes": 37078,
+        "github_blob_sha": "20a10f92a5edc80c44f09eb631cf9a677d3e0a25"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "pysimm/forcefield/pcff.py",
+        "needle": "class Pcff(Forcefield):",
+        "purpose": "PCFF typing rules"
+      },
+      {
+        "path": "pysimm/apps/polymatic.py",
+        "needle": "cmd = ('perl %s -i %s -s polym.in -t types.txt -o %s'",
+        "purpose": "Polymatic needs the separate Perl Polymatic scripts, which pysimm does not ship"
+      },
+      {
+        "path": "pysimm/apps/random_walk.py",
+        "needle": "def random_walk(",
+        "purpose": "Random-walk polymerization"
+      }
+    ],
+    "commit": "fb33814128189a99d3c8d7c4eddac2dfe44262fe",
+    "resolved_at": "2026-10-22T15:32:48.796188+00:00",
+    "note": "Installed commit (requirements.lock.txt). Not used for PCFF typing: on polystyrene oligomers pysimm 1.1 typed aromatic carbons as c=2 instead of cp and H as h instead of hc; EMC types cp/hc. Polymatic crosslinking depends on scripts not shipped."
   }
 ]

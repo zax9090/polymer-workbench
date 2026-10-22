@@ -156,8 +156,25 @@ temp, scale, chains = float(config.get("temperature_kelvin", 300.0)), float(conf
 threads = int(os.environ.get("POLYMER_MD_THREADS") or min(4, os.cpu_count() or 1))
 mol = Chem.MolFromMolFile("structure.mol", removeHs=False)
 ff = GAFF2_mod()
-if not ff.ff_assign(mol, charge="gasteiger"):
+xtb = json.loads(Path("xtb_engine.json").read_text()) if Path("xtb_engine.json").is_file() else None
+if not ff.ff_assign(mol, charge=None if xtb else "gasteiger"):
     raise RuntimeError("GAFF2_mod parameter or Gasteiger charge assignment failed")
+if xtb:
+    # GFN1-xTB CM5 charges of the whole capped chain at its RDKit geometry (single point).
+    import subprocess
+    Chem.MolToXYZFile(mol, "xtb_chain.xyz")
+    total = Chem.GetFormalCharge(mol)
+    env = {**os.environ, "XTBPATH": xtb["parameters"], "OMP_NUM_THREADS": str(min(4, os.cpu_count() or 1)), "OMP_STACKSIZE": "1G"}
+    with open("xtb.log", "w") as log:
+        subprocess.run([xtb["executable"], "xtb_chain.xyz", "--gfn", "1", "--sp", "--chrg", str(total)], stdout=log, stderr=subprocess.STDOUT, env=env, check=True, timeout=3600)
+    lines = Path("xtb.log").read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if "Mulliken/CM5 charges" in line) + 1
+    charges = [float(line.split()[2]) for line in lines[start:start + mol.GetNumAtoms()]]
+    if len(charges) != mol.GetNumAtoms() or abs(sum(charges) - total) > 0.01:
+        raise RuntimeError("xtb CM5 charges do not match the chain atoms or its formal charge")
+    residual = (total - sum(charges)) / len(charges)
+    for atom, q in zip(mol.GetAtoms(), charges):
+        atom.SetDoubleProp("AtomicCharge", q + residual)
 if mol.GetNumAtoms() * chains > 30000:
     raise ValueError("This desktop bulk route is limited to 30000 atoms per cell")
 # Smaller periodic cells let bonded terms span half the box and corrupt the sampling.
@@ -226,7 +243,7 @@ for name in (pre.in_file1, pre.in_file2, pre.in_file):
         tokens = line.split()
         if len(tokens) > 4 and tokens[0] == "velocity" and tokens[2] == "create":
             seeds.append({"input": name, "seed": int(tokens[4])})
-complete = {"force_field": "GAFF2_mod", "charge_method": "Gasteiger", "ensemble": "NPT sampling after Larsen 21-step compression/decompression",
+complete = {"force_field": "GAFF2_mod", "charge_method": "CM5 (GFN1-xTB single point)" if xtb else "Gasteiger", "xtb": xtb, "ensemble": "NPT sampling after Larsen 21-step compression/decompression",
             "protocol": "RadonPy EQ21step stages (packing, 21-step, sampling)", "protocol_scale": scale,
             "stage_steps": {"packing": packing_steps, "eq21": sum(map(sum, step_list)), "sampling": sampling_steps},
             "sampling_thermo_freq": thermo, "time_step_fs": 1.0, "temperature_kelvin": temp, "pressure_atm": 1.0, "max_temp_kelvin": 600.0, "max_press_atm": 50000,
@@ -239,8 +256,10 @@ Path("bulk_complete.json").write_text(json.dumps(complete, indent=2))
 
 
 def atomistic(config, output, emit):
-    mol, metadata = molecule_artifacts(config, output, emit)
     mode = config.get("atomistic_mode", "build")
+    if mode == "crosslink":
+        return cure_cell(config, output, emit)
+    mol, metadata = molecule_artifacts(config, output, emit)
     if mode == "build":
         return outcome(output, "polymer_atomistic", "prepared", "RDKit polymer geometry prepared; molecular dynamics has not been run.", engine="RDKit", metadata=metadata, warnings=metadata["warnings"])
     if mode == "bulk":
@@ -270,8 +289,104 @@ def atomistic(config, output, emit):
                    warnings=["GAFF2_mod with approximate Gasteiger charges; not a validated material model.", "A short isolated-chain run does not estimate bulk properties or establish equilibration.", "The atomistic route currently simulates one chain; use PACKMOL for packing."])
 
 
+def class2_lammps(lmp, directory, script):
+    """Run an EMC/class2 LAMMPS input with OpenMP styles; surface the last LAMMPS ERROR line."""
+    threads = int(os.environ.get("POLYMER_MD_THREADS") or min(4, os.cpu_count() or 1))
+    argv = [lmp, "-in", script, "-log", "equilibration.log", "-sf", "omp", "-pk", "omp", str(threads)]
+    try:
+        run_command(argv, directory, "lammps_class2.log", timeout=7 * 86400)
+    except subprocess.CalledProcessError as exc:
+        lines = [line for line in (directory / "lammps_class2.log").read_text(errors="replace").splitlines() if line.startswith("ERROR")]
+        raise RuntimeError(f"LAMMPS class2 run failed (exit {exc.returncode}): {lines[-1] if lines else 'see lammps_class2.log'}") from exc
+
+
+def class2_missing():
+    missing = []
+    if not executable("lmp", "LAMMPS_EXEC"):
+        missing.append("LAMMPS executable / LAMMPS_EXEC")
+    if not available("radonpy"):
+        missing.append("RadonPy (its Analyze class evaluates the sampling log)")
+    if not shutil.which("perl"):
+        missing.append("perl (runs the EMC setup script)")
+    return missing
+
+
+def cure_cell(config, output, emit):
+    """Epoxy–amine network: EMC PCFF cell, LAMMPS fix bond/react curing, cooled NPT sampling."""
+    from workbench import crosslink
+    missing = class2_missing()
+    if missing:
+        return blocked(output, "polymer_atomistic", missing, "Crosslinking needs EMC (downloaded on first use), perl, LAMMPS with REACTION/CLASS2 and RadonPy.")
+    lmp = executable("lmp", "LAMMPS_EXEC")
+    complete = crosslink.cure(config, output, emit, lambda directory, script: class2_lammps(lmp, directory, script))
+    (output / "trajectory.json").unlink(missing_ok=True)
+    conversion = complete["conversion"]
+    gel = (complete["gel_point_ideal"] or {}).get("epoxide_conversion")
+    warnings = ["Only epoxide ring opening by primary and secondary amines is modelled; etherification and homopolymerization are not.",
+                "Reactions happen whenever reactive atoms come within the cutoff (probability 1); this is a structural model, not cure kinetics.",
+                "PCFF with bond-increment charges is not validated for this resin/hardener pair here.",
+                "Small cells give few independent network paths; density and moduli of such networks scatter strongly between seeds."]
+    if not conversion["target_reached"]:
+        warnings.insert(0, f"Target conversion {complete['target_conversion']:.0%} was not reached within {complete['stage_steps']['cure']} cure steps (reached {conversion['epoxide']:.1%}).")
+    if gel and conversion["epoxide"] < gel:
+        warnings.append(f"Epoxide conversion {conversion['epoxide']:.1%} is below the ideal Flory–Stockmayer gel point {gel:.1%}; the cell is not a percolated network.")
+    if not complete["radonpy_criteria_met"]:
+        warnings.append("RadonPy's convergence criteria were not met in the post-cure sampling: " + "; ".join(complete["convergence_warnings"][:4]))
+    values = {name: item["value"] for name, item in complete["properties"].items()}
+    summary = {"epoxide_conversion": conversion["epoxide"], "amine_hydrogen_conversion": conversion["amine_hydrogen"],
+               "density_g_cm3": values["density"], "bulk_modulus_gpa": values["bulk_modulus"], "atoms": complete["atoms"],
+               "gel_point_epoxide_conversion": gel}
+    return outcome(output, "polymer_atomistic", "completed", f"Epoxy–amine network cured to {conversion['epoxide']:.1%} epoxide conversion with LAMMPS fix bond/react and sampled under NPT.",
+                   engine="EMC / LAMMPS bond/react / RadonPy analysis",
+                   metadata={key: complete[key] for key in ("force_field", "charge_method", "reaction", "species", "counts", "templates", "builder", "cure_temperature_kelvin", "target_conversion", "reaction_cutoff_angstrom", "stage_steps", "gel_point_ideal", "parity", "radonpy_criteria_met")},
+                   metrics={"summary": {k: v for k, v in summary.items() if v is not None}, "properties": complete["properties"],
+                            "conversion_series": conversion["series"], "equilibrated": False},
+                   warnings=warnings)
+
+
+def pcff_bulk_cell(config, output, emit):
+    """PCFF class2 cell: EMC build and typing, then the same 21-step schedule and RadonPy analysis."""
+    from workbench import pcff
+    missing = class2_missing()
+    lmp = executable("lmp", "LAMMPS_EXEC")
+    if missing:
+        return blocked(output, "polymer_atomistic", missing, "PCFF bulk cell needs EMC (downloaded on first use), perl, LAMMPS and RadonPy.")
+    complete = pcff.bulk(config, output, emit, lambda directory: class2_lammps(lmp, directory, "in.pcff_bulk"))
+    (output / "trajectory.json").unlink(missing_ok=True)
+    values = {name: item["value"] for name, item in complete["properties"].items()}
+    scale = complete["protocol_scale"]
+    check = complete["parity"]
+    warnings = ["PCFF with bond-increment charges was parameterized for organic polymers; it is not validated for this specific polymer here.",
+                "Fluctuation properties (Cp, compressibility, bulk modulus, expansion) need long sampling; short runs can give unphysical signs or magnitudes.",
+                "Oligomer chains and small cells do not represent high-molecular-weight polymer density or Tg; no Tg is inferred."]
+    if scale < 1:
+        warnings.insert(0, f"Stage lengths were multiplied by {scale:g} relative to RadonPy's EQ21step defaults; this is an exploratory protocol.")
+    if check["coefficients_not_in_reference"]:
+        warnings.append(f"{check['coefficients_not_in_reference']} coefficient lines came from EMC's automatic (cff91_auto) fallbacks that msi2lmp would not assign from pcff.frc; see pcff_parity.json.")
+    if check["coefficients_matching"] != check["coefficients_checked"]:
+        warnings.append(f"Only {check['coefficients_matching']} of {check['coefficients_checked']} EMC coefficients equal LAMMPS pcff.frc values; see pcff_parity.json.")
+    if not complete["radonpy_criteria_met"]:
+        warnings.append("RadonPy's convergence criteria were not met: " + "; ".join(complete["convergence_warnings"][:6]))
+    summary = {"density_g_cm3": values["density"], "bulk_modulus_gpa": values["bulk_modulus"], "cp_j_kg_k": values["heat_capacity_cp"],
+               "chain_rg_angstrom": values["chain_rg"], "atoms": complete["atoms"], "chains": complete["chains"],
+               "sampling_ps": complete["stage_steps"]["sampling"] * complete["time_step_fs"] / 1000}
+    return outcome(output, "polymer_atomistic", "completed", "PCFF (EMC-typed) bulk amorphous cell equilibrated by the Larsen 21-step protocol and sampled under NPT.",
+                   engine="EMC / LAMMPS class2 / RadonPy analysis",
+                   metadata={key: complete[key] for key in ("force_field", "charge_method", "ensemble", "protocol", "protocol_scale", "stage_steps", "time_step_fs", "temperature_kelvin", "pressure_atm", "chains", "atoms", "radonpy_criteria_met", "builder", "parity")},
+                   metrics={"summary": {k: v for k, v in summary.items() if v is not None}, "properties": complete["properties"], "equilibrated": False},
+                   warnings=warnings)
+
+
 def bulk_cell(config, output, emit, metadata):
     """Periodic amorphous cell through RadonPy's own packing, 21-step and sampling presets."""
+    if config.get("atomistic_forcefield", "gaff2") == "pcff":
+        return pcff_bulk_cell(config, output, emit)
+    if config.get("charge_method", "gasteiger") == "xtb_cm5":
+        from workbench import engines
+        emit("charges", 0.25, "xtb 6.7.1: GFN1-xTB CM5 charges for the capped chain")
+        binary, record = engines.executable("xtb")
+        # A separate file keeps machine-specific paths out of the job's stored config.json.
+        write_json(output / "xtb_engine.json", {**record, "executable": str(binary), "parameters": str(binary.parent.parent / "share" / "xtb")})
     (output / "run_radonpy_bulk.py").write_text(RADONPY_BULK_SCRIPT)
     python = os.environ.get("RADONPY_PYTHON", sys.executable)
     missing = []
@@ -295,7 +410,9 @@ def bulk_cell(config, output, emit, metadata):
     # The single-chain preview no longer represents the periodic cell.
     (output / "trajectory.json").unlink(missing_ok=True)
     values = {name: item["value"] for name, item in complete["properties"].items()}
-    warnings = ["GAFF2_mod with approximate Gasteiger charges; not a validated material model.",
+    charges = ("GAFF2_mod with unscaled GFN1-xTB CM5 charges from one RDKit conformer; RadonPy's reference protocol uses RESP."
+               if complete.get("xtb") else "GAFF2_mod with approximate Gasteiger charges; not a validated material model.")
+    warnings = [charges,
                 "Fluctuation properties (Cp, compressibility, bulk modulus, expansion) need long sampling; short runs can give unphysical signs or magnitudes.",
                 "Oligomer chains and small cells do not represent high-molecular-weight polymer density or Tg; no Tg is inferred."]
     if scale < 1:
@@ -503,12 +620,25 @@ def protein(config, output, emit):
         if not isinstance(text, str) or not text or len(text) > 10_000_000:
             raise ValueError("Supply pdb_text containing a protein PDB file (at most 10 MB)")
         plddt = config.get("bfactor_is_plddt") is True
+        warnings = ["B factors are interpreted as pLDDT only when explicitly requested."]
+        fixes = None
+        if config.get("protein_repair", "none") == "pdbfixer":
+            from workbench import repair
+            emit("repair", 0.15, "PDBFixer: missing heavy atoms, internal SEQRES gaps, nonstandard residues")
+            (output / "structure_submitted.pdb").write_text(text)
+            text, fixes = repair.repair(text, seed=int(config.get("seed", 1)))
+            write_json(output / "repair.json", fixes)
+            if fixes["missing_residues_built"]:
+                warnings.append("PDBFixer built missing internal residues from SEQRES with idealized geometry; their coordinates are not experimental.")
+            if fixes["heterogens_removed"]:
+                warnings.append("Ligands, ions and water were removed before analysis: " + ", ".join(fixes["heterogens_removed"][:10]))
         metrics = protein_metrics(text, plddt=plddt)
         (output / "structure.pdb").write_text(text)
         write_json(output / "metrics.json", metrics)
         sap = attach_sap(output, text, config)
         titration = attach_protonation(output, text, config)
-        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import", metrics=metrics, sap=sap, protonation=titration, warnings=["B factors are interpreted as pLDDT only when explicitly requested."])
+        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import" + (" + PDBFixer" if fixes else ""),
+                       metrics=metrics, sap=sap, protonation=titration, repair=fixes, warnings=warnings)
     sequence = "".join(str(config.get("sequence", "")).split()).upper()
     if not 4 <= len(sequence) <= 2000 or re.search(r"[^ACDEFGHIKLMNPQRSTVWY]", sequence):
         raise ValueError("Protein sequence must contain 4–2000 standard amino-acid one-letter codes")

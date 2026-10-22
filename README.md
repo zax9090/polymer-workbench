@@ -35,7 +35,7 @@ flowchart LR
 ```
 
 - **연구 데이터:** 완료된 기존 작업을 색인하고 Rg·말단 거리·검증 가능한 주사슬 피처를 단위·분석법과 함께 기록합니다. RadonPy는 실제 MD dump를 분석하며 구조 미리보기와 구분합니다.
-- **실험·문헌:** 단일 측정값과 CSV를 검토 후 저장합니다. DSC는 선택한 두 기준선의 중간점, 인장은 지정한 선형 구간의 기울기, TGA는 기준 온도 대비 지정 질량 감소 온도(Td), GPC는 표준 보정식과 기준선·적분 구간으로 Mn·Mw·분산도를 초안으로 계산합니다. GPC 값은 보정 표준 환산 상대값입니다. PDF는 페이지별 텍스트와 원본 해시를 보존합니다. LLM/OCR 추출은 구현되어 있지 않습니다.
+- **실험·문헌:** 단일 측정값과 CSV를 검토 후 저장합니다. DSC는 선택한 두 기준선의 중간점·외삽 개시점·변곡점·종료점과 Δcp, 인장은 지정한 선형 구간의 기울기, TGA는 기준 온도 대비 지정 질량 감소 온도(Td)·DTG 최대 분해 속도 온도·외삽 개시 온도·char yield, GPC는 표준 보정식과 기준선·적분 구간으로 Mn·Mw·Mz·분산도를 초안으로 계산합니다. GPC 값은 보정 표준 환산 상대값이며 Mark–Houwink 상수를 주면 보편 보정을 적용합니다. IR은 피크와 작용기 후보·카보닐 지수(SAUB)·밴드 비·에폭시 전환율, UV-vis는 λmax·Beer–Lambert 농도(단백질 서열 계수 포함)·Tauc/흡수 개시 광학 밴드갭, 탁도는 LCST·UCST 흐림점을 계산합니다. IR·UV-vis는 JCAMP-DX 파일도 읽습니다([연구 데이터 문서](docs/RESEARCH_DATA.md#ir--uv-vis--탁도)). PDF는 페이지별 텍스트와 원본 해시를 보존합니다. LLM/OCR 추출은 구현되어 있지 않습니다.
 - **물성 모델:** 검토된 실험·문헌 데이터의 서로 다른 반복단위 최소 8종으로 GP 기준 모델을 학습합니다. 구조 그룹을 분리해 교차 검증하고 적용 범위와 미보정 불확실성을 표시합니다. 짧은 MD의 피처를 결합할 수 있지만 진정한 다중 충실도 모델이나 고정밀 예측을 보장하지 않습니다.
 - **캠페인:** 사용자가 지정한 유한 후보에서 초기 다양성 추천 후 관측값이 5개 이상이면 GP/BayBE의 결과 기반 추천을 수행합니다. 최대 50개 계산 예산과 배치 크기를 지정하고 명시적으로 시작합니다. 앱 재시작 시 자동 계산은 일시 정지합니다.
 - **혼합계 브릿지:** 검토한 단백질 PDB·2차 구조와 설치된 Martini 3 고분자 블록을 martinize2/polyply에 연결해 구성요소 토폴로지를 생성합니다. **MD 실행 모드**는 고정 커밋·해시를 확인한 Martini 3.0.0 힘장으로 단백질·고분자·물·Na⁺/Cl⁻를 하나의 토폴로지로 조립하고(전하 0, 지정 염 농도), GROMACS로 최소화 → 위치 구속 NVT → 위치 구속 NPT → 짧은 생산 계산을 실행합니다. 단백질 RMSD·고분자 접촉 수·회전반경·밀도와 PyMBAR 정상성 후보를 자동 분석해 연구 DB 피처로 색인하며, 이 피처를 목표로 고분자 블록·사슬 길이를 탐색하는 캠페인도 만들 수 있습니다. 짧은 파일럿 결과는 결합 자유에너지나 평형 도달을 뜻하지 않습니다. AMBER는 준비·평형화 입력 템플릿, OpenFF는 연동 명세를 제공합니다. GROMACS는 별도 설치가 필요합니다.
@@ -62,7 +62,9 @@ cd /home/kali/Projects/polymer-workbench
 | 조대화 고분자 | 사슬 생성 → LAMMPS Langevin MD → MDAnalysis 교차 확인 → 궤적/그래프 | 환산 단위의 미보정 비드-스프링 모델 |
 | 전원자 구조 | 반복단위 SMILES → RDKit 연결·3D 배치·MMFF 최적화 | 준비된 한 사슬 구조, MD 수행 아님 |
 | RadonPy MD | RDKit → GAFF2_mod/Gasteiger → LAMMPS 최소화·짧은 NVT | 고립된 한 사슬 계산, 벌크 물성 아님 |
-| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
+| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석. 전하는 Gasteiger 또는 xtb CM5 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
+| PCFF 벌크 셀 | EMC PCFF 타입·결합 증분 전하·사슬 성장 → LAMMPS class2 21단계 → NPT 샘플링 → RadonPy 물성 분석 | Class II 힘장의 같은 물성. EMC 계수를 LAMMPS 공개 pcff.frc와 msi2lmp 규칙으로 대조한 결과를 함께 표시 |
+| 에폭시–아민 가교 | EMC PCFF 혼합물 → 반응 템플릿 자동 생성 → 21단계 고밀도화 → LAMMPS fix bond/react → 냉각 NPT | 전환율과 이상적 겔화점, 경화 네트워크 밀도·탄성률. 접촉 즉시 반응하는 구조 모델이며 경화 속도론 아님 |
 | AlphaFold DB | UniProt ID → 공식 DB 예측 파일 → 원자 구조·pLDDT 분석 | 이미 존재하는 예측 가져오기, 새 추론 아님 |
 | 내 PDB 분석 | PDB → 구조 확인·기하 분석 | B-factor는 사용자가 지정할 때만 pLDDT로 해석 |
 | PACKMOL | RDKit 사슬 + 선택한 이전 구조 → 분자 배치 | MD용 초기 배치. 공통 힘장/토폴로지 설정이 추가로 필요 |
@@ -128,6 +130,7 @@ export COLABFOLD_EXEC=/absolute/path/to/colabfold_batch
 | `HOOMD_PYTHON` | 별도 HOOMD-blue Python 환경 |
 | `COLABFOLD_EXEC` | 별도 ColabFold 실행 파일 |
 | `POLYMER_DATA_DIR` | 작업 데이터 저장 폴더 |
+| `UCX_TLS` | LAMMPS가 쓰는 MPICH(UCX) 전송. 기본 `self,sm,tcp`(단일 노드). RDMA 어댑터(예: Azure MANA)가 있는 컴퓨터에서 UCX가 MPI 초기화를 중단하지 않게 함 |
 
 HOOMD-blue는 별도 CPU 실행 스크립트를 생성하며 설치된 환경을 연결하면 실행합니다. 기본 LAMMPS 경로와 다른 Gaussian 반발 모델임을 기록합니다. 이번 환경에서 HOOMD-blue는 실행하지 않았습니다.
 
@@ -141,6 +144,10 @@ polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이�
 - **HSP 상용성:** Hansen 용매 248종으로 고분자 HSP에 대한 Ra·RED·χ 순위와 두 용매 혼합(두 비용매로 용매 만들기 포함)을 계산합니다. 용해·팽윤 시험 결과로 Hansen 구(δD·δP·δH·R0)를 피팅하고 측정값 초안으로 넘길 수 있습니다. 고분자 블렌드는 정규 용액 χ와 Flory–Huggins 임계 χ로 판정합니다.
 
 참조 데이터(RadonPy BSD-3, HSPiPy MIT)는 REA로 감사한 고정 커밋에서 `scripts/build_reference_data.py`가 다시 만듭니다. [빠른 예측 문서](docs/SCREENING.md)를 참고하세요.
+
+## PCFF · 가교 · REA로 고른 도구
+
+LAMMPS msi2lmp·bond/react, EMC, pysimm, xtb, pybaselines, PDBFixer, HiPlot, jcamp를 내려받아 REA로 분석한 뒤 필요한 기능만 연결했습니다. PCFF 벌크 셀, 에폭시–아민 가교, xtb CM5 전하, DSC 용융 엔탈피·결정화도와 GPC 자동 기준선(pybaselines), 단백질 구조 보정(PDBFixer), 연구 데이터 다변수 비교(HiPlot)입니다. pysimm은 REA 확인 결과 방향족 PCFF 타입이 맞지 않아 쓰지 않았습니다. [PCFF · 가교 문서](docs/CLASS2_CROSSLINK.md)를 참고하세요.
 
 ## AI 에이전트 연동 (MCP)
 
@@ -182,7 +189,7 @@ CLI 직접 실행은 계산 파일을 만들며 HTTP 작업 관리자의 대기�
 
 테스트는 포텐셜의 힘-에너지 일치, 실제 LAMMPS 비교, MDAnalysis 교차 확인, RDKit 결합 연결, 단백질 신뢰도 해석, API 입력 검증·재실행·경로 제한·실제 프로세스 그룹 중단을 포함합니다. [검증 기록](docs/VALIDATION.md)을 참고하세요.
 
-GitHub Actions(`.github/workflows/tests.yml`)는 PR과 `main` 푸시마다 Ubuntu 24.04·Python 3.13에서 고정 의존성, GROMACS 2023.3(`scripts/ci_install_gromacs.sh`: Ubuntu 기본 저장소만 갱신·재시도, 러너 이미지별 `.deb` 캐시), BayBE(CPU torch)를 설치하고 REA 감사 원본을 받아 전체 pytest를 실행합니다. 건너뛴 테스트와 그 이유는 로그의 `-rs` 요약에 나옵니다.
+GitHub Actions(`.github/workflows/tests.yml`)는 PR과 `main` 푸시마다 Ubuntu 24.04·Python 3.13에서 고정 의존성, GROMACS 2023.3(`scripts/ci_install_gromacs.sh`: Ubuntu 기본 저장소만 갱신·재시도하고, `.deb`를 파일별로 병렬 내려받되 느린 미러는 건너뛰어 다음 미러로 넘어감. 캐시된 파일은 서명된 색인의 해시와 맞을 때만 재사용하며, 러너 이미지가 바뀌어도 이전 캐시에서 바뀐 패키지만 새로 받음), BayBE(CPU torch), SHA-256으로 고정한 EMC 9.4.4·xtb 6.7.1을 설치하고 REA 감사 원본을 받아 전체 pytest를 실행합니다. 건너뛴 테스트와 그 이유는 로그의 `-rs` 요약에 나옵니다.
 
 현재 서버는 개인 PC의 `127.0.0.1` 전용입니다. 다중 사용자 인증·원격 HPC 스케줄러·프로덕션 클러스터 서비스는 포함하지 않습니다.
 

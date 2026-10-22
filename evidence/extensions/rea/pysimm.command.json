@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/pysimm",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 4.556,
+  "executed_at": "2026-10-22T15:33:06.597012+00:00",
+  "source_sha256": "18005c0fab23d6cb7bcc1205f9e448da38026f0d56582d431989c6c43ca3f4f9",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/pysimm.json",
+  "stderr": "evidence/extensions/rea/pysimm.stderr.log"
+}

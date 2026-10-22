@@ -88,6 +88,20 @@ def prepare_desktop_data() -> Path:
     return target
 
 
+# LAMMPS links the MPICH wheel, whose bundled UCX probes RDMA devices even for a single process and
+# aborts MPI_Init when a device cannot open its transports (Azure VMs with the MANA adapter:
+# "uct_iface_open(ud_verbs/mana_0:1) failed"). Single-node runs only need shared memory and TCP.
+MPI_DEFAULTS = {"UCX_TLS": "self,sm,tcp"}
+
+
+def apply_mpi_defaults(env=None):
+    """Set the single-node MPI transport defaults in env (default: this process) unless already configured."""
+    target = os.environ if env is None else env
+    for key, value in MPI_DEFAULTS.items():
+        target.setdefault(key, value)
+    return target
+
+
 def runtime_environment() -> dict[str, str]:
     env = os.environ.copy()
     root = resource_root()
@@ -107,7 +121,7 @@ def runtime_environment() -> dict[str, str]:
         env["LD_LIBRARY_PATH"] = str(executable_dir.parent / "lib") + os.pathsep + env.get("LD_LIBRARY_PATH", "")
         env["PYTHONPATH"] = str(root)
     env.update(PYTHONUNBUFFERED="1", OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-    return env
+    return apply_mpi_defaults(env)
 
 
 def worker_command(config: Path, output: Path, source_root: Path | None = None) -> list[str]:

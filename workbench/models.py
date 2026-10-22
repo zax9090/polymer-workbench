@@ -17,13 +17,24 @@ class JobConfig(BaseModel):
     engine: Literal["auto", "lammps", "numpy"] = "auto"
     repeat_smiles: str = Field(default="[*]CC[*]", max_length=1000)
     sequence: str = Field(default="", max_length=10000)
-    atomistic_mode: Literal["build", "simulate", "bulk"] = "build"
+    atomistic_mode: Literal["build", "simulate", "bulk", "crosslink"] = "build"
+    atomistic_forcefield: Literal["gaff2", "pcff"] = "gaff2"
+    charge_method: Literal["gasteiger", "xtb_cm5"] = "gasteiger"
+    resin_smiles: str = Field(default="CC(C)(c1ccc(OCC2CO2)cc1)c1ccc(OCC2CO2)cc1", max_length=1000)
+    hardener_smiles: str = Field(default="NCCN", max_length=1000)
+    resin_count: int = Field(default=16, ge=2, le=400)
+    hardener_count: int = Field(default=8, ge=1, le=400)
+    cure_temperature_kelvin: float = Field(default=450, ge=300, le=600)
+    target_conversion: float = Field(default=0.85, ge=0.05, le=0.99)
+    reaction_cutoff_angstrom: float = Field(default=4.0, ge=3, le=6)
+    cure_steps: int = Field(default=200000, ge=1000, le=5000000)
     protocol_scale: float = Field(default=1.0, ge=0.001, le=1.0)
     packmol_target: Literal["none", "sap_patch", "negative_patch", "positive_patch"] = "none"
     sap_radius_angstrom: float = Field(default=5.0, ge=3, le=15)
     protein_ph: float = Field(default=7.0, ge=0, le=14)
     ionic_strength_molar: float = Field(default=0.15, ge=0, le=5)
     protein_protonation: Literal["as_input", "propka"] = "as_input"
+    protein_repair: Literal["none", "pdbfixer"] = "none"
     protein_mode: Literal["export", "predict", "import", "database"] = "export"
     accession: str = Field(default="P69905", pattern=r"^[A-Z0-9]{6,10}$")
     msa_mode: Literal["single_sequence", "server"] = "single_sequence"
@@ -51,7 +62,8 @@ class JobConfig(BaseModel):
     @model_validator(mode="after")
     def bounds(self):
         bulk = self.route == "polymer_atomistic" and self.atomistic_mode == "bulk"
-        if self.route in {"polymer_atomistic", "pysimm"} and not bulk:
+        cure = self.route == "polymer_atomistic" and self.atomistic_mode == "crosslink"
+        if self.route in {"polymer_atomistic", "pysimm"} and not bulk and not cure:
             if "chains" in self.model_fields_set and self.chains != 1:
                 raise ValueError("전원자/RadonPy 및 pysimm 경로는 현재 한 사슬만 지원합니다. 사슬 수를 1로 설정하세요.")
             self.chains = 1
@@ -60,6 +72,10 @@ class JobConfig(BaseModel):
                 raise ValueError("비정질 벌크 셀에는 사슬 2개 이상이 필요합니다.")
             if not 100 <= self.temperature_kelvin <= 500:
                 raise ValueError("RadonPy 21단계 평형화의 최고 온도가 600 K이므로 최종 온도는 100~500 K로 설정하세요.")
+        if self.charge_method == "xtb_cm5" and not (bulk and self.atomistic_forcefield == "gaff2"):
+            raise ValueError("xtb CM5 전하는 GAFF2 비정질 벌크 셀에서만 사용합니다. PCFF는 결합 증분 전하를 씁니다.")
+        if cure and not 100 <= self.temperature_kelvin <= 500:
+            raise ValueError("경화 후 물성 샘플링 온도는 100~500 K로 설정하세요.")
         if self.route in ("polymer_cg", "hoomd") and not 0.05 <= self.temperature <= 5:
             raise ValueError("조대화 모델의 온도 T*는 0.05~5 범위입니다. 단위는 kBT/ε입니다.")
         if self.monomers * self.chains > 1000:

@@ -122,7 +122,7 @@ def test_gpc_curve_drafts_keep_analysis_provenance_when_saved(client):
     response = client.post("/api/research/curves", json={"kind": "gpc", "text": text, "options": options})
     assert response.status_code == 200, response.text
     drafts = response.json()["measurement_drafts"]
-    assert [d["property"] for d in drafts] == ["mn", "mw", "dispersity"]
+    assert [d["property"] for d in drafts] == ["mn", "mw", "dispersity", "mz"]
     assert client.get("/api/research/measurements").json() == []
     saved = client.post("/api/research/measurements", json={**drafts[2], "material": {"repeat_smiles": "[*]CC[*]"},
                         "source": "synthetic API test fixture, not research evidence", "origin": "demo"})

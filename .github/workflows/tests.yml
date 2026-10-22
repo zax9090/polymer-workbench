@@ -27,22 +27,37 @@ jobs:
             requirements.lock.txt
             requirements.desktop.lock.txt
 
-      # Cached .deb files are tied to the runner image so dependencies match the installed base system.
+      # Cached .deb files are keyed by runner image. A cache from an older image is restored too: the
+      # install script re-verifies every file against the current index and downloads only what changed.
       - name: Runner image identity
         id: image
-        run: echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "os=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
-      - name: Cache GROMACS packages
-        uses: actions/cache@v4
+      - name: Restore GROMACS packages
+        id: gromacs-debs
+        uses: actions/cache/restore@v4
         with:
           path: ~/gromacs-debs
           key: gromacs-debs-${{ steps.image.outputs.id }}-v1
+          restore-keys: gromacs-debs-${{ steps.image.outputs.os }}-
 
       # GROMACS runs the Martini 3 mixture tests; Ubuntu 24.04 ships 2023.3, the version they were validated with.
-      # Two runs stalled in a silent apt-get update, so the script refreshes only the Ubuntu archive with retries.
+      # Runs timed out while azure.archive.ubuntu.com served uncached packages at ~60 KB/s, so the script
+      # downloads each package itself and moves on to the next mirror when one is that slow.
       - name: Install GROMACS
         timeout-minutes: 20
         run: scripts/ci_install_gromacs.sh "$HOME/gromacs-debs"
+
+      # Saved right after the install, so a later test failure does not throw the downloads away.
+      - name: Save GROMACS packages
+        if: steps.gromacs-debs.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ~/gromacs-debs
+          key: gromacs-debs-${{ steps.image.outputs.id }}-v1
 
       - name: Install pinned research environment
         run: |
@@ -60,9 +75,57 @@ jobs:
       - name: Fetch pinned REA-audited sources
         run: .venv/bin/python scripts/audit_extensions.py --fetch-pinned
 
+      # EMC 9.4.4 (PCFF cells, epoxy cure) and xtb 6.7.1 (CM5 charges) are pinned by SHA-256 in
+      # workbench/engines.py; without them the end-to-end tests of those routes skip.
+      - name: Restore pinned engines
+        id: engines
+        uses: actions/cache/restore@v4
+        with:
+          path: data/engines
+          key: engines-emc-9.4.4-xtb-6.7.1-v1
+
+      - name: Fetch pinned engines
+        id: fetch-engines
+        timeout-minutes: 10
+        continue-on-error: true
+        run: .venv/bin/python -c "from workbench import engines; [print(name, engines.ensure(name)[1]['source']) for name in engines.ENGINES]"
+
+      - name: Save pinned engines
+        if: steps.engines.outputs.cache-hit != 'true' && steps.fetch-engines.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: data/engines
+          key: engines-emc-9.4.4-xtb-6.7.1-v1
+
+      # The suite starts LAMMPS (pip wheel with MPICH) as a subprocess and in-process. When MPI_Init
+      # aborted inside pytest the whole run died (exit 143) before any failure was printed, so check
+      # first, each in its own session, that both ways start with the environment the app sets
+      # (workbench.paths.MPI_DEFAULTS; UCX otherwise aborts on runners with an Azure MANA RDMA adapter).
+      - name: Check that LAMMPS starts
+        timeout-minutes: 3
+        run: |
+          export PATH="$PWD/.venv/bin:$PATH"
+          export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
+          echo "host $(hostname): $(getent hosts "$(hostname)" || echo 'not resolvable'); $(nproc) CPUs; RDMA devices: $(ls /sys/class/infiniband 2>/dev/null | tr '\n' ' ')"
+          free -h
+          printf 'units lj\natom_style atomic\nregion box block 0 2 0 2 0 2\ncreate_box 1 box\n' > "$RUNNER_TEMP/in.check"
+          setsid --wait .venv/bin/python -c "import subprocess, sys; from workbench.paths import runtime_environment; subprocess.run(['lmp', '-in', sys.argv[1], '-log', 'none'], env=runtime_environment(), check=True)" "$RUNNER_TEMP/in.check"
+          setsid --wait .venv/bin/python -c "from workbench.paths import apply_mpi_defaults; apply_mpi_defaults(); from lammps import lammps; engine = lammps(cmdargs=['-screen', 'none', '-log', 'none']); print('LAMMPS', engine.version()); engine.close()"
+
       - name: Run pytest
         timeout-minutes: 30
         run: |
           export PATH="$PWD/.venv/bin:$PATH"
           export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
-          .venv/bin/python -m pytest -q -rs
+          .venv/bin/python -m pytest -v -rs
+
+      # Calculation logs of the failed tests (pytest keeps its temporary directories) and kernel messages.
+      - name: Show calculation logs after a failure
+        if: failure()
+        run: |
+          lscpu | head -n 20 || true
+          sudo dmesg | tail -n 30 || true
+          find /tmp/pytest-of-"$(id -un)" -newer pyproject.toml \( -name 'lammps*.log' -o -name 'log.lammps' -o -name 'emc_*.log' -o -name 'xtb.log' \
+              -o -name 'radonpy*.log' -o -name 'equilibration.log' -o -name 'cure.log' -o -name 'sampling.log' \) 2>/dev/null | head -n 30 |
+            while read -r log; do echo "::group::$log"; tail -n 25 "$log"; echo "::endgroup::"; done
