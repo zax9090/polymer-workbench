@@ -213,3 +213,24 @@ def test_baybe_never_recommends_an_already_measured_candidate():
     chosen, report = CampaignManager._recommend_baybe(record, remaining, observed, 3)
     assert sorted(c['id'] for c in chosen) == ['10', '5', '7']
     assert report['strategy'] == 'BoTorch acquisition'
+
+
+def test_martini_mixture_campaign_one_hot_blocks_and_fixed_protein(tmp_path):
+    manager = CampaignManager(tmp_path, FakeJobs(), FakeStore())
+    base = {'route': 'mixture', 'bridge_track': 'martini3', 'bridge_mode': 'simulate', 'pdb_text': 'ATOM fixture',
+            'secondary_structure': 'CC', 'chains': 1, 'box_nm': 8, 'steps': 1000}
+    candidates = [{**base, 'name': f'{residue}{n}', 'polyply_residue': residue, 'monomers': n}
+                  for residue in ('PEO', 'PS') for n in (8, 16)]
+    record = manager.create({'name': 'mixture fixture', 'candidates': candidates, 'budget': 2, 'batch_size': 1,
+                             'objective': {'source': 'feature', 'name': 'contact_count', 'unit': 'count', 'direction': 'max'}})
+    vectors = {c['config']['name']: c['vector'] for c in record['candidates']}
+    # [monomers, chains, temperature_kelvin, box_nm, salt_molar] + one-hot(PEO, PS)
+    assert vectors['PEO8'] == [8.0, 1.0, 300.0, 8.0, 0.15, 1.0, 0.0]
+    assert vectors['PS16'][-2:] == [0.0, 1.0]
+    with pytest.raises(ValueError, match='simulate'):
+        manager.create({'candidates': [{**base, 'bridge_mode': 'protein_cg'}],
+                        'objective': {'source': 'feature', 'name': 'contact_count', 'unit': 'count', 'direction': 'max'}})
+    with pytest.raises(ValueError, match='단백질 입력을 고정'):
+        manager.create({'candidates': [candidates[0], {**candidates[1], 'pdb_text': 'ATOM other protein'}],
+                        'objective': {'source': 'feature', 'name': 'contact_count', 'unit': 'count', 'direction': 'max'}})
+    manager.close()

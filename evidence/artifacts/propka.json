@@ -1,0 +1,84 @@
+{
+  "id": "propka",
+  "version": "3.5.1",
+  "license": "LGPL-2.1",
+  "artifact": "propka-3.5.1-py3-none-any.whl",
+  "sha256": "2df2d81adc9205113a0e6f9d96b06b46e29716bc3a71223075dd396e0eefdfc3",
+  "purpose": "pKa prediction, protonation states and isoelectric point for the protein surface-charge screen",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "propka-3.5.1-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 48,
+    "integrity_contradictions": [],
+    "output": "propka.inspect.json"
+  },
+  "files": [
+    {
+      "path": "propka/run.py",
+      "artifact_sha256": "f4ad9d007319a6fa7b31671f28b1955b19a7ec787d065b919f1856dde9279a73",
+      "installed_sha256": "f4ad9d007319a6fa7b31671f28b1955b19a7ec787d065b919f1856dde9279a73",
+      "matches_installed": true
+    },
+    {
+      "path": "propka/molecular_container.py",
+      "artifact_sha256": "872b58af31035f68e31acfb8791d042c9811e9ce57d793a8568106810aa6d8df",
+      "installed_sha256": "872b58af31035f68e31acfb8791d042c9811e9ce57d793a8568106810aa6d8df",
+      "matches_installed": true
+    },
+    {
+      "path": "propka/group.py",
+      "artifact_sha256": "ab949fe4efaa1a0199b14f1103d736d5a253604442b9955b07e4dcd9ab479a29",
+      "installed_sha256": "ab949fe4efaa1a0199b14f1103d736d5a253604442b9955b07e4dcd9ab479a29",
+      "matches_installed": true
+    },
+    {
+      "path": "propka/conformation_container.py",
+      "artifact_sha256": "553f965e30dc8696af5d097543d9949e7b87df2734424f497f7ccefa044ae169",
+      "installed_sha256": "553f965e30dc8696af5d097543d9949e7b87df2734424f497f7ccefa044ae169",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "propka/run.py",
+      "needle": "def single(",
+      "line": 49,
+      "purpose": "In-process run on a PDB stream"
+    },
+    {
+      "path": "propka/molecular_container.py",
+      "needle": "    def get_pi(",
+      "line": 215,
+      "purpose": "Isoelectric point (folded/unfolded)"
+    },
+    {
+      "path": "propka/group.py",
+      "needle": "    def calculate_charge(",
+      "line": 597,
+      "purpose": "Group charge at pH"
+    },
+    {
+      "path": "propka/conformation_container.py",
+      "needle": "    def calculate_charge(",
+      "line": 364,
+      "purpose": "Conformation charge at pH"
+    }
+  ],
+  "audited_at": "2026-10-22T12:04:03.041339+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}

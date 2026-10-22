@@ -1,7 +1,9 @@
 """Inspectable protein/polymer preparation recipes; never certify force-field compatibility.
 
-Only the opt-in ``protein_cg`` mode executes: martinize2 and polyply generate
-component topologies. Solvation, combined topology and MD remain review gates.
+``protein_cg`` generates martinize2/polyply component topologies. The opt-in
+``simulate`` mode additionally assembles a solvated, neutralized Martini 3 system
+from pinned parameters and runs staged GROMACS minimization, restrained NVT/NPT
+and a short production pilot. Completion is not evidence of equilibrium.
 """
 from __future__ import annotations
 
@@ -15,8 +17,10 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import warnings
 from datetime import datetime, timezone
 
+from workbench.forcefields import link_into, martini3_parameters, martini3_status
 from workbench.paths import runtime_environment, subprocess_environment
 
 PACKAGES = {
@@ -31,6 +35,11 @@ COMMANDS = {
     "antechamber": "ANTECHAMBER_EXEC", "parmchk2": "PARMCHK2_EXEC", "sander": "SANDER_EXEC",
 }
 STANDARD_RESIDUES = set("ALA ARG ASN ASP CYS GLN GLU GLY HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL".split())
+# Martini 3 W is one bead for four waters (72 g/mol); ~1000 kg/m^3 gives 8.36 beads/nm^3.
+WATER_BEADS_PER_NM3 = 8.36
+# Formula units per nm^3 for a 1 mol/L solution.
+PER_NM3_PER_MOLAR = 0.6022
+MAX_SIMULATION_PARTICLES = 70000
 
 
 def _json(path, value):
@@ -79,8 +88,8 @@ def bridge_capabilities():
                 for name, variable in COMMANDS.items()}
     return {"schema_version": 1, "modules": modules, "executables": commands,
             "polyply_libraries": _polymer_blocks(modules["polyply"]["path"]),
-            "tracks": ["martini3", "amber", "openff"],
-            "execution_scope": "component topology generation only; mixed-system simulation not certified",
+            "tracks": ["martini3", "amber", "openff"], "martini3_parameters": martini3_status(),
+            "execution_scope": "Martini 3 components, optional solvated GROMACS pilot; all-atom mixtures are recipes only",
             "note": "Discovery reports paths/versions, not successful scientific execution."}
 
 
@@ -88,18 +97,22 @@ def _validated(config):
     values = {"bridge_track": "martini3", "bridge_mode": "prepare", "polyply_library": "martini3",
               "polyply_residue": "PEO", "monomers": 24, "chains": 2, "temperature_kelvin": 300.0,
               "box_nm": 15.0, "seed": 42, "secondary_structure": "", "pdb_text": "",
-              "polymer_net_charge": 0, **config}
+              "polymer_net_charge": 0, "steps": 10000, "equilibration_steps": 50000, "salt_molar": 0.15,
+              "contact_cutoff_nm": 0.6, "elastic_network": False, "protein_protonation": "as_input", "protein_ph": 7.0, **config}
     if values["bridge_track"] not in {"martini3", "amber", "openff"}:
         raise ValueError("bridge_track must be martini3, amber or openff")
-    if values["bridge_mode"] not in {"prepare", "protein_cg"}:
-        raise ValueError("bridge_mode must be prepare or protein_cg")
-    if values["bridge_mode"] == "protein_cg" and values["bridge_track"] != "martini3":
-        raise ValueError("protein_cg execution is supported only for martini3")
-    for key, low, high in (("monomers", 2, 200), ("chains", 1, 16), ("seed", 1, 899999998), ("polymer_net_charge", -100, 100)):
+    if values["bridge_mode"] not in {"prepare", "protein_cg", "simulate"}:
+        raise ValueError("bridge_mode must be prepare, protein_cg or simulate")
+    if values["bridge_mode"] in {"protein_cg", "simulate"} and values["bridge_track"] != "martini3":
+        raise ValueError("protein_cg and simulate execution are supported only for martini3")
+    for key, low, high in (("monomers", 2, 200), ("chains", 1, 16), ("seed", 1, 899999998), ("polymer_net_charge", -100, 100),
+                           ("steps", 10, 100000), ("equilibration_steps", 100, 500000)):
         v = values[key]
         if isinstance(v, bool) or not isinstance(v, int) or not low <= v <= high:
             raise ValueError(f"{key} must be an integer in [{low}, {high}]")
-    for key, low, high in (("temperature_kelvin", 250, 400), ("box_nm", 5, 100)):
+    if values["protein_protonation"] not in {"as_input", "propka"}:
+        raise ValueError("protein_protonation must be as_input or propka")
+    for key, low, high in (("temperature_kelvin", 250, 400), ("box_nm", 5, 100), ("salt_molar", 0, 1), ("contact_cutoff_nm", 0.3, 1.5), ("protein_ph", 0, 14)):
         v = float(values[key])
         if not math.isfinite(v) or not low <= v <= high:
             raise ValueError(f"Solvated-mixture {key} must be in [{low}, {high}]")
@@ -109,6 +122,10 @@ def _validated(config):
             raise ValueError(f"Invalid {key}")
     if values["bridge_track"] == "martini3" and values["polyply_library"] != "martini3":
         raise ValueError("Martini 2/beta and Martini 3 libraries must not be mixed; select martini3")
+    if not isinstance(values["elastic_network"], bool):
+        raise ValueError("elastic_network must be true or false")
+    if values["bridge_mode"] == "simulate" and WATER_BEADS_PER_NM3 * values["box_nm"] ** 3 > MAX_SIMULATION_PARTICLES:
+        raise ValueError(f"A {values['box_nm']:g} nm box needs more than {MAX_SIMULATION_PARTICLES} particles; use a smaller box for this desktop pilot")
     return values
 
 
@@ -142,7 +159,7 @@ def _protein(text, ss):
             "note": "Coordinate syntax checks do not establish protonation, folding quality or parameter validity."}
 
 
-def _gromacs_templates(output, temperature, seed):
+def _gromacs_templates(output, temperature, seed, nvt_steps=50000, npt_steps=100000, production_steps=100000):
     common = f"""; REVIEW REQUIRED: Martini 3 solvated mixed-system starting templates.
 ; Requires a complete version-matched topology and solvated coordinates.
 cutoff-scheme = Verlet
@@ -161,9 +178,9 @@ nstlog = 100
 """
     stages = [
         ("01_minimize.mdp", "integrator = steep\nnsteps = 5000\nemtol = 100\nemstep = 0.01\n", "minimization", 0),
-        ("02_nvt.mdp", f"integrator = md\ndt = 0.002\nnsteps = 50000\ndefine = -DPOSRES\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = no\ngen-vel = yes\ngen-temp = {temperature}\ngen-seed = {seed}\n", "restrained NVT", 100),
-        ("03_npt.mdp", f"integrator = md\ndt = 0.005\nnsteps = 100000\ndefine = -DPOSRES\ncontinuation = yes\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = C-rescale\npcoupltype = isotropic\ntau-p = 5.0\nref-p = 1.0\ncompressibility = 3e-4\nrefcoord-scaling = com\ngen-vel = no\n", "restrained NPT", 500),
-        ("04_production.mdp", f"integrator = md\ndt = 0.010\nnsteps = 100000\ncontinuation = yes\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = C-rescale\npcoupltype = isotropic\ntau-p = 5.0\nref-p = 1.0\ncompressibility = 3e-4\ngen-vel = no\nnstxout-compressed = 1000\n", "production pilot", 1000),
+        ("02_nvt.mdp", f"integrator = md\ndt = 0.002\nnsteps = {nvt_steps}\ndefine = -DPOSRES\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = no\ngen-vel = yes\ngen-temp = {temperature}\ngen-seed = {seed}\n", "restrained NVT", 0.002 * nvt_steps),
+        ("03_npt.mdp", f"integrator = md\ndt = 0.005\nnsteps = {npt_steps}\ndefine = -DPOSRES\ncontinuation = yes\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = C-rescale\npcoupltype = isotropic\ntau-p = 5.0\nref-p = 1.0\ncompressibility = 3e-4\nrefcoord-scaling = com\ngen-vel = no\n", "restrained NPT", 0.005 * npt_steps),
+        ("04_production.mdp", f"integrator = md\ndt = 0.010\nnsteps = {production_steps}\ncontinuation = yes\ntcoupl = v-rescale\ntc-grps = System\ntau-t = 1.0\nref-t = {temperature}\npcoupl = C-rescale\npcoupltype = isotropic\ntau-p = 5.0\nref-p = 1.0\ncompressibility = 3e-4\ngen-vel = no\nnstxout-compressed = {max(1, production_steps // 100)}\n", "production pilot", 0.010 * production_steps),
     ]
     result = []
     for filename, text, name, duration in stages:
@@ -185,25 +202,212 @@ def _amber_templates(output, temperature, seed):
     return [{"name":name,"input":filename,"duration_ps":duration,"state":"requires_review"} for filename,_,name,duration in stages]
 
 
-def _execute(command, output, logname):
+def _execute(command, output, logname, timeout=180, env=None, stdin=None, what="Component parameterization"):
     with (output / logname).open("w") as log:
-        result = subprocess.run(command, cwd=output, stdin=subprocess.DEVNULL, stdout=log,
-                                stderr=subprocess.STDOUT, env=subprocess_environment(command[0]), timeout=180)
+        result = subprocess.run(command, cwd=output, input=stdin, stdin=None if stdin is not None else subprocess.DEVNULL,
+                                stdout=log, stderr=subprocess.STDOUT, text=True,
+                                env=env or subprocess_environment(command[0]), timeout=timeout)
     if result.returncode:
-        raise RuntimeError(f"Component parameterization failed (exit {result.returncode}); inspect {logname}. No warning override applied.")
+        raise RuntimeError(f"{what} failed (exit {result.returncode}); inspect {logname}. No warning override applied.")
+
+
+def _itp_molecules(path):
+    """Bead counts and summed charges per [ moleculetype ] of a GROMACS include file."""
+    molecules, current, section = {}, None, None
+    for raw in Path(path).read_text(errors="replace").splitlines():
+        line = raw.split(";", 1)[0].strip()
+        if not line or line.startswith("#"):
+            continue
+        header = re.fullmatch(r"\[\s*(\w+)\s*\]", line)
+        if header:
+            section = header.group(1).lower()
+        elif section == "moleculetype":
+            current = line.split()[0]
+            molecules[current] = {"atoms": 0, "charge": 0.0}
+            section = None
+        elif section == "atoms" and current:
+            fields = line.split()
+            molecules[current]["atoms"] += 1
+            # An omitted charge column inherits the atom type charge, which is 0 for Martini 3 types.
+            if len(fields) >= 7:
+                molecules[current]["charge"] += float(fields[6])
+    return molecules
+
+
+def _martinize_topology(path):
+    """Protein includes and molecule counts written by martinize2 (its martini.itp stub is replaced)."""
+    includes, molecules, section = [], [], None
+    for raw in Path(path).read_text().splitlines():
+        line = raw.split(";", 1)[0].strip()
+        if line.startswith("#include"):
+            name = line.split(None, 1)[1].strip().strip('"')
+            if name != "martini.itp":
+                if not re.fullmatch(r"[A-Za-z0-9_.-]+\.itp", name) or not (Path(path).parent / name).is_file():
+                    raise RuntimeError(f"Unexpected martinize2 include {name!r}")
+                includes.append(name)
+        elif re.fullmatch(r"\[\s*molecules\s*\]", line):
+            section = "molecules"
+        elif line.startswith("["):
+            section = None
+        elif section == "molecules" and line:
+            name, count = line.split()[:2]
+            molecules.append((name, int(count)))
+    if not includes or not molecules:
+        raise RuntimeError("martinize2 topology lacks protein includes or molecule counts")
+    return includes, molecules
+
+
+def _assemble_solvated(cfg, output):
+    """Combined Martini 3 topology with neutralizing ions and an explicit salt estimate."""
+    import numpy as np
+    import MDAnalysis as mda
+    includes, proteins = _martinize_topology(output / "protein.top")
+    definitions = {}
+    for name in includes:
+        definitions.update(_itp_molecules(output / name))
+    polymer = _itp_molecules(output / "polymer.itp").get("Polymer")
+    if not polymer or any(name not in definitions for name, _ in proteins):
+        raise RuntimeError("Component topologies do not define the expected Protein/Polymer molecules")
+    if abs(polymer["charge"] - cfg["polymer_net_charge"]) > 1e-3:
+        raise ValueError(f"The polyply {cfg['polyply_residue']} chain carries {polymer['charge']:+.3g} e; set polymer_net_charge to {round(polymer['charge'])} to confirm it")
+    protein_atoms = sum(definitions[name]["atoms"] * count for name, count in proteins)
+    charge = sum(definitions[name]["charge"] * count for name, count in proteins) + cfg["chains"] * polymer["charge"]
+    if abs(charge - round(charge)) > 1e-3:
+        raise ValueError(f"Combined solute charge {charge:.4f} e is not an integer; review the component topologies")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        universe = mda.Universe(str(output / "protein_cg.pdb"))
+    if len(universe.atoms) != protein_atoms:
+        raise RuntimeError("protein_cg.pdb and the protein topology have different bead counts")
+    box = cfg["box_nm"]
+    span = float(np.ptp(universe.atoms.positions, axis=0).max()) / 10
+    if span + 2 > box:
+        raise ValueError(f"The CG protein spans {span:.1f} nm; use box_nm of at least {span + 2:.1f} nm for a 1 nm margin per side")
+    universe.atoms.translate(np.full(3, box * 5) - universe.atoms.center_of_geometry())
+    universe.dimensions = [box * 10] * 3 + [90] * 3
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        universe.atoms.write(str(output / "protein_centered.gro"))
+    solute = protein_atoms + cfg["chains"] * polymer["atoms"]
+    # Solute beads displace water roughly one-for-one; NPT relaxes the remaining density error.
+    available = WATER_BEADS_PER_NM3 * box ** 3 - solute
+    pairs = int(round(cfg["salt_molar"] * PER_NM3_PER_MOLAR * available / WATER_BEADS_PER_NM3))
+    net = int(round(charge))
+    sodium, chloride = pairs + max(0, -net), pairs + max(0, net)
+    water = int(round(available)) - sodium - chloride
+    if water < 100:
+        raise ValueError("The box leaves fewer than 100 water beads; increase box_nm")
+    molecules = [*proteins, ("Polymer", cfg["chains"]), ("W", water), ("NA", sodium), ("CL", chloride)]
+    lines = ['#include "martini_v3.0.0.itp"', '#include "martini_v3.0.0_solvents_v1.itp"', '#include "martini_v3.0.0_ions_v1.itp"',
+             *[f'#include "{name}"' for name in includes], '#include "polymer.itp"', "", "[ system ]",
+             f"Polymer Lab Martini 3 protein + {cfg['chains']} x {cfg['polyply_residue']}{cfg['monomers']} in W/NaCl", "", "[ molecules ]",
+             *[f"{name} {count}" for name, count in molecules if count]]
+    (output / "system.top").write_text("\n".join(lines) + "\n")
+    layout = {"protein": [0, protein_atoms],
+              "polymer_chains": [[protein_atoms + i * polymer["atoms"], protein_atoms + (i + 1) * polymer["atoms"]] for i in range(cfg["chains"])],
+              "particles": solute + water + sodium + chloride}
+    solvation = {"box_nm": box, "water_beads": water, "waters_represented": 4 * water, "sodium": sodium, "chloride": chloride,
+                 "salt_pairs": pairs, "salt_molar_target": cfg["salt_molar"],
+                 "salt_molar_estimated": pairs / (PER_NM3_PER_MOLAR * water / WATER_BEADS_PER_NM3),
+                 "solute_charge_e": net, "system_charge_e": net + sodium - chloride, "protein_beads": protein_atoms,
+                 "polymer_beads_per_chain": polymer["atoms"], "polymer_charge_per_chain_e": polymer["charge"],
+                 "water_bead_density_per_nm3": WATER_BEADS_PER_NM3, "molecules": [[name, count] for name, count in molecules],
+                 "method": "W count from bulk density minus solute beads; Na+/Cl- pairs from target molarity in the water volume plus counter-ions"}
+    _json(output / "solvation.json", solvation)
+    return layout, solvation
+
+
+def _md_threads():
+    configured = os.environ.get("POLYMER_MD_THREADS", "")
+    if configured:
+        if not configured.isdigit() or int(configured) < 1:
+            raise ValueError("POLYMER_MD_THREADS must be a positive integer")
+        return int(configured)
+    return max(1, min(4, os.cpu_count() or 1))
+
+
+def _gromacs_version(gmx, env):
+    result = subprocess.run([gmx, "--version"], capture_output=True, text=True, env=env, timeout=60)
+    for line in result.stdout.splitlines():
+        if line.strip().startswith("GROMACS version:"):
+            return line.split(":", 1)[1].strip()
+    return None
+
+
+def _simulate_martini(cfg, output, caps, emit):
+    """Solvate, neutralize and run staged GROMACS MD; refuse any unverifiable step."""
+    from workbench.mixture_analysis import analyze_martini_mixture
+    try:
+        directory, forcefield = martini3_parameters()
+    except (OSError, ValueError) as exc:
+        return {"state": "blocked", "commands": [], "requirements": [f"Verified Martini 3.0.0 parameters from the pinned upstream commit: {exc}"]}
+    link_into(directory, output, {"martini_v3.0.0.itp": "martini_v3.0.0.itp", "martini_v3.0.0_solvents_v1.itp": "martini_v3.0.0_solvents_v1.itp",
+                                  "martini_v3.0.0_ions_v1.itp": "martini_v3.0.0_ions_v1.itp", "LICENSE": "MARTINI3_LICENSE.txt"})
+    _json(output / "forcefield.json", forcefield)
+    emit("solvation", 0.35, "Combining protein, polymer, W water and NaCl into one Martini 3 topology")
+    layout, solvation = _assemble_solvated(cfg, output)
+    box = str(cfg["box_nm"])
+    placement = [caps["executables"]["polyply"], "gen_coords", "-p", "system.top", "-c", "protein_centered.gro", "-o", "system.gro", "-name", "PolymerLab", "-box", box, box, box]
+    _execute(placement, output, "polyply_system_coords.log", timeout=3600, what="polyply system coordinate generation")
+    lines = (output / "system.gro").read_text().splitlines()
+    if len(lines) < 3 or not lines[1].strip().isdigit() or int(lines[1]) != layout["particles"]:
+        raise RuntimeError("polyply system.gro particle count disagrees with system.top")
+    commands = [{"stage": "solvated_coordinates", "argv": placement, "executed": True, "log": "polyply_system_coords.log",
+                 "reproducibility": "polyply 1.8 gen_coords has no seed option; placement is not bitwise reproducible"}]
+    gmx = caps["executables"]["gmx"]
+    if not gmx:
+        return {"state": "blocked", "commands": commands, "requirements": ["Executable: gmx (GROMACS) to run the assembled system"],
+                "solvation": solvation, "forcefield": forcefield, "layout": layout}
+    threads = _md_threads()
+    env = subprocess_environment(gmx)
+    # GROMACS refuses an OMP_NUM_THREADS that disagrees with -ntomp.
+    env["OMP_NUM_THREADS"] = str(threads)
+    version = _gromacs_version(gmx, env)
+    plan = [("01_minimize", ["-c", "system.gro"]), ("02_nvt", ["-c", "01_minimize.gro", "-r", "01_minimize.gro"]),
+            ("03_npt", ["-c", "02_nvt.gro", "-r", "01_minimize.gro", "-t", "02_nvt.cpt"]), ("04_production", ["-c", "03_npt.gro", "-t", "03_npt.cpt"])]
+    for index, (stem, inputs) in enumerate(plan):
+        emit("simulate", 0.4 + 0.12 * index, f"GROMACS {stem}: grompp without warning overrides, then mdrun")
+        grompp = [gmx, "grompp", "-f", f"{stem}.mdp", *inputs, "-p", "system.top", "-o", f"{stem}.tpr"]
+        mdrun = [gmx, "mdrun", "-deffnm", stem, "-ntmpi", "1", "-ntomp", str(threads)]
+        _execute(grompp, output, f"gmx_{stem}_grompp.log", timeout=600, env=env, what=f"GROMACS grompp ({stem})")
+        _execute(mdrun, output, f"gmx_{stem}_mdrun.log", timeout=43200, env=env, what=f"GROMACS mdrun ({stem})")
+        if not (output / f"{stem}.gro").is_file():
+            raise RuntimeError(f"GROMACS did not write {stem}.gro")
+        if stem == "01_minimize" and "converged to Fmax" not in (output / "gmx_01_minimize_mdrun.log").read_text(errors="replace"):
+            raise RuntimeError("Energy minimization did not converge to the requested Fmax; inspect the initial placement before dynamics")
+        notes = (output / f"gmx_{stem}_grompp.log").read_text(errors="replace").count("\nNOTE ")
+        commands += [{"stage": stem, "argv": grompp, "executed": True, "log": f"gmx_{stem}_grompp.log", "grompp_notes": notes},
+                     {"stage": stem, "argv": mdrun, "executed": True, "log": f"gmx_{stem}_mdrun.log"}]
+    emit("analyze", 0.9, "Analyzing protein RMSD, polymer contacts and energies")
+    analysis = analyze_martini_mixture(output, gmx, env, layout, cfg["contact_cutoff_nm"])
+    return {"state": "completed", "commands": commands, "requirements": [], "solvation": solvation, "forcefield": forcefield,
+            "layout": layout, "analysis": analysis, "gromacs_version": version, "threads": threads}
 
 
 def run_bridge(config: dict, output: Path, emit=lambda *args: None):
-    """Write reproducible handoff artifacts, optionally generate two CG components."""
+    """Write reproducible handoff artifacts; optionally generate CG components or run a Martini 3 pilot."""
     output = Path(output); output.mkdir(parents=True, exist_ok=True)
     cfg = _validated(config)
     protein = _protein(cfg["pdb_text"], cfg["secondary_structure"])
     caps = bridge_capabilities()
     commands, requirements, generated, notes = [], [], [], []
+    simulation = None
     track = cfg["bridge_track"]
     emit("bridge_preflight", 0.1, "Checking force-field components and mixed-system preparation requirements")
+    protonation = None
     if cfg["pdb_text"]:
         (output / "protein_input.pdb").write_text(cfg["pdb_text"])
+        if cfg["protein_protonation"] == "propka":
+            # PROPKA states at the chosen pH, written with AMBER residue names (ASH/GLH/HID/HIE/HIP/LYN) that
+            # martinize2 (-from amber), tleap and OpenFF all read; the submitted structure is kept alongside.
+            from workbench.protonation import protonate
+            emit("protonation", 0.12, f"PDB2PQR + PROPKA: assigning protonation states at pH {cfg['protein_ph']:g}")
+            (output / "protein_submitted.pdb").write_text(cfg["pdb_text"])
+            protonation = protonate(cfg["pdb_text"], cfg["protein_ph"], output)
+            shutil.copyfile(output / "protein_protonated.pdb", output / "protein_input.pdb")
+            notes.append(f"Protein protonation assigned by PDB2PQR + PROPKA at pH {protonation['ph']:g}: integer charge {protonation['integer_charge']:+d}, states {protonation['residue_states'] or 'all standard'}.")
+            if protonation["omitted_count"]:
+                notes.append(f"PDB2PQR omitted {protonation['omitted_count']} hetero group(s) without parameters: {', '.join(protonation['omitted_residues'][:5])}.")
     else:
         requirements.append("protein_input.pdb with reviewed termini, protonation and cofactors")
     if track == "martini3":
@@ -213,9 +417,13 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
         if not cfg["secondary_structure"]:
             requirements.append("Explicit per-residue secondary structure from a reviewed DSSP assignment")
         martinize = [caps["executables"]["martinize2"] or "martinize2", "-f", "protein_input.pdb", "-x", "protein_cg.pdb", "-o", "protein.top", "-ff", "martini3001", "-name", "Protein", "-p", "backbone"]
+        if protonation:
+            martinize += ["-from", "amber"]
         if cfg["secondary_structure"]:
             martinize += ["-ss", cfg["secondary_structure"]]
-        # No elastic network is assumed. The appropriate folded/IDR model needs review.
+        # An elastic network is never assumed; the folded/IDR model is an explicit choice.
+        if cfg["elastic_network"]:
+            martinize += ["-elastic", "-ef", "700", "-el", "0.5", "-eu", "0.9"]
         polyply = [caps["executables"]["polyply"] or "polyply", "gen_params", "-lib", "martini3", "-name", "Polymer", "-seq", f"{cfg['polyply_residue']}:{cfg['monomers']}", "-o", "polymer.itp"]
         commands += [{"stage":"protein_component", "argv":martinize, "requires":["protein_input.pdb", "secondary structure"]},
                      {"stage":"polymer_component", "argv":polyply, "requires":["known Martini 3 polymer block"]}]
@@ -228,7 +436,10 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
                          "Solvated system topology with checked charge, neutralization and salt concentration",
                          "GROMACS grompp without warning overrides and minimized energy/force validation"]
         commands.append({"stage":"solvation_after_combined_coordinates_review", "argv":[caps["executables"]["insane"] or "insane", "-f", "mixed_solute.pdb", "-o", "solvated.gro", "-p", "solvation_counts.top", "-pbc", "cubic", "-box", ",".join([str(cfg["box_nm"])]*3), "-sol", "W", "-salt", "0.15"], "requires":["reviewed mixed_solute.pdb", "verified net charge", "merge counts into complete topology"]})
-        stages = _gromacs_templates(output, cfg["temperature_kelvin"], cfg["seed"])
+        if cfg["bridge_mode"] == "simulate":
+            stages = _gromacs_templates(output, cfg["temperature_kelvin"], cfg["seed"], cfg["equilibration_steps"], cfg["equilibration_steps"], cfg["steps"])
+        else:
+            stages = _gromacs_templates(output, cfg["temperature_kelvin"], cfg["seed"])
         previous = "solvated.gro"
         for i,stage in enumerate(stages):
             stem = stage["input"].removesuffix(".mdp")
@@ -238,7 +449,7 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
             commands += [{"stage":stage["name"], "argv":argv, "requires":["all scientific review gates", "previous stage validation"]},
                          {"stage":stage["name"], "argv":[caps["executables"]["gmx"] or "gmx", "mdrun", "-deffnm", stem], "requires":[stem+".tpr"]}]
             previous = stem + ".gro"
-        if cfg["bridge_mode"] == "protein_cg":
+        if cfg["bridge_mode"] in {"protein_cg", "simulate"}:
             if not cfg["pdb_text"] or not cfg["secondary_structure"] or cfg["polyply_residue"] not in blocks:
                 notes.append("Component execution blocked: input protein, exact secondary structure and known polymer block are required.")
             elif not caps["executables"]["martinize2"] or not caps["executables"]["polyply"]:
@@ -250,6 +461,18 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
                 for required in ("protein_cg.pdb", "protein.top", "polymer.itp"):
                     if not (output / required).is_file(): raise RuntimeError(f"Missing expected component artifact {required}")
                 generated = ["protein_cg.pdb", "protein.top", "polymer.itp"]
+                if cfg["bridge_mode"] == "simulate":
+                    simulation = _simulate_martini(cfg, output, caps, emit)
+                    commands = commands[:2] + simulation["commands"]
+                    # Steps executed and checked here are no longer open review gates.
+                    requirements = [item for item in requirements if item.startswith(("Installed", "Explicit", "Reviewed polymer"))]
+                    requirements += simulation["requirements"]
+                    if simulation["state"] == "completed":
+                        requirements.append("Longer production and independent replicas before interpreting contacts or adsorption")
+                        for stage in stages:
+                            stage["state"] = "executed"
+        if not cfg["elastic_network"] and cfg["bridge_mode"] == "simulate":
+            notes.append("No elastic network: folded proteins can lose tertiary structure in Martini 3; inspect the protein RMSD.")
         notes += ["SMILES is not converted into a Martini mapping; the explicitly selected library block is the chemical model.",
                   "Protein elastic networks, IDR handling, protonation and cofactors require system-specific choices.",
                   "CG timescale is model-dependent; no microsecond performance or physical-time equivalence is promised."]
@@ -308,20 +531,41 @@ quit
                   "NAGL charge assignment speed and accuracy depend on model, molecule, hardware and applicability domain."]
     notes += ["No bulk 21-step compression is applied to a solvated protein system.",
               "Pilot duration is not proof of equilibration; inspect forces, energy, density, structural stability and independent replicas.",
-              "Only component topology generation can execute here; recipes never automatically run solvated MD."]
+              "Only the explicit Martini 3 simulate mode runs solvated MD; AMBER/OpenFF recipes never run automatically."]
     _json(output / "command_plan.json", {"schema_version":1,"shell":False,"commands":commands})
     _json(output / "requirements.json", {"missing_or_review_required":requirements,"notes":notes})
     _json(output / "bridge_capabilities.json", caps)
-    state = "prepared" if generated else "blocked"
+    state = simulation["state"] if simulation else "prepared" if generated else "blocked"
+    executed = state == "completed"
     manifest = {"schema_version":1,"created_at":datetime.now(timezone.utc).isoformat(),"track":track,
-                "mode":cfg["bridge_mode"],"status":state,"simulation_executed":False,
-                "protein":protein,"requested_polymer":{"library":cfg["polyply_library"],"residue":cfg["polyply_residue"],"monomers":cfg["monomers"],"chains":cfg["chains"]},
+                "mode":cfg["bridge_mode"],"status":state,"simulation_executed":executed,
+                "protein":protein,"protonation":protonation,"requested_polymer":{"library":cfg["polyply_library"],"residue":cfg["polyply_residue"],"monomers":cfg["monomers"],"chains":cfg["chains"]},
                 "temperature_kelvin":cfg["temperature_kelvin"],"seed":cfg["seed"],"stages":stages,
                 "generated_components":generated,"requirements":requirements,"notes":notes,
+                "simulation":{key: simulation.get(key) for key in ("solvation", "forcefield", "layout", "gromacs_version", "threads")} if simulation else None,
                 "input_sha256":hashlib.sha256(json.dumps(cfg,sort_keys=True,ensure_ascii=False).encode()).hexdigest(),
                 "artifacts":[{"file":str(p.relative_to(output)),"sha256":hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(output.rglob("*")) if p.is_file()]}
     _json(output / "bridge_manifest.json", manifest)
     emit("bridge_ready", 0.95, "Preparation artifacts written; unresolved scientific gates remain explicit")
-    return {"status":state,"route":"mixture","engine":"bridge_preparation","message":"구성요소 생성 완료; 혼합계 힘장·용매·평형화 검토가 필요합니다." if generated else "준비 레시피를 저장했습니다. 필수 도구·파라미터·과학적 검토 항목을 먼저 해결하세요.",
-            "simulation_executed":False,"generated_components":generated,"requirements":requirements,
-            "artifacts":[str(p.relative_to(output)) for p in sorted(output.rglob("*")) if p.is_file()],"bridge":manifest}
+    result = {"status":state,"route":"mixture","engine":"bridge_preparation","message":"구성요소 생성 완료; 혼합계 힘장·용매·평형화 검토가 필요합니다." if generated else "준비 레시피를 저장했습니다. 필수 도구·파라미터·과학적 검토 항목을 먼저 해결하세요.",
+              "simulation_executed":executed,"generated_components":generated,"requirements":requirements,
+              "artifacts":[str(p.relative_to(output)) for p in sorted(output.rglob("*")) if p.is_file()],"bridge":manifest}
+    if simulation and simulation["state"] == "blocked":
+        result["message"] = "Martini 3 시뮬레이션에 필요한 항목이 없어 중단했습니다. 준비된 파일과 누락 항목을 확인하세요."
+    if executed:
+        summary = simulation["analysis"]["summary"]
+        result.update(engine=f"Martini 3 / polyply / GROMACS {simulation['gromacs_version'] or ''}".strip(),
+                      message="용매화한 Martini 3 단백질–고분자 계의 단계별 평형화와 짧은 생산 계산을 완료했습니다. 평형 도달이나 결합력을 뜻하지 않습니다.",
+                      metadata={"force_field": "Martini 3.0.0 (martinize2 martini3001 protein; polyply martini3 polymer)",
+                                "ensemble": "NPT production after restrained NVT/NPT", "time_step_fs": 10.0,
+                                "temperature_kelvin": cfg["temperature_kelvin"], "production_steps": cfg["steps"],
+                                "equilibration_steps": cfg["equilibration_steps"], "contact_cutoff_nm": cfg["contact_cutoff_nm"],
+                                "elastic_network": cfg["elastic_network"], "salt_molar": cfg["salt_molar"]},
+                      metrics={"summary": {"protein_rmsd_mean": summary["protein_rmsd_mean"], "contact_count_mean": summary["contact_count_mean"],
+                                           "protein_rg_mean": summary["protein_rg_mean"], "polymer_rg_mean": summary["polymer_rg_mean"],
+                                           **({"density_mean": summary["density_mean"]} if "density_mean" in summary else {}),
+                                           "production_ps": summary["production_ps"], "frames": summary["frames"],
+                                           "particles": simulation["layout"]["particles"]},
+                               "units": simulation["analysis"]["units"], "equilibrated": False},
+                      warnings=simulation["analysis"]["warnings"] + [note for note in notes if note.startswith("No elastic network")])
+    return result

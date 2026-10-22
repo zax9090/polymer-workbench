@@ -36,7 +36,7 @@ cd PolymerLab
 | AlphaFold | 기존 AlphaFold DB 예측 가져오기, 구조·신뢰도 분석, 추론용 입력 생성 |
 | REA | 저장소 등록·해시·분석 근거 자료 |
 
-AlphaFold/ColabFold 신규 추론 환경과 모델 가중치, GROMACS, HOOMD-blue, Psi4, AmberTools, OpenFF는 포함하지 않습니다. 기존 앱과 동일하게 외부 환경을 연결하는 경로를 제공합니다. Martini 경로에서는 명시한 이차구조를 사용한 단백질 조대화와 지원되는 polyply 고분자 구성요소 준비를 실행합니다. 힘장·용매·이온을 검증한 전체 혼합계 MD가 실행되었다는 뜻은 아닙니다. Amber/OpenFF 경로는 필요한 입력과 도구를 확인하고 준비 계획을 생성합니다.
+AlphaFold/ColabFold 신규 추론 환경과 모델 가중치, GROMACS, HOOMD-blue, Psi4, AmberTools, OpenFF는 포함하지 않습니다. 기존 앱과 동일하게 외부 환경을 연결하는 경로를 제공합니다. Martini 경로에서는 명시한 이차구조를 사용한 단백질 조대화와 지원되는 polyply 고분자 구성요소 준비를 실행합니다. GROMACS를 설치하면 같은 경로의 MD 실행 모드가 용매화·중화한 Martini 3 혼합계의 단계별 평형화와 짧은 생산 계산을 수행합니다. Kali/Debian/Ubuntu에서는 `sudo apt install gromacs` 후 앱을 다시 시작하면 `/usr/bin/gmx`를 감지하며, 다른 위치는 `GROMACS_EXEC`로 지정합니다. Martini 3.0.0 기본 파라미터(약 16 MB, Apache-2.0)는 첫 실행 때 고정 커밋에서 내려받아 SHA-256을 확인한 뒤 데이터 폴더의 `forcefields/`에 보관합니다. 오프라인 환경에서는 같은 파일을 `MARTINI3_FF_DIR`로 지정합니다. Amber/OpenFF 경로는 필요한 입력과 도구를 확인하고 준비 계획을 생성합니다.
 
 합성 고분자 물성과 단백질–고분자 지표를 함께 저장할 수 있습니다. 물성 예측에는 검토된 실험·문헌 학습 데이터가 필요하며, 제공되는 앱에 학습 완료 물성 모델이 들어 있지는 않습니다. 짧은 MD 피처나 통계적 평형 후보 구간만으로 실제 벌크 물성의 정확도와 물리적 평형을 보장하지 않습니다. BayBE는 CPU 전용 PyTorch를 사용하며 CUDA 라이브러리나 GPU는 필요하지 않습니다.
 

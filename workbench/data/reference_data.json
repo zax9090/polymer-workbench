@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "builder": "scripts/build_reference_data.py",
+  "datasets": {
+    "radonpy_pi1070": {
+      "repository": "RadonPy/RadonPy",
+      "commit": "8834b9071ae93d9af36558a3c24545dd52e5ba1a",
+      "path": "data/PI1070.csv",
+      "url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/data/PI1070.csv",
+      "sha256": "4ee41d526db3d03eb5b83010672b4e63a4d51a114871a2187ca7fd57d30556a4",
+      "license": "BSD-3-Clause",
+      "rows": 1077,
+      "dropped": [],
+      "columns": [
+        "monomer_ID",
+        "smiles",
+        "polymer_class",
+        "mol_weight_monomer",
+        "temp",
+        "press",
+        "tacticity",
+        "DP",
+        "n_mol",
+        "density",
+        "density_std",
+        "Cp",
+        "Cp_std",
+        "bulk_modulus",
+        "bulk_modulus_std",
+        "compressibility",
+        "compressibility_std",
+        "volume_expansion",
+        "volume_expansion_std",
+        "refractive_index",
+        "refractive_index_std",
+        "thermal_conductivity",
+        "thermal_conductivity_std"
+      ],
+      "citation": "Y. Hayashi, J. Shiomi, J. Morikawa, R. Yoshida, npj Comput. Mater. 8, 222 (2022)",
+      "kind": "simulation",
+      "conditions": "RadonPy all-atom MD, 300 K, 1 atm (upstream temp/press columns)",
+      "file": "radonpy_pi1070.csv",
+      "file_sha256": "ef12f24268273e75892c8c72882cb682139868d35f59af2e423845ee1d3412fa",
+      "license_file": "licenses/RadonPy-BSD-3-Clause.txt"
+    },
+    "hsp_solvents": {
+      "repository": "Gnpd/HSPiPy",
+      "commit": "b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373",
+      "path": "hspipy/db.csv",
+      "url": "https://raw.githubusercontent.com/Gnpd/HSPiPy/b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373/hspipy/db.csv",
+      "sha256": "42cb4179c9de4b65e5340876de8031df3e385523e1a5ccfdadcdc6d48dce52d2",
+      "license": "MIT",
+      "rows": 248,
+      "dropped": [
+        {
+          "name": "Diethyl ketone",
+          "reason": "missing Hansen parameter or molar volume"
+        }
+      ],
+      "columns": [
+        "name",
+        "cas",
+        "smiles",
+        "delta_d",
+        "delta_p",
+        "delta_h",
+        "molar_volume",
+        "boiling_point_c",
+        "upstream_row"
+      ],
+      "units": {
+        "delta_d": "MPa^0.5",
+        "delta_p": "MPa^0.5",
+        "delta_h": "MPa^0.5",
+        "molar_volume": "cm^3/mol",
+        "boiling_point_c": "C"
+      },
+      "kind": "literature compilation",
+      "note": "Values match Hansen's published solvent tables (spot-checked); SMILES are RDKit-canonicalized, unparsable SMILES left empty.",
+      "file": "hsp_solvents.csv",
+      "file_sha256": "405ed57eb135e7a8fcd1cad96d2c8ac8434e97f31434fc38bffde9e1f7e9ea22",
+      "license_file": "licenses/HSPiPy-MIT.txt"
+    }
+  }
+}

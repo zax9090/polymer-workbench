@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/opt/node22/bin/node",
+    "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/user/polymer-workbench/evidence/extensions/sources/martini-forcefields",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.074,
+  "executed_at": "2026-10-22T09:01:21.768547+00:00",
+  "source_sha256": "1b2af6787aeb98a0ff202467b32eab065e360c75f2112169cedc6ba5e38631f0",
+  "source_unchanged": true,
+  "stdout": "evidence/extensions/rea/martini-forcefields.json",
+  "stderr": "evidence/extensions/rea/martini-forcefields.stderr.log"
+}

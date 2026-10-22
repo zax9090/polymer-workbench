@@ -17,7 +17,13 @@ class JobConfig(BaseModel):
     engine: Literal["auto", "lammps", "numpy"] = "auto"
     repeat_smiles: str = Field(default="[*]CC[*]", max_length=1000)
     sequence: str = Field(default="", max_length=10000)
-    atomistic_mode: Literal["build", "simulate"] = "build"
+    atomistic_mode: Literal["build", "simulate", "bulk"] = "build"
+    protocol_scale: float = Field(default=1.0, ge=0.001, le=1.0)
+    packmol_target: Literal["none", "sap_patch", "negative_patch", "positive_patch"] = "none"
+    sap_radius_angstrom: float = Field(default=5.0, ge=3, le=15)
+    protein_ph: float = Field(default=7.0, ge=0, le=14)
+    ionic_strength_molar: float = Field(default=0.15, ge=0, le=5)
+    protein_protonation: Literal["as_input", "propka"] = "as_input"
     protein_mode: Literal["export", "predict", "import", "database"] = "export"
     accession: str = Field(default="P69905", pattern=r"^[A-Z0-9]{6,10}$")
     msa_mode: Literal["single_sequence", "server"] = "single_sequence"
@@ -34,16 +40,26 @@ class JobConfig(BaseModel):
     a3m_text: str = Field(default="", max_length=5000000)
     engine_input: str = Field(default="", max_length=500000)
     bridge_track: Literal["martini3", "amber", "openff"] = "martini3"
-    bridge_mode: Literal["prepare", "protein_cg"] = "prepare"
+    bridge_mode: Literal["prepare", "protein_cg", "simulate"] = "prepare"
     secondary_structure: str = Field(default="", max_length=10000, pattern=r"^[HEC]*$")
     polymer_net_charge: int = Field(default=0, ge=-100, le=100)
+    equilibration_steps: int = Field(default=50000, ge=100, le=500000)
+    salt_molar: float = Field(default=0.15, ge=0, le=1)
+    contact_cutoff_nm: float = Field(default=0.6, ge=0.3, le=1.5)
+    elastic_network: bool = False
 
     @model_validator(mode="after")
     def bounds(self):
-        if self.route in {"polymer_atomistic", "pysimm"}:
+        bulk = self.route == "polymer_atomistic" and self.atomistic_mode == "bulk"
+        if self.route in {"polymer_atomistic", "pysimm"} and not bulk:
             if "chains" in self.model_fields_set and self.chains != 1:
                 raise ValueError("전원자/RadonPy 및 pysimm 경로는 현재 한 사슬만 지원합니다. 사슬 수를 1로 설정하세요.")
             self.chains = 1
+        if bulk:
+            if self.chains < 2:
+                raise ValueError("비정질 벌크 셀에는 사슬 2개 이상이 필요합니다.")
+            if not 100 <= self.temperature_kelvin <= 500:
+                raise ValueError("RadonPy 21단계 평형화의 최고 온도가 600 K이므로 최종 온도는 100~500 K로 설정하세요.")
         if self.route in ("polymer_cg", "hoomd") and not 0.05 <= self.temperature <= 5:
             raise ValueError("조대화 모델의 온도 T*는 0.05~5 범위입니다. 단위는 kBT/ε입니다.")
         if self.monomers * self.chains > 1000:
@@ -59,8 +75,10 @@ class JobConfig(BaseModel):
         if self.route == "mixture":
             if not 250 <= self.temperature_kelvin <= 400:
                 raise ValueError("현재 혼합계 준비 템플릿의 온도 범위는 250~400 K입니다.")
-            if self.bridge_mode == "protein_cg" and self.bridge_track != "martini3":
-                raise ValueError("단백질 CG 생성은 Martini 3 경로에서 지원합니다.")
+            if self.bridge_mode in {"protein_cg", "simulate"} and self.bridge_track != "martini3":
+                raise ValueError("단백질 CG 생성과 혼합계 MD는 Martini 3 경로에서 지원합니다.")
+            if self.bridge_mode == "simulate" and 8.36 * self.box_nm ** 3 > 70000:
+                raise ValueError("이 데스크톱 혼합계 MD는 약 7만 입자까지 지원합니다. 박스 한 변을 20 nm 이하로 줄이세요.")
             if self.bridge_track == "martini3" and self.polyply_library != "martini3":
                 raise ValueError("Martini 3 브릿지에는 동일 버전의 martini3 라이브러리를 사용하세요.")
         return self

@@ -2,7 +2,7 @@
 __pycache__/
 .pytest_cache/
 *.pyc
-data/
+/data/
 tools/rea/node_modules/
 tools/rea/npm/
 tools/engines/
@@ -14,3 +14,4 @@ evidence/extensions/sources/
 build/
 dist/
 releases/
+evidence/artifacts/downloads/

@@ -35,10 +35,10 @@ flowchart LR
 ```
 
 - **연구 데이터:** 완료된 기존 작업을 색인하고 Rg·말단 거리·검증 가능한 주사슬 피처를 단위·분석법과 함께 기록합니다. RadonPy는 실제 MD dump를 분석하며 구조 미리보기와 구분합니다.
-- **실험·문헌:** 단일 측정값과 CSV를 검토 후 저장합니다. DSC는 선택한 두 기준선의 중간점, 인장은 지정한 선형 구간의 기울기를 초안으로 계산합니다. PDF는 페이지별 텍스트와 원본 해시를 보존합니다. TGA/GPC 보정 및 LLM/OCR 추출은 구현되어 있지 않습니다.
+- **실험·문헌:** 단일 측정값과 CSV를 검토 후 저장합니다. DSC는 선택한 두 기준선의 중간점, 인장은 지정한 선형 구간의 기울기, TGA는 기준 온도 대비 지정 질량 감소 온도(Td), GPC는 표준 보정식과 기준선·적분 구간으로 Mn·Mw·분산도를 초안으로 계산합니다. GPC 값은 보정 표준 환산 상대값입니다. PDF는 페이지별 텍스트와 원본 해시를 보존합니다. LLM/OCR 추출은 구현되어 있지 않습니다.
 - **물성 모델:** 검토된 실험·문헌 데이터의 서로 다른 반복단위 최소 8종으로 GP 기준 모델을 학습합니다. 구조 그룹을 분리해 교차 검증하고 적용 범위와 미보정 불확실성을 표시합니다. 짧은 MD의 피처를 결합할 수 있지만 진정한 다중 충실도 모델이나 고정밀 예측을 보장하지 않습니다.
 - **캠페인:** 사용자가 지정한 유한 후보에서 초기 다양성 추천 후 관측값이 5개 이상이면 GP/BayBE의 결과 기반 추천을 수행합니다. 최대 50개 계산 예산과 배치 크기를 지정하고 명시적으로 시작합니다. 앱 재시작 시 자동 계산은 일시 정지합니다.
-- **혼합계 브릿지:** 검토한 단백질 PDB·2차 구조와 설치된 Martini 3 고분자 블록을 martinize2/polyply에 연결해 구성요소 토폴로지를 생성합니다. AMBER는 준비·평형화 입력 템플릿, OpenFF는 연동 명세를 제공합니다. 전체 용매화 혼합계 MD는 아직 실행하지 않습니다.
+- **혼합계 브릿지:** 검토한 단백질 PDB·2차 구조와 설치된 Martini 3 고분자 블록을 martinize2/polyply에 연결해 구성요소 토폴로지를 생성합니다. **MD 실행 모드**는 고정 커밋·해시를 확인한 Martini 3.0.0 힘장으로 단백질·고분자·물·Na⁺/Cl⁻를 하나의 토폴로지로 조립하고(전하 0, 지정 염 농도), GROMACS로 최소화 → 위치 구속 NVT → 위치 구속 NPT → 짧은 생산 계산을 실행합니다. 단백질 RMSD·고분자 접촉 수·회전반경·밀도와 PyMBAR 정상성 후보를 자동 분석해 연구 DB 피처로 색인하며, 이 피처를 목표로 고분자 블록·사슬 길이를 탐색하는 캠페인도 만들 수 있습니다. 짧은 파일럿 결과는 결합 자유에너지나 평형 도달을 뜻하지 않습니다. AMBER는 준비·평형화 입력 템플릿, OpenFF는 연동 명세를 제공합니다. GROMACS는 별도 설치가 필요합니다.
 
 실행 데이터는 `~/.local/share/polymer-lab/research/`에 보관합니다. Google Drive/rclone 등으로 이미 동기화 중인 폴더를 지정하면 **불변 Parquet 스냅샷**을 복사할 수 있습니다. 계정 연결·클라우드 업로드 확인은 하지 않으며 실행 중인 DuckDB 파일은 동기화하지 않습니다. [데이터 구조](docs/RESEARCH_DATA.md), [모델·캠페인](docs/LEARNING_CAMPAIGNS.md), [혼합계 브릿지](docs/BRIDGES.md)를 참고하세요.
 
@@ -62,15 +62,25 @@ cd /home/kali/Projects/polymer-workbench
 | 조대화 고분자 | 사슬 생성 → LAMMPS Langevin MD → MDAnalysis 교차 확인 → 궤적/그래프 | 환산 단위의 미보정 비드-스프링 모델 |
 | 전원자 구조 | 반복단위 SMILES → RDKit 연결·3D 배치·MMFF 최적화 | 준비된 한 사슬 구조, MD 수행 아님 |
 | RadonPy MD | RDKit → GAFF2_mod/Gasteiger → LAMMPS 최소화·짧은 NVT | 고립된 한 사슬 계산, 벌크 물성 아님 |
+| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
 | AlphaFold DB | UniProt ID → 공식 DB 예측 파일 → 원자 구조·pLDDT 분석 | 이미 존재하는 예측 가져오기, 새 추론 아님 |
 | 내 PDB 분석 | PDB → 구조 확인·기하 분석 | B-factor는 사용자가 지정할 때만 pLDDT로 해석 |
 | PACKMOL | RDKit 사슬 + 선택한 이전 구조 → 분자 배치 | MD용 초기 배치. 공통 힘장/토폴로지 설정이 추가로 필요 |
 | polyply | 라이브러리 잔기·길이 → 분자 ITP | 기본 설정은 Martini 3 PEO 토폴로지 준비 |
+| Martini 3 혼합계 MD | 단백질 PDB·2차 구조 + polyply 블록 → martinize2 → 물·이온 배치 → GROMACS 4단계 → MDAnalysis | 용매화 CG 파일럿. RMSD·접촉·밀도는 짧은 계산의 관측값이며 평형·결합력 보증 아님 |
 | pysimm | RDKit → GAFF2/Gasteiger → LAMMPS 에너지 최소화 | 고립 사슬 최소화, 평형 MD 아님 |
 
 조대화 기본 모델은 **코사인 soft 반발 + harmonic 결합**, 비주기 희박 사슬입니다. 비드가 서로 통과할 수 있어 얽힘 동역학을 재현하는 모델로 해석하면 안 됩니다. NumPy 대체 엔진은 동일한 포텐셜의 overdamped Langevin 적분을 수행하지만 LAMMPS 관성 동역학과 시간 척도가 다릅니다. `repeat_smiles`를 입력해도 조대화 힘장이 그 화학종에 맞춰 자동 보정되지는 않습니다.
 
 전원자 기본 예제는 반복단위 `[*]CC[*]`를 머리-꼬리 방향으로 연결하고 수소로 말단을 막습니다. 입체규칙성·분자량 분포·가교·평형화·실험 보정은 자동 추론하지 않습니다. 짧은 검증 실행에서 Tg·밀도·탄성률을 계산했다고 표시하지 않습니다.
+
+## 단백질 SAP 응집 취약 부위
+
+PDB 가져오기·AlphaFold DB·ColabFold 결과에는 SAP(spatial aggregation propensity, Chennamsetty et al. 2009) 검사가 붙습니다. mdtraj Shrake–Rupley로 중원자 SASA를 구하고, 각 원자 반경 5 Å 안에 곁사슬의 절반 이상이 들어온 잔기에 대해 (노출 곁사슬 면적 / Ala-X-Ala 기준 면적) × Black & Mould 소수성(Gly = 0)을 더합니다. 상위 잔기와 가장 높은 SAP 잔기 주변의 양수 패치를 결과와 3D 화면(주황색 막대)에 표시하고, `sap.json`과 B-factor 열에 SAP를 담은 `structure_sap.pdb`를 저장합니다. 원 논문은 MD 앙상블 평균을 쓰지만 여기서는 정적 구조 한 개를 씁니다. 응집 속도나 고분자 결합을 예측하지 않습니다.
+
+PACKMOL 경로에서 **고분자 배치 위치**를 "SAP 응집 취약 부위 주변"으로 고르면 단백질을 박스 중앙에 고정하고, 패치 반경 + 사슬 크기 절반 + 4 Å 구 안에 고분자 사슬을 배치합니다. 다중 모델(NMR) PDB는 첫 모델만 배치합니다.
+
+같은 결과에는 **PROPKA3 양성자화 분석**도 붙습니다. 지정한 pH(기본 7.0)에서 이온화 가능기별 pKa·전하·상태, 단백질 순전하와 등전점, pH ±1 안에 있어 상태가 불확실한 기를 계산합니다. 노출된 중원자에서 Debye–Hückel 차폐 쿨롱 표면 전위(물 유전율, 지정 이온 세기)를 구해 가장 강한 양·음전하 패치를 찾고 3D 화면에 파란·붉은 막대로 표시합니다. 또 PDB2PQR로 같은 pH의 양성자화 구조(수소 포함, ASH/GLH/HID/HIE/HIP/LYN 등 AMBER 잔기 이름, PQR 전하)를 저장합니다. PACKMOL 배치 위치 "음전하 표면 패치"(양이온 고분자용)·"양전하 표면 패치"(음이온 고분자용)는 이 패치 주변 구 안에 사슬을 배치하고, 반복단위 SMILES의 형식 전하가 패치와 반대 부호인지 기록합니다. 혼합계 브릿지에서 **단백질 양성자화**를 "PROPKA3 · 지정 pH"로 고르면 martinize2(`-from amber`)·tleap·OpenFF 입력이 이 구조를 씁니다. PROPKA 연결은 원본 저장소의 회귀 기준 5종을 0.01 pKa 이내로 재현합니다. 표면 전위는 단백질 내부의 낮은 유전율을 무시한 선별용 추정이며, 정밀한 정전기 지도는 PQR을 APBS에 넣어 계산하세요.
 
 ## 단백질과 고분자를 이어서 실행
 
@@ -111,6 +121,8 @@ export COLABFOLD_EXEC=/absolute/path/to/colabfold_batch
 | `PACKMOL_EXEC` | 별도 PACKMOL 실행 파일 |
 | `POLYPLY_EXEC` | 별도 polyply 실행 파일 |
 | `GROMACS_EXEC` | `gmx` 실행 파일 |
+| `MARTINI3_FF_DIR` | 검토한 Martini 3.0.0 파일 폴더. 고정 해시와 같아야 함 |
+| `POLYMER_MD_THREADS` | Martini 혼합계 GROMACS OpenMP 스레드 수(기본 최대 4) |
 | `RADONPY_PYTHON` | 별도 RadonPy Python 환경 |
 | `PYSIMM_PYTHON` | 별도 pysimm Python 환경 |
 | `HOOMD_PYTHON` | 별도 HOOMD-blue Python 환경 |
@@ -120,6 +132,19 @@ export COLABFOLD_EXEC=/absolute/path/to/colabfold_batch
 HOOMD-blue는 별도 CPU 실행 스크립트를 생성하며 설치된 환경을 연결하면 실행합니다. 기본 LAMMPS 경로와 다른 Gaussian 반발 모델임을 기록합니다. 이번 환경에서 HOOMD-blue는 실행하지 않았습니다.
 
 polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이어가고, **MDP**와 설치된 GROMACS가 있으면 `grompp → mdrun`을 실행합니다. 이번 환경에서는 GROMACS 실행과 전체 힘장 검증을 수행하지 않았습니다. 분자 ITP 생성과 실제 GROMACS 계산은 서로 다른 단계로 표시됩니다. 외부 파일을 include하는 힘장 대신 필요한 정의가 포함된 입력이 필요합니다.
+
+## 계산 전 빠른 예측 · 상용성
+
+**빠른 예측 · 상용성** 화면은 계산을 돌리기 전에 후보를 좁힙니다.
+
+- **물성 예측:** RadonPy가 공개한 비정질 고분자 1,077종의 전원자 MD 결과(PI1070, 300 K)로 학습한 가우스 과정이 반복단위 SMILES에서 밀도·Cp·체적 탄성률·압축률·열팽창·굴절률·열전도도를 몇 초 안에 예측합니다. 5겹 교차검증 기준 밀도 MAE는 0.023 g/cm³(R² 0.93)입니다. 최근접 참조 고분자와 유사도로 적용 범위를 표시하고, 같은 반복단위의 내 RadonPy 벌크 계산이 있으면 나란히 비교합니다. 예측값은 MD 워크플로우가 낼 값의 예측이며 실험값이 아닙니다.
+- **HSP 상용성:** Hansen 용매 248종으로 고분자 HSP에 대한 Ra·RED·χ 순위와 두 용매 혼합(두 비용매로 용매 만들기 포함)을 계산합니다. 용해·팽윤 시험 결과로 Hansen 구(δD·δP·δH·R0)를 피팅하고 측정값 초안으로 넘길 수 있습니다. 고분자 블렌드는 정규 용액 χ와 Flory–Huggins 임계 χ로 판정합니다.
+
+참조 데이터(RadonPy BSD-3, HSPiPy MIT)는 REA로 감사한 고정 커밋에서 `scripts/build_reference_data.py`가 다시 만듭니다. [빠른 예측 문서](docs/SCREENING.md)를 참고하세요.
+
+## AI 에이전트 연동 (MCP)
+
+Polymer Lab은 MCP stdio 서버(`python -m workbench --mcp`, 데스크톱 `polymer-lab --mcp`)를 제공합니다. Claude Code·Claude Desktop·Codex 같은 에이전트가 계산 작업 실행·대기·결과 읽기, 곡선 분석, 측정값 초안 입력, 모델 학습·예측, 캠페인 제어를 할 수 있습니다. 실행 중인 데스크톱 앱이나 `./start.sh` 서버에 붙고, 없으면 요청 시 세션 소유 서버를 띄웁니다. 에이전트가 입력한 측정값은 항상 검토 전 상태로 저장되며 MCP로 만든 작업에는 요청자가 기록됩니다. 이 저장소의 `.mcp.json`에 등록되어 있습니다. [MCP 연동 안내](docs/MCP.md)를 참고하세요.
 
 ## REA 분석 근거
 
@@ -157,6 +182,8 @@ CLI 직접 실행은 계산 파일을 만들며 HTTP 작업 관리자의 대기�
 
 테스트는 포텐셜의 힘-에너지 일치, 실제 LAMMPS 비교, MDAnalysis 교차 확인, RDKit 결합 연결, 단백질 신뢰도 해석, API 입력 검증·재실행·경로 제한·실제 프로세스 그룹 중단을 포함합니다. [검증 기록](docs/VALIDATION.md)을 참고하세요.
 
+GitHub Actions(`.github/workflows/tests.yml`)는 PR과 `main` 푸시마다 Ubuntu 24.04·Python 3.13에서 고정 의존성, GROMACS 2023.3, BayBE(CPU torch)를 설치하고 REA 감사 원본을 받아 전체 pytest를 실행합니다. 건너뛴 테스트와 그 이유는 로그의 `-rs` 요약에 나옵니다.
+
 현재 서버는 개인 PC의 `127.0.0.1` 전용입니다. 다중 사용자 인증·원격 HPC 스케줄러·프로덕션 클러스터 서비스는 포함하지 않습니다.
 
 ## 소스 구성
@@ -170,6 +197,10 @@ workbench/jobs.py          작업·프로세스·산출물 관리
 workbench/models.py        입력 검증
 workbench/science.py       조대화 계산·분석·RDKit 구조 생성
 workbench/external.py      RadonPy/PACKMOL/단백질/선택 엔진 어댑터
+workbench/screening.py     PI1070 참조 MD 대리 모델(계산 전 물성 예측)
+workbench/protonation.py   PROPKA3 pKa·전하·표면 전하 패치, PDB2PQR 양성자화 구조
+workbench/compatibility.py Hansen 용매 순위·구 피팅·블렌드 χ
+workbench/data/            감사한 참조 데이터·라이선스·출처 manifest
 workbench/static/          한국어 화면·3D 뷰어
 scripts/engine_worker.py   계산 프로세스 진입점
 scripts/audit_repos.py     REA 재분석·근거 검증

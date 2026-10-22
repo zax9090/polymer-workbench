@@ -1,0 +1,59 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.lock.txt
+            requirements.desktop.lock.txt
+
+      # GROMACS runs the Martini 3 mixture tests; Ubuntu 24.04 ships 2023.3, the version they were validated with.
+      - name: Install GROMACS
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq --no-install-recommends gromacs
+          gmx --version | head -n 1
+
+      - name: Install pinned research environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check -r requirements.lock.txt
+          .venv/bin/python -m pip install --disable-pip-version-check --no-deps -e .
+
+      # BayBE campaign tests; pins come from the desktop lock, with the CPU-only torch build.
+      - name: Install BayBE (CPU torch)
+        run: |
+          .venv/bin/python -m pip install --disable-pip-version-check --extra-index-url https://download.pytorch.org/whl/cpu \
+            $(grep -E '^(attrs|baybe|botorch|cattrs|exceptiongroup|fsspec|gpytorch|Jinja2|linear_operator|MarkupSafe|mpmath|multipledispatch|mypy_extensions|ninja|pyre-extensions|sympy|torch|typing-inspect)==' requirements.desktop.lock.txt)
+
+      # Pinned upstream bytes let the reference-data rebuild test run instead of skipping.
+      - name: Fetch pinned REA-audited sources
+        run: .venv/bin/python scripts/audit_extensions.py --fetch-pinned
+
+      - name: Run pytest
+        timeout-minutes: 30
+        run: |
+          export PATH="$PWD/.venv/bin:$PATH"
+          export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
+          .venv/bin/python -m pytest -q -rs

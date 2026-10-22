@@ -4,6 +4,7 @@ import io
 import json
 import time
 import zipfile
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -113,3 +114,49 @@ def test_bridge_preparation_is_not_simulation(client):
     diagnosis = client.get("/api/research/diagnostics/" + identifier).json()
     assert diagnosis["llm_used"] is False
     assert client.post(f"/api/research/diagnostics/{identifier}/retry", json={"rule_id": "unstable_atoms"}).status_code in {409, 422}
+
+
+def test_gpc_curve_drafts_keep_analysis_provenance_when_saved(client):
+    from tests.test_research_data import gpc_fixture
+    text, options = gpc_fixture()
+    response = client.post("/api/research/curves", json={"kind": "gpc", "text": text, "options": options})
+    assert response.status_code == 200, response.text
+    drafts = response.json()["measurement_drafts"]
+    assert [d["property"] for d in drafts] == ["mn", "mw", "dispersity"]
+    assert client.get("/api/research/measurements").json() == []
+    saved = client.post("/api/research/measurements", json={**drafts[2], "material": {"repeat_smiles": "[*]CC[*]"},
+                        "source": "synthetic API test fixture, not research evidence", "origin": "demo"})
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["verified"] is False
+    assert saved.json()["analysis"]["calibration_sha256"] == drafts[2]["analysis"]["calibration_sha256"]
+    bad = client.post("/api/research/curves", json={"kind": "gpc", "text": text, "options": {**options, "calibration_order": 4}})
+    assert bad.status_code == 422
+
+
+def test_martini_simulation_job_is_indexed_with_protein_polymer_features(client):
+    from workbench import bridges, forcefields
+    caps = bridges.bridge_capabilities()
+    if not all(caps["executables"][name] for name in ("martinize2", "polyply", "gmx")):
+        pytest.skip("Requires installed martinize2, polyply and GROMACS")
+    try:
+        forcefields.martini3_parameters()
+    except OSError as exc:
+        pytest.skip(f"Pinned Martini 3 parameters are not available offline: {exc}")
+    pdb = (Path(__file__).parent / "fixtures" / "alanine6.pdb").read_text()
+    created = client.post("/api/research/bridges", json={"name": "synthetic Martini pilot", "bridge_mode": "simulate", "pdb_text": pdb,
+                                                         "secondary_structure": "CCCCCC", "monomers": 6, "chains": 1, "box_nm": 5.5,
+                                                         "equilibration_steps": 200, "steps": 500})
+    assert created.status_code == 201, created.text
+    job_id = created.json()["id"]
+    for _ in range(600):
+        job = client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] not in {"queued", "running"}:
+            break
+        time.sleep(0.5)
+    assert job["status"] == "completed", job.get("error") or job["log"][-2000:]
+    assert job["result"]["simulation_executed"] is True
+    experiment = next(row for row in client.get("/api/research/experiments").json() if row["job_id"] == job_id)
+    assert experiment["features"]["actual_dynamics"] is True
+    assert experiment["features"]["values"]["contact_count"]["unit"] == "count"
+    assert experiment["features"]["compatibility"]["force_field"].startswith("Martini 3.0.0")
+    assert client.post("/api/research/bridges", json={"bridge_track": "amber", "bridge_mode": "simulate"}).status_code == 422

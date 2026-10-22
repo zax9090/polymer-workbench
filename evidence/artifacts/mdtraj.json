@@ -1,0 +1,54 @@
+{
+  "id": "mdtraj",
+  "version": "1.11.2",
+  "license": "LGPL-2.1-or-later",
+  "artifact": "mdtraj-1.11.2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+  "sha256": "41ad7ee1bfbe6f6f0b8a7b9475bb242387f393edebbf3901d2d0824f63a9cdf8",
+  "purpose": "Shrake-Rupley solvent accessible surface area used by the SAP aggregation scan",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "mdtraj-1.11.2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 326,
+    "integrity_contradictions": [],
+    "output": "mdtraj.inspect.json"
+  },
+  "files": [
+    {
+      "path": "mdtraj/geometry/sasa.py",
+      "artifact_sha256": "6bf91e758c72c36b78258dc5ef43b51e46c09929ea253b21e750a63478c3187e",
+      "installed_sha256": "6bf91e758c72c36b78258dc5ef43b51e46c09929ea253b21e750a63478c3187e",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "mdtraj/geometry/sasa.py",
+      "needle": "_ATOMIC_RADII = {",
+      "line": 57,
+      "purpose": "Element radii (nm) used for SASA"
+    },
+    {
+      "path": "mdtraj/geometry/sasa.py",
+      "needle": "def shrake_rupley(",
+      "line": 179,
+      "purpose": "Per-atom or per-residue SASA"
+    }
+  ],
+  "audited_at": "2026-10-22T09:49:21.297793+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}

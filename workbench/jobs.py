@@ -68,7 +68,7 @@ class JobManager:
             atomic_json(self.directory(job_id) / "job.json", job)
             return job
 
-    def create(self, config):
+    def create(self, config, submitted_via=None):
         with self.lock:
             if self.closed:
                 raise RuntimeError("Server is stopping")
@@ -78,6 +78,8 @@ class JobManager:
             atomic_json(directory / "config.json", config)
             job = {"id": job_id, "name": config["name"], "config": config, "status": "queued",
                    "created_at": now(), "started_at": None, "finished_at": None, "error": None}
+            if submitted_via:
+                job["submitted_via"] = submitted_via
             atomic_json(directory / "job.json", job)
             self.pool.submit(self._run, job_id)
             return self.get(job_id)
@@ -162,7 +164,7 @@ class JobManager:
             except PackageNotFoundError:
                 packages[package] = None
         files = {}
-        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
+        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/sap.py", "workbench/protonation.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
             path = ROOT / name
             if path.is_file():
                 files[name] = hashlib.sha256(path.read_bytes()).hexdigest()

@@ -135,6 +135,49 @@ def _equilibration(series, unit):
         return {"available": False, "reason": "Optional pymbar is unavailable"}
 
 
+def _mixture_features(report, analysis, add):
+    """Executed Martini 3 protein-polymer pilot; selections, cutoff and units come from the analysis."""
+    summary, definitions = analysis.get("summary", {}), analysis.get("definitions", {})
+    prefix = "mean over Martini 3 GROMACS production frames; "
+    for name, key, unit, definition in (("protein_rmsd", "protein_rmsd_mean", "angstrom", "protein_rmsd"),
+                                        ("contact_count", "contact_count_mean", "count", "contact_count"),
+                                        ("protein_rg_mean", "protein_rg_mean", "angstrom", "protein_rg"),
+                                        ("polymer_rg_mean", "polymer_rg_mean", "angstrom", "polymer_rg_mean")):
+        value = summary.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            add(name, value, unit, prefix + definitions.get(definition, key))
+            report["unavailable"].pop(name, None)
+    if isinstance(summary.get("density_mean"), (int, float)):
+        add("density_mean", summary["density_mean"], "kg/m^3", "GROMACS NPT production mean density of the solvated CG system; not polymer material density")
+    report["unavailable"]["hbond_count"] = analysis.get("hbond_count", "Coarse-grained beads have no explicit hydrogen-bond geometry")
+    report["equilibration"] = analysis.get("equilibration", {})
+    report.update(frame_count=int(summary.get("frames", 0)), chain_count=None, length_unit="angstrom", actual_dynamics=int(summary.get("frames", 0)) >= 2,
+                  trajectory_source="mixture_analysis.json (gmx trjconv -pbc mol production frames)")
+    report["warnings"] += analysis.get("warnings", [])
+
+
+def _bulk_features(report, complete, add):
+    """RadonPy periodic-cell properties; units and scaled-protocol provenance travel with each value."""
+    scale = complete.get("protocol_scale")
+    prefix = f"RadonPy NPT sampling after Larsen 21-step equilibration (stage length x{scale:g}, GAFF2_mod/Gasteiger); "
+    for name, key, method in (("bulk_density", "density", "mean thermo density"),
+                              ("bulk_modulus", "bulk_modulus", "isothermal bulk modulus from volume fluctuations"),
+                              ("heat_capacity_cp", "heat_capacity_cp", "Cp from enthalpy fluctuations"),
+                              ("isothermal_compressibility", "isothermal_compressibility", "compressibility from volume fluctuations"),
+                              ("volume_expansion", "volume_expansion", "volume expansion from enthalpy-volume cross fluctuations"),
+                              ("rg_mean", "chain_rg", "RadonPy gyration/chunk mean chain Rg")):
+        item = (complete.get("properties") or {}).get(key) or {}
+        if isinstance(item.get("value"), (int, float)):
+            add(name, item["value"], item.get("unit"), prefix + method, radonpy_criteria_met=complete.get("radonpy_criteria_met"))
+    report["unavailable"].pop("density", None)
+    series = complete.get("density_series") or []
+    report["equilibration"] = {"bulk_density": _equilibration(series, "g/cm^3")}
+    report.update(frame_count=len(series), chain_count=complete.get("chains"), length_unit="angstrom", actual_dynamics=len(series) >= 2,
+                  trajectory_source="bulk_complete.json (RadonPy analysis of the sampling log)")
+    if not complete.get("radonpy_criteria_met"):
+        report["warnings"].append("RadonPy convergence criteria were not met for this cell.")
+
+
 def extract_job_features(job_dir: Path, job=None) -> dict:
     directory = Path(job_dir)
     job = job or _read(directory / "job.json")
@@ -160,6 +203,16 @@ def extract_job_features(job_dir: Path, job=None) -> dict:
     def add(name, value, unit, method, **extra):
         if np.isfinite(value):
             report["values"][name] = {"value": float(value), "unit": unit, "method": method, **extra}
+    if config.get("route") == "polymer_atomistic" and config.get("atomistic_mode") == "bulk" and (directory / "bulk_complete.json").is_file():
+        _bulk_features(report, _read(directory / "bulk_complete.json"), add)
+        report["source_files"].append("bulk_complete.json")
+        report["source_sha256"] = {"bulk_complete.json": hashlib.sha256((directory / "bulk_complete.json").read_bytes()).hexdigest()}
+        return report
+    if config.get("route") == "mixture" and (directory / "mixture_analysis.json").is_file():
+        _mixture_features(report, _read(directory / "mixture_analysis.json"), add)
+        report["source_files"].append("mixture_analysis.json")
+        report["source_sha256"] = {"mixture_analysis.json": hashlib.sha256((directory / "mixture_analysis.json").read_bytes()).hexdigest()}
+        return report
     try:
         frames, bonds, masses, charges, heavy, unit, preview = _frames_and_topology(directory, config, result, report)
         if frames.ndim != 3 or not np.all(np.isfinite(frames)):

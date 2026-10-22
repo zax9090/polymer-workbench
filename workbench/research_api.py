@@ -16,6 +16,7 @@ from starlette.concurrency import run_in_threadpool
 from .jobs import atomic_json
 from .models import JobConfig
 from .research_store import PROPERTY_UNITS, ResearchStore
+from .server import client_label
 
 
 class ResearchRoute(APIRoute):
@@ -241,6 +242,79 @@ def predict(identifier: str, payload: dict, request: Request):
     return request.app.state.surrogates.predict(identifier, payload)
 
 
+class ScreenRequest(BaseModel):
+    smiles: list[str] = Field(min_length=1, max_length=20)
+    properties: list[str] | None = Field(default=None, max_length=10)
+
+
+class SolventRequest(BaseModel):
+    polymer: dict
+    temperature: float = 298.15
+    alpha: float = 0.6
+    limit: int = Field(default=25, ge=1, le=300)
+    names: list[str] | None = Field(default=None, max_length=300)
+    blends: int = Field(default=0, ge=0, le=50)
+
+
+class SphereRequest(BaseModel):
+    tests: list[dict] = Field(min_length=2, max_length=300)
+
+
+class BlendRequest(BaseModel):
+    a: dict
+    b: dict
+    temperature: float = 298.15
+    reference_volume: float = 100.0
+
+
+@router.get("/screening")
+def screening_card():
+    from .compatibility import source
+    from .screening import SURROGATE
+    return {"surrogate": SURROGATE.card(), "solvents": source()}
+
+
+@router.get("/screening/validation")
+def screening_validation():
+    from .screening import SURROGATE
+    return SURROGATE.cross_validation()
+
+
+@router.post("/screening/predict")
+def screening_predict(payload: ScreenRequest, request: Request):
+    from .screening import SURROGATE, own_simulations
+    experiments = request.app.state.research_store.list_experiments({"route": "polymer_atomistic"})
+    results = []
+    for smiles in payload.smiles:
+        prediction = SURROGATE.predict(smiles, payload.properties)
+        results.append({**prediction, "own_simulations": own_simulations(prediction, experiments)})
+    return {"predictions": results}
+
+
+@router.get("/screening/solvents")
+def screening_solvents(query: str = ""):
+    from .compatibility import list_solvents, source
+    return {"solvents": list_solvents(query[:100]), "source": source()}
+
+
+@router.post("/screening/solvents")
+def screening_rank(payload: SolventRequest):
+    from .compatibility import rank_solvents
+    return rank_solvents(payload.polymer, payload.temperature, payload.alpha, payload.limit, payload.names, payload.blends)
+
+
+@router.post("/screening/hsp-fit")
+def screening_fit(payload: SphereRequest):
+    from .compatibility import fit_sphere
+    return fit_sphere(payload.tests)
+
+
+@router.post("/screening/blend")
+def screening_blend(payload: BlendRequest):
+    from .compatibility import blend_compatibility
+    return blend_compatibility(payload.a, payload.b, payload.temperature, payload.reference_volume)
+
+
 @router.get("/campaigns")
 def campaigns(request: Request):
     return request.app.state.campaigns.list()
@@ -289,7 +363,7 @@ def prepare_bridge(payload: dict, request: Request):
         if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5_000_000:
             raise ValueError("5 MB 이하 PDB 구조 파일이 필요합니다.")
         config.pdb_text = path.read_text()
-    return manager.create(config.model_dump())
+    return manager.create(config.model_dump(), submitted_via=client_label(request))
 
 
 @router.get("/diagnostics/{identifier}")
@@ -310,4 +384,4 @@ def retry(identifier: str, payload: Retry, request: Request):
     if selected is None:
         raise ValueError("적용 가능한 진단 수정안을 찾을 수 없습니다.")
     config = JobConfig.model_validate({**job["config"], **selected["patch"]})
-    return manager.create(config.model_dump())
+    return manager.create(config.model_dump(), submitted_via=client_label(request))

@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "rea": {
+      "type": "stdio",
+      "command": "tools/rea/mcp-server.sh",
+      "args": []
+    },
+    "polymer-lab": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": [
+        "-m",
+        "workbench",
+        "--mcp"
+      ]
+    }
+  }
+}

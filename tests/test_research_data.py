@@ -190,3 +190,100 @@ def test_collinear_torsions_are_unavailable_not_zero_entropy(tmp_path):
     assert 'rg_mean' in report['values']
     assert 'backbone_dihedral_entropy' not in report['values']
     assert 'undefined torsion' in report['unavailable']['backbone_dihedral_entropy']
+
+
+def gpc_fixture(sd=0.6):
+    """Gaussian peak on a sloped baseline; linear calibration log10 M = 8 - 0.3 t.
+
+    A Gaussian in t is a log-normal weight distribution, whose averages are analytic.
+    """
+    t = np.linspace(10, 22, 1201)
+    signal = np.exp(-0.5 * ((t - 16) / sd) ** 2) + 0.01 * t + 0.2
+    text = "retention_time,signal\n" + "\n".join(f"{a:.5f},{b:.8f}" for a, b in zip(t, signal))
+    options = {"x_unit": "min", "detector": "RI", "calibration_standard": "polystyrene",
+               "calibration": [[x, 10 ** (8 - 0.3 * x) / 1000] for x in (11, 13, 15, 17, 19, 21)],
+               "molar_mass_unit": "kg/mol", "calibration_order": 1, "eluent": "THF",
+               "baseline_before": [11, 12.5], "baseline_after": [19.5, 21], "integration_window": [12.5, 19.5]}
+    return text, options
+
+
+def test_gpc_conventional_calibration_matches_lognormal_averages():
+    text, options = gpc_fixture()
+    result = analyze_curve("gpc", text, options)
+    values = {d["property"]: d for d in result["measurement_drafts"]}
+    sigma, mu = np.log(10) * 0.3 * 0.6, np.log(10) * (8 - 0.3 * 16)
+    assert values["mn"]["value"] == pytest.approx(np.exp(mu - sigma ** 2 / 2), rel=1e-5)
+    assert values["mw"]["value"] == pytest.approx(np.exp(mu + sigma ** 2 / 2), rel=1e-5)
+    assert values["dispersity"]["value"] == pytest.approx(np.exp(sigma ** 2), rel=1e-5)
+    assert result["measurement_draft"] == values["mn"]
+    # Per-sample windows stay in analysis provenance so replicates share comparable conditions.
+    assert values["mn"]["conditions"] == {"calibration_standard": "polystyrene", "calibration_order": 1, "detector": "RI", "x_unit": "min", "eluent": "THF"}
+    analysis = values["mw"]["analysis"]
+    assert analysis["integration_window"] == [12.5, 19.5] and analysis["calibration"]["max_abs_deviation_percent"] < 1e-6
+    assert len(analysis["calibration_sha256"]) == 64
+    assert any("polystyrene-equivalent" in w for w in result["warnings"])
+    for draft in result["measurement_drafts"]:
+        row = validate_measurement({**draft, "material": {"repeat_smiles": "[*]CC[*]"}, "origin": "experimental", "source": "synthetic fixture"})
+        assert row["analysis"] == draft["analysis"]
+
+
+def test_gpc_refuses_unsupported_calibration_and_baselines():
+    text, options = gpc_fixture()
+    cases = [({"integration_window": [10.5, 19.5], "baseline_before": [10, 10.5]}, "extrapolation"),
+             ({"calibration": [[11, 100], [13, 1000], [15, 10]]}, "decreasing molar mass"),
+             ({"calibration_order": 3, "calibration": [[11, 1e5], [13, 1e4], [15, 1e3], [17, 1e2]]}, "at least 5 standards"),
+             ({"calibration_standard": " "}, "calibration_standard"),
+             ({"detector": "MALS"}, "detector"),
+             ({"baseline_before": [11, 13]}, "before and after"),
+             ({"baseline_before": [14.5, 15], "integration_window": [15, 19.5]}, "negative")]
+    for change, message in cases:
+        with pytest.raises(ValueError, match=message):
+            analyze_curve("gpc", text, {**options, **change})
+    truncated = analyze_curve("gpc", text, {**options, "integration_window": [15, 19.5], "baseline_before": [11, 12]})
+    assert any("truncated" in w for w in truncated["warnings"])
+
+
+def tga_fixture():
+    temperature = np.arange(30, 701, 1.0)
+    moisture = np.where(temperature < 100, 1.02, 1.0)
+    mass = 10 * moisture * (1 - 0.9 / (1 + np.exp(-(temperature - 420) / 15)))
+    text = "temperature,mass\n" + "\n".join(f"{a},{b}" for a, b in zip(temperature, mass))
+    options = {"temperature_unit": "C", "mass_unit": "mg", "reference_temperature": 150,
+               "mass_loss_percent": 5, "atmosphere": "N2", "heating_rate_K_min": 10}
+    return text, options
+
+
+def test_tga_mass_loss_temperature_relative_to_reference():
+    text, options = tga_fixture()
+    result = analyze_curve("tga", text, options)
+    draft = result["measurement_draft"]
+    reference = 1 - 0.9 / (1 + np.exp(-(150 - 420) / 15))
+    # Invert 1 - 0.9/(1+exp(-(T-420)/15)) = 0.95 * reference analytically.
+    expected = 420 - 15 * np.log(0.9 / (1 - 0.95 * reference) - 1)
+    assert draft["property"] == "decomposition_temperature" and draft["unit"] == "K"
+    assert draft["value"] == pytest.approx(expected + 273.15, abs=0.02)
+    assert draft["conditions"] == {"mass_loss_percent": 5.0, "atmosphere": "N2", "heating_rate_K_min": 10.0, "reference_temperature_K": 423.15}
+    assert draft["analysis"]["remaining_mass_percent_at_final"] == pytest.approx(10.0, abs=0.1)
+    # Normalizing at the first point instead would include the moisture step.
+    early = analyze_curve("tga", text, {**options, "reference_temperature": 30})["measurement_draft"]
+    assert early["value"] < draft["value"] - 5
+    cases = [({"mass_loss_percent": 95}, "does not lose"), ({"atmosphere": ""}, "atmosphere"),
+             ({"reference_temperature": 800}, "inside the uploaded"), ({"heating_rate_K_min": 0}, "heating_rate"),
+             ({"mass_unit": "g"}, "mass_unit")]
+    for change, message in cases:
+        with pytest.raises(ValueError, match=message):
+            analyze_curve("tga", text, {**options, **change})
+    with pytest.raises(ValueError, match="Negative mass"):
+        analyze_curve("tga", "temperature,mass\n30,1\n40,0.5\n50,-0.1\n", options | {"reference_temperature": 30})
+    assert analyze_curve("tga", text, {})["measurement_draft"] is None
+
+
+def test_molar_mass_average_and_dispersity_units():
+    base = {"material": {"repeat_smiles": "[*]CC[*]"}, "method": "GPC", "origin": "literature", "source": "synthetic fixture"}
+    assert validate_measurement({**base, "property": "mn", "value": 12.5, "unit": "kg/mol"})["value"] == pytest.approx(12500)
+    assert validate_measurement({**base, "property": "decomposition_temperature", "value": 350, "unit": "C"})["value"] == pytest.approx(623.15)
+    assert validate_measurement({**base, "property": "dispersity", "value": 1.0, "unit": "dimensionless"})["unit"] == "dimensionless"
+    with pytest.raises(ValueError, match="below 1"):
+        validate_measurement({**base, "property": "dispersity", "value": 0.98, "unit": "dimensionless"})
+    with pytest.raises(ValueError, match="incompatible"):
+        validate_measurement({**base, "property": "mw", "value": 1, "unit": "MPa"})
