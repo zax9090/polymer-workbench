@@ -1,0 +1,43 @@
+{
+  "id": "hiplot",
+  "version": "0.1.33",
+  "license": "MIT",
+  "artifact": "hiplot-0.1.33-py3-none-any.whl",
+  "sha256": "82761a0e087a04d696914f4e141197e9f6ae776a590369ec9db01e26710f9f85",
+  "purpose": "Browser bundle for the research-data parallel-coordinates view; the Python server is not installed",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "hiplot-0.1.33-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 34,
+    "integrity_contradictions": [],
+    "output": "hiplot.inspect.json"
+  },
+  "files": [
+    {
+      "path": "hiplot/static/built/hiplot.bundle.js",
+      "artifact_sha256": "2be25d300ac50b070c331f1f02fd8c50fd74bee64da1a5234694c7b80fdc97ef",
+      "vendored_path": "workbench/static/vendor/hiplot.bundle.js",
+      "vendored_sha256": "b75aeaf48e8269da92e7c0c27db417ae8bd0463fae3a21f80748ffdefb19e9ed",
+      "modification": "One compiled CSS @import of fonts.googleapis.com removed; workbench/static/vendor/hiplot-PROVENANCE.json",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [],
+  "audited_at": "2026-10-22T15:32:08.132335+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}

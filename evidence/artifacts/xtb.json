@@ -1,0 +1,86 @@
+{
+  "id": "xtb",
+  "version": "6.7.1",
+  "license": "LGPL-3.0-or-later",
+  "artifact": "xtb-6.7.1-linux-x86_64.tar.xz",
+  "sha256": "62a8d18778286e815292ee53d76ce447daf460a4dea3782c0f25cbac7019b5df",
+  "purpose": "GFN1-xTB CM5 charges for the GAFF2 bulk route (charge_method xtb_cm5)",
+  "kind": "archive",
+  "url": "https://github.com/grimme-lab/xtb/releases/download/v6.7.1/xtb-6.7.1-linux-x86_64.tar.xz",
+  "members": 301,
+  "links": [],
+  "files": [
+    {
+      "path": "xtb-dist/share/xtb/param_gfn1-xtb.txt",
+      "archive_sha256": "81a9d7afdee31f5d8fd67a4d8ec966179317c7b100261c9c82d724bafb460399"
+    },
+    {
+      "path": "xtb-dist/share/xtb/param_gfn2-xtb.txt",
+      "archive_sha256": "f6f05c6c5264cb2f75c54f8ac6838044541c1e493b16f1a4d4ee4fa64de5f545"
+    },
+    {
+      "path": "xtb-dist/share/xtb/config_env.bash",
+      "archive_sha256": "da377f5a22c434e79d7afcb4c2dce99fbe1164214125f15b029ba54ef5c07745"
+    }
+  ],
+  "anchors": [
+    {
+      "path": "xtb-dist/share/xtb/param_gfn1-xtb.txt",
+      "needle": "name GFN1-xTB",
+      "line": 3,
+      "purpose": "GFN1 parameter set used for CM5 charges"
+    },
+    {
+      "path": "xtb-dist/share/xtb/config_env.bash",
+      "needle": "XTBPATH=${XTBHOME}/share/xtb",
+      "line": 9,
+      "purpose": "Parameter files are found through XTBPATH"
+    }
+  ],
+  "rea": {
+    "file_headers": {
+      "argv": [
+        "node",
+        "inspect-with-objdump",
+        "xtb",
+        "file_headers",
+        "--format",
+        "json"
+      ],
+      "returncode": 0,
+      "subject_sha256": "debf27a9e0fa4bfb5ca75aafe4b90d8211f08ec2f4a482f375a4987212eaa12a",
+      "stdout_excerpt": [
+        "architecture: i386:x86-64, flags 0x00000112:",
+        "EXEC_P, HAS_SYMS, D_PAGED",
+        "start address 0x0000000000401ce0"
+      ],
+      "output": "xtb.objdump-file_headers.json"
+    },
+    "section_headers": {
+      "argv": [
+        "node",
+        "inspect-with-objdump",
+        "xtb",
+        "section_headers",
+        "--format",
+        "json"
+      ],
+      "returncode": 0,
+      "subject_sha256": "debf27a9e0fa4bfb5ca75aafe4b90d8211f08ec2f4a482f375a4987212eaa12a",
+      "stdout_excerpt": [
+        "                  CONTENTS, READONLY",
+        " 29 .note.stapsdt 00001c68  0000000000000000  0000000000000000  0381b814  2**2",
+        "                  CONTENTS, READONLY"
+      ],
+      "output": "xtb.objdump-section_headers.json"
+    },
+    "executable_sha256": "debf27a9e0fa4bfb5ca75aafe4b90d8211f08ec2f4a482f375a4987212eaa12a"
+  },
+  "audited_at": "2026-10-22T15:31:56.819604+00:00",
+  "status": "verified_archive",
+  "limitations": [
+    "REA 6.7.0 inspect-artifact does not open tar archives; member hashes come from Python tarfile.",
+    "REA inspect-with-objdump reads ELF headers and sections; no deep disassembly provider (Ghidra, Hopper, IDA, Kuna) is configured.",
+    "A verified archive shows which release was used, not that its science is correct."
+  ]
+}

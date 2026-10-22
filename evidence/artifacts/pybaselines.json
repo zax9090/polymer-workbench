@@ -1,0 +1,54 @@
+{
+  "id": "pybaselines",
+  "version": "1.2.1",
+  "license": "BSD-3-Clause",
+  "artifact": "pybaselines-1.2.1-py3-none-any.whl",
+  "sha256": "d8f224a0b5ac4cdcef861bc60533131c37255b4d1193f18a410bc37fe5217c73",
+  "purpose": "arPLS baselines under DSC melting endotherms and GPC peaks (workbench/ingestion.py)",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "pybaselines-1.2.1-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 35,
+    "integrity_contradictions": [],
+    "output": "pybaselines.inspect.json"
+  },
+  "files": [
+    {
+      "path": "pybaselines/whittaker.py",
+      "artifact_sha256": "9561e7617989b58f14fe4b54d7d7de8d6cd826b02d59a5ebec1aec8d7521a8fa",
+      "installed_sha256": "9561e7617989b58f14fe4b54d7d7de8d6cd826b02d59a5ebec1aec8d7521a8fa",
+      "matches_installed": true
+    },
+    {
+      "path": "pybaselines/api.py",
+      "artifact_sha256": "c97909291deeb8e378c3c427e24c048cbc3291d84c18640d380845abe84c8c52",
+      "installed_sha256": "c97909291deeb8e378c3c427e24c048cbc3291d84c18640d380845abe84c8c52",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "pybaselines/whittaker.py",
+      "needle": "    def arpls(self, data, lam=1e5, diff_order=2, max_iter=50, tol=1e-3, weights=None):",
+      "line": 276,
+      "purpose": "Asymmetrically reweighted penalized least squares"
+    }
+  ],
+  "audited_at": "2026-10-22T15:32:05.619905+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}
