@@ -68,7 +68,7 @@ class JobManager:
             atomic_json(self.directory(job_id) / "job.json", job)
             return job
 
-    def create(self, config):
+    def create(self, config, submitted_via=None):
         with self.lock:
             if self.closed:
                 raise RuntimeError("Server is stopping")
@@ -78,6 +78,8 @@ class JobManager:
             atomic_json(directory / "config.json", config)
             job = {"id": job_id, "name": config["name"], "config": config, "status": "queued",
                    "created_at": now(), "started_at": None, "finished_at": None, "error": None}
+            if submitted_via:
+                job["submitted_via"] = submitted_via
             atomic_json(directory / "job.json", job)
             self.pool.submit(self._run, job_id)
             return self.get(job_id)

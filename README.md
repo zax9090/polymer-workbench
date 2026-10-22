@@ -124,6 +124,10 @@ HOOMD-blue는 별도 CPU 실행 스크립트를 생성하며 설치된 환경을
 
 polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이어가고, **MDP**와 설치된 GROMACS가 있으면 `grompp → mdrun`을 실행합니다. 이번 환경에서는 GROMACS 실행과 전체 힘장 검증을 수행하지 않았습니다. 분자 ITP 생성과 실제 GROMACS 계산은 서로 다른 단계로 표시됩니다. 외부 파일을 include하는 힘장 대신 필요한 정의가 포함된 입력이 필요합니다.
 
+## AI 에이전트 연동 (MCP)
+
+Polymer Lab은 MCP stdio 서버(`python -m workbench --mcp`, 데스크톱 `polymer-lab --mcp`)를 제공합니다. Claude Code·Claude Desktop·Codex 같은 에이전트가 계산 작업 실행·대기·결과 읽기, 곡선 분석, 측정값 초안 입력, 모델 학습·예측, 캠페인 제어를 할 수 있습니다. 실행 중인 데스크톱 앱이나 `./start.sh` 서버에 붙고, 없으면 요청 시 세션 소유 서버를 띄웁니다. 에이전트가 입력한 측정값은 항상 검토 전 상태로 저장되며 MCP로 만든 작업에는 요청자가 기록됩니다. 이 저장소의 `.mcp.json`에 등록되어 있습니다. [MCP 연동 안내](docs/MCP.md)를 참고하세요.
+
 ## REA 분석 근거
 
 13개 공식 저장소의 커밋을 고정한 60개 핵심 소스·라이선스 파일을 검토했습니다.

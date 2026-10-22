@@ -1,5 +1,11 @@
 # 실행 검증 기록
 
+## 0.3 이후: MCP 에이전트 연동
+
+2026-10-22, Claude Code 클라우드 컨테이너. `tests/test_mcp.py` 5개 통과: 실제 `python -m workbench --mcp` 프로세스와 stdio JSON-RPC로 프로토콜 버전 협상, 도구 22개 목록·읽기 전용/파괴 표시, ping, 미지원 메서드·도구·잘못된 인자·JSON 파싱 오류를 확인했습니다. MCP 세션 소유 서버를 띄워 NumPy CG 작업을 제출·완료·색인하고, `submitted_via=mcp:pytest`, 0600 세션 파일과 종료 시 삭제, `verified: true`를 보낸 측정값이 검토 전 상태로 저장되는지 검사합니다. 토큰을 쓰는 데스크톱 세션(BackendSupervisor)에 세션 파일로 붙는 경로, 외부 주소 거부, 한 데이터 폴더의 두 번째 서버 거부도 포함합니다.
+
+별도 가상환경의 공식 MCP Python SDK 2.3.0 클라이언트(`stdio_client` + `ClientSession`)로 초기화(2025-06-18), 도구 목록, 서버 시작, 작업 제출·대기, structured content, 인자 오류의 `isError` 결과를 확인했습니다. 이번 컨테이너에는 BayBE 0.15.0을 PyPI torch 2.14.1로 설치해 건너뛰던 BayBE 테스트 2개를 실행했고 통과했습니다. CPU 전용 휠 색인은 이 환경의 프록시에서 차단되었습니다. 혼합계 캠페인 후보(PEO·PS·PMMA × 4길이, 원-핫 블록 벡터)에서 BayBE FPS 초기 5개 뒤 BoTorch 추천이 정상 동작했습니다. 이 마지막 확인은 합성 목표값을 쓴 상태 검사입니다. 이 구성에서 전체 소스 테스트는 **75개 통과, 건너뜀 없음**입니다.
+
 ## 0.3 이후: Martini 3 용매화 단백질–고분자 MD
 
 2026-10-22, Claude Code 클라우드 컨테이너(Ubuntu 24.04, Python 3.13.16, GROMACS 2023.3 `apt` 패키지, martinize2/polyply는 `requirements.lock.txt`). Martini 3.0.0 힘장은 고정 커밋 `784591eb`에서 받아 SHA-256 4개를 확인했습니다.

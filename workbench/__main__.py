@@ -46,6 +46,9 @@ def run_server(arguments: list[str]) -> int:
     listener.listen(128)
     listener.setblocking(False)
     port = listener.getsockname()[1]
+    from .paths import default_jobs_root
+    # Lets local MCP agents attach to this session; owner-only, removed on shutdown.
+    discovery = (options.data_dir or default_jobs_root()) / ".server.json"
 
     class DesktopServer(uvicorn.Server):
         async def startup(self, sockets=None):
@@ -57,6 +60,13 @@ def run_server(arguments: list[str]) -> int:
                 with os.fdopen(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as stream:
                     json.dump({"port": port, "pid": os.getpid()}, stream)
                 temporary.replace(destination)
+            if self.started:
+                discovery.parent.mkdir(parents=True, exist_ok=True)
+                temporary = discovery.with_suffix(".tmp")
+                with os.fdopen(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as stream:
+                    json.dump({"origin": f"http://127.0.0.1:{port}", "pid": os.getpid(), "version": __version__,
+                               "token": os.environ.get("POLYMER_DESKTOP_TOKEN")}, stream)
+                temporary.replace(discovery)
 
     # Uvicorn replays a captured SIGTERM after graceful ASGI shutdown. Unwind
     # Python cleanup instead of letting the default handler bypass finally.
@@ -72,6 +82,11 @@ def run_server(arguments: list[str]) -> int:
         listener.close()
         if options.ready_file:
             options.ready_file.unlink(missing_ok=True)
+        try:
+            if json.loads(discovery.read_text()).get("pid") == os.getpid():
+                discovery.unlink()
+        except (OSError, ValueError):
+            pass
         signal.signal(signal.SIGTERM, previous_term_handler)
     return 0
 
@@ -83,6 +98,9 @@ def main(arguments=None) -> int:
     args = list(sys.argv[1:] if arguments is None else arguments)
     if args and args[0] == "--server":
         return run_server(args[1:])
+    if args and args[0] == "--mcp":
+        from .mcp_server import main as run_mcp
+        return run_mcp(args[1:])
     if args and args[0] == "--worker":
         from .paths import resource_root
         return _run_script(resource_root() / "scripts" / "engine_worker.py", args[1:])

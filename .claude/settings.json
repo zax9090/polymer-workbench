@@ -1,5 +1,8 @@
 {
-  "enabledMcpjsonServers": ["rea"],
+  "enabledMcpjsonServers": [
+    "rea",
+    "polymer-lab"
+  ],
   "hooks": {
     "SessionStart": [
       {

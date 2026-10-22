@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 import json
 import os
+import re
 import secrets
 from pathlib import Path
 import zipfile
@@ -18,15 +19,44 @@ from .paths import default_jobs_root
 from . import __version__
 
 
+def acquire_data_lock(root: Path):
+    """One server per data folder: two job managers would each requeue or interrupt the other's runs."""
+    root.mkdir(parents=True, exist_ok=True)
+    handle = (root / ".server.lock").open("a+b")
+    try:
+        if os.name == "posix":
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            import msvcrt
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError as exc:
+        handle.close()
+        raise RuntimeError(f"다른 Polymer Lab 서버가 이미 이 데이터 폴더를 사용 중입니다: {root}") from exc
+    return handle
+
+
+def client_label(request: Request):
+    """Optional self-reported client name, e.g. an MCP agent; recorded for provenance only."""
+    value = request.headers.get("x-polymer-client", "")
+    return value if re.fullmatch(r"[A-Za-z0-9:._ /-]{1,80}", value) else None
+
+
 def create_app(data_root=None):
     @asynccontextmanager
     async def lifespan(app):
-        app.state.manager = JobManager(Path(data_root or default_jobs_root()))
-        from .research_api import initialize_research
-        initialize_research(app, app.state.manager)
-        yield
-        app.state.campaigns.close()
-        app.state.manager.close()
+        root = Path(data_root or default_jobs_root())
+        lock = acquire_data_lock(root)
+        try:
+            app.state.manager = JobManager(root)
+            from .research_api import initialize_research
+            initialize_research(app, app.state.manager)
+            yield
+            app.state.campaigns.close()
+            app.state.manager.close()
+        finally:
+            lock.close()
 
     app = FastAPI(title="Polymer Lab", version=__version__, lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
@@ -119,7 +149,7 @@ def create_app(data_root=None):
             if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5000000:
                 raise HTTPException(422, "5 MB 이하의 PDB 구조 파일이 필요합니다.")
             config.pdb_text = path.read_text()
-        return manager.create(config.model_dump())
+        return manager.create(config.model_dump(), submitted_via=client_label(request))
 
     @app.get("/api/jobs/{job_id}")
     def job(job_id: str, request: Request):
@@ -132,7 +162,7 @@ def create_app(data_root=None):
     @app.post("/api/jobs/{job_id}/rerun", status_code=201)
     def rerun(job_id: str, request: Request):
         config = request.app.state.manager.get(job_id)["config"]
-        return request.app.state.manager.create(JobConfig.model_validate(config).model_dump())
+        return request.app.state.manager.create(JobConfig.model_validate(config).model_dump(), submitted_via=client_label(request))
 
     @app.get("/api/jobs/{job_id}/artifacts/{name:path}")
     def artifact(job_id: str, name: str, request: Request):

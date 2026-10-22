@@ -16,6 +16,7 @@ from starlette.concurrency import run_in_threadpool
 from .jobs import atomic_json
 from .models import JobConfig
 from .research_store import PROPERTY_UNITS, ResearchStore
+from .server import client_label
 
 
 class ResearchRoute(APIRoute):
@@ -289,7 +290,7 @@ def prepare_bridge(payload: dict, request: Request):
         if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5_000_000:
             raise ValueError("5 MB 이하 PDB 구조 파일이 필요합니다.")
         config.pdb_text = path.read_text()
-    return manager.create(config.model_dump())
+    return manager.create(config.model_dump(), submitted_via=client_label(request))
 
 
 @router.get("/diagnostics/{identifier}")
@@ -310,4 +311,4 @@ def retry(identifier: str, payload: Retry, request: Request):
     if selected is None:
         raise ValueError("적용 가능한 진단 수정안을 찾을 수 없습니다.")
     config = JobConfig.model_validate({**job["config"], **selected["patch"]})
-    return manager.create(config.model_dump())
+    return manager.create(config.model_dump(), submitted_via=client_label(request))
