@@ -14,8 +14,9 @@ concurrency:
   group: drive-backup
   cancel-in-progress: false
 
+# Not RCLONE_*: rclone reads every RCLONE_<NAME> variable as its --<name> flag.
 env:
-  RCLONE_VERSION: v1.75.1
+  PINNED_RCLONE: v1.75.1
   GO_VERSION: 1.26.9
 
 jobs:
@@ -45,10 +46,10 @@ jobs:
       - name: Restore rclone
         id: rclone
         if: steps.token.outputs.ready == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/rclone-bin
-          key: rclone-${{ env.RCLONE_VERSION }}-go${{ env.GO_VERSION }}-v1
+          key: rclone-${{ env.PINNED_RCLONE }}-go${{ env.GO_VERSION }}-v1
 
       - uses: actions/setup-go@v5
         if: steps.token.outputs.ready == 'true' && steps.rclone.outputs.cache-hit != 'true'
@@ -61,7 +62,15 @@ jobs:
         if: steps.token.outputs.ready == 'true' && steps.rclone.outputs.cache-hit != 'true'
         env:
           GOTOOLCHAIN: local
-        run: GOBIN="$HOME/rclone-bin" go install -trimpath -ldflags=-s "github.com/rclone/rclone@$RCLONE_VERSION"
+        run: GOBIN="$HOME/rclone-bin" go install -trimpath -ldflags=-s "github.com/rclone/rclone@$PINNED_RCLONE"
+
+      # Saved right after the build, so a failed upload does not force the next run to rebuild.
+      - name: Save rclone
+        if: steps.token.outputs.ready == 'true' && steps.rclone.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/rclone-bin
+          key: ${{ steps.rclone.outputs.cache-primary-key }}
 
       - name: Zip the commit
         id: zip
@@ -88,6 +97,8 @@ jobs:
           trap 'rm -f "$config"' EXIT
           # The secret is rclone authorize's answer; this writes a drive.file remote with its token.
           python3 -I scripts/drive_backup_config.py "$config"
+          # rclone would read RCLONE_DRIVE_TOKEN as --drive-token and override the config's token.
+          unset RCLONE_DRIVE_TOKEN
           rclone() { "$HOME/rclone-bin/rclone" --config "$config" "$@"; }
           rclone copyto "$RUNNER_TEMP/$NAME" "gdrive:$DRIVE_FOLDER/$NAME"
           rclone copyto "$RUNNER_TEMP/$NAME" "gdrive:$DRIVE_FOLDER/polymer-workbench-latest.zip"
