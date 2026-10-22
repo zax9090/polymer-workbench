@@ -319,6 +319,14 @@ def packmol(config, output, emit):
     imported = config.get("pdb_text", "")
     imported_block = ""
     if imported:
+        # Multi-model (NMR) files would place every model as overlapping copies; keep the first.
+        kept = []
+        for line in imported.splitlines():
+            if line.startswith("ENDMDL"):
+                break
+            if not line.startswith(("MODEL", "ENDMDL")):
+                kept.append(line)
+        imported = "\n".join(kept) + "\n"
         points = []
         for line in imported.splitlines():
             if line.startswith(("ATOM  ", "HETATM")):
@@ -328,7 +336,25 @@ def packmol(config, output, emit):
         box = max(box, float(np.ptp(np.asarray(points), axis=0).max()) + 30)
         (output / "imported_component.pdb").write_text(imported)
         imported_block = f"structure imported_component.pdb\n number 1\n inside box 0. 0. 0. {box:.6f} {box:.6f} {box:.6f}\nend structure\n"
-    text = f"tolerance 2.0\nfiletype pdb\noutput packed.pdb\nseed {config['seed']}\nstructure chain.pdb\n number {config['chains']}\n inside box 0. 0. 0. {box:.6f} {box:.6f} {box:.6f}\nend structure\n"
+    chain_constraint = f" inside box 0. 0. 0. {box:.6f} {box:.6f} {box:.6f}\n"
+    targeting = None
+    if config.get("packmol_target", "none") == "sap_patch":
+        if not imported:
+            raise ValueError("SAP-targeted packing needs a protein structure (source_job_id or pdb_text)")
+        from workbench.sap import sap_scan, write_sap_outputs
+        sap = write_sap_outputs(sap_scan(imported, float(config.get("sap_radius_angstrom", 5.0))), imported, output)
+        if not sap["patch"]:
+            raise ValueError("No positive-SAP surface patch was found; use random placement")
+        # PACKMOL 'fixed' translates the input coordinates; the protein keeps its orientation at the box centre.
+        shift = box / 2 - np.asarray(points).mean(axis=0)
+        center = np.asarray(sap["patch"]["center_angstrom"]) + shift
+        radius = sap["patch"]["radius_angstrom"] + float(np.ptp(coords, axis=0).max()) / 2 + 4.0
+        imported_block = f"structure imported_component.pdb\n number 1\n fixed {shift[0]:.6f} {shift[1]:.6f} {shift[2]:.6f} 0. 0. 0.\nend structure\n"
+        chain_constraint += f" inside sphere {center[0]:.6f} {center[1]:.6f} {center[2]:.6f} {radius:.6f}\n"
+        targeting = {"mode": "sap_patch", "patch_residues": sap["patch"]["residues"], "protein_translation_angstrom": shift.round(6).tolist(),
+                     "sphere_center_angstrom": center.round(6).tolist(), "sphere_radius_angstrom": radius, "sap_file": "sap.json",
+                     "rule": "all chain atoms inside a sphere of patch radius + half the chain extent + 4 A around the patch centre"}
+    text = f"tolerance 2.0\nfiletype pdb\noutput packed.pdb\nseed {config['seed']}\nstructure chain.pdb\n number {config['chains']}\n{chain_constraint}end structure\n"
     text += imported_block
     (output / "packmol.inp").write_text(text)
     cmd = executable("packmol", "PACKMOL_EXEC")
@@ -341,7 +367,22 @@ def packmol(config, output, emit):
     shutil.copyfile(output / "packed.pdb", output / "structure.pdb")
     # Prepared single-chain trajectory no longer represents the packed system.
     (output / "trajectory.json").unlink(missing_ok=True)
-    return outcome(output, "packmol", "prepared", "PACKMOL packing completed; force-field assignment and dynamics remain separate stages.", engine="PACKMOL", metadata={"box_angstrom": [box]*3, "chains": config["chains"], "tolerance_angstrom": 2, "imported_components": int(bool(imported)), "packing_completed": True}, warnings=["Geometric packing is not equilibrium or force-field assignment.", "Protein/polymer mixtures require a compatible joint topology and parameter validation before MD."])
+    warnings = ["Geometric packing is not equilibrium or force-field assignment.", "Protein/polymer mixtures require a compatible joint topology and parameter validation before MD."]
+    if targeting:
+        warnings.append("Chains start near the highest-SAP surface patch by construction; this is a placement choice, not evidence of binding there.")
+    return outcome(output, "packmol", "prepared", "PACKMOL packing completed; force-field assignment and dynamics remain separate stages.", engine="PACKMOL", metadata={"box_angstrom": [box]*3, "chains": config["chains"], "tolerance_angstrom": 2, "imported_components": int(bool(imported)), "packing_completed": True, "targeting": targeting}, warnings=warnings)
+
+
+def attach_sap(output, pdb_text, config):
+    """SAP screen for protein results; a failed screen never changes the structure outcome."""
+    try:
+        from workbench.sap import sap_scan, write_sap_outputs
+        stored = write_sap_outputs(sap_scan(pdb_text, float(config.get("sap_radius_angstrom", 5.0))), pdb_text, output)
+    except (ImportError, ValueError, RuntimeError) as exc:
+        return {"available": False, "reason": str(exc)}
+    return {"available": True, "summary": stored["summary"], "patch": stored["patch"], "radius_angstrom": stored["radius_angstrom"],
+            "top_residues": sorted(({k: r[k] for k in ("chain", "resid", "resname", "sap")} for r in stored["residues"]), key=lambda r: -r["sap"])[:10],
+            "files": ["sap.json", stored["structure_file"]]}
 
 
 def _checked_af_url(url):
@@ -405,7 +446,8 @@ def protein(config, output, emit):
         write_json(output / "alphafold_db_record.json", record)
         metrics = protein_metrics(pdb_text, plddt=True)
         write_json(output / "metrics.json", metrics)
-        return outcome(output, "protein", "completed", "Imported an existing AlphaFold DB prediction; no new folding inference was run.", engine="AlphaFold Protein Structure Database", metrics=metrics,
+        sap = attach_sap(output, pdb_text, config)
+        return outcome(output, "protein", "completed", "Imported an existing AlphaFold DB prediction; no new folding inference was run.", engine="AlphaFold Protein Structure Database", metrics=metrics, sap=sap,
                        provenance={"accession": accession, "url": record["pdbUrl"], "entry_id": record.get("entryId"), "new_inference": False},
                        warnings=["pLDDT is local model confidence, not experimental validation or binding affinity.", "The selected database fragment may not cover the full protein."])
     if mode == "import":
@@ -416,7 +458,8 @@ def protein(config, output, emit):
         metrics = protein_metrics(text, plddt=plddt)
         (output / "structure.pdb").write_text(text)
         write_json(output / "metrics.json", metrics)
-        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import", metrics=metrics, warnings=["B factors are interpreted as pLDDT only when explicitly requested."])
+        sap = attach_sap(output, text, config)
+        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import", metrics=metrics, sap=sap, warnings=["B factors are interpreted as pLDDT only when explicitly requested."])
     sequence = "".join(str(config.get("sequence", "")).split()).upper()
     if not 4 <= len(sequence) <= 2000 or re.search(r"[^ACDEFGHIKLMNPQRSTVWY]", sequence):
         raise ValueError("Protein sequence must contain 4–2000 standard amino-acid one-letter codes")
@@ -454,7 +497,8 @@ def protein(config, output, emit):
     shutil.copyfile(predictions[0], output / "structure.pdb")
     metrics = protein_metrics((output / "structure.pdb").read_text(), plddt=True)
     write_json(output / "metrics.json", metrics)
-    return outcome(output, "protein", "completed", "ColabFold structure prediction completed.", engine="ColabFold / AlphaFold2", metrics=metrics,
+    sap = attach_sap(output, (output / "structure.pdb").read_text(), config)
+    return outcome(output, "protein", "completed", "ColabFold structure prediction completed.", engine="ColabFold / AlphaFold2", metrics=metrics, sap=sap,
                    warnings=["Single-sequence mode has no evolutionary MSA evidence and can substantially reduce accuracy.", "ColabFold predicts the protein; the optional AF3 ligand is only exported for separate AF3 inference."])
 
 

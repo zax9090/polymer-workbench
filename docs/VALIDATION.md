@@ -1,5 +1,9 @@
 # 실행 검증 기록
 
+## 0.3 이후: SAP 응집 취약 부위와 표적 배치
+
+2026-10-22, 클라우드 컨테이너. PDB 1VII(빌린 헤드피스, mdtraj 예제의 첫 모델)에서 SAP 상위 잔기는 노출된 C-말단 Phe76(0.405), Trp64, Leu63 순이고 Asp44·Glu45는 음수입니다. 내부 소수성 코어 Phe47/51/58은 상위에 오르지 않습니다. 패치는 Val50·Gly74·Leu75·Phe76입니다. `tests/test_sap.py` 3개는 척도 값, 순위, B-factor 출력과 입력 거부, SAP 표적 PACKMOL을 검사합니다. 표적 PACKMOL 검사에서는 다중 모델 입력의 첫 모델만 들어가는지, 단백질이 평행이동만 되는지(오차 < 10⁻³ Å), 모든 사슬 원자가 지정 구 안에 있는지 확인합니다. 브라우저에서는 PDB 가져오기 → SAP 표시·붉은 막대 → PACKMOL 이어가기(SAP 배치)를 확인했고 console 오류는 0개였습니다. 이 검사로 실제 단백질의 응집 거동을 검증하지는 않습니다.
+
 ## 0.3 이후: RadonPy 비정질 벌크 셀
 
 2026-10-22, Claude Code 클라우드 컨테이너, LAMMPS pip 배포본(22 Jul 2025 Update 4; KSPACE·MOLECULE·RIGID·OPENMP 포함). REA 배포본 감사에서 radonpy-pypi 0.2.11 wheel(SHA-256 `bad3de86…`) 32개 항목, mdtraj 1.11.2 wheel 326개 항목을 목록화했고 실행 파일 6개가 설치본과 일치했습니다.

@@ -87,6 +87,8 @@ python3 tools/rea/bootstrap.py
 .venv/bin/python scripts/audit_artifacts.py
 ```
 
+SAP 소수성 척도는 `althonos/peptides.py` 고정 커밋 `eedec680`의 `BlackMould.csv`를 확장 감사(`evidence/extensions/`)에 등록해 값 20개와 파일 해시를 검증했습니다. GPL 코드는 가져오지 않고 발표된 수치만 씁니다.
+
 벌크 셀 경로는 RadonPy의 단계 정의(패킹 2단계 가열·변형, 21단계 압력 비율 0.02/0.60/1.00/0.50/0.10/0.01 × 50,000 atm, NPT 샘플링)를 그대로 쓰고 단계 길이에만 배율을 곱합니다. 상용 프로그램의 독점 파라미터·작업 파일은 수집하거나 포함하지 않습니다.
 
 ## 재실행

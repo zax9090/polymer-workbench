@@ -19,6 +19,8 @@ class JobConfig(BaseModel):
     sequence: str = Field(default="", max_length=10000)
     atomistic_mode: Literal["build", "simulate", "bulk"] = "build"
     protocol_scale: float = Field(default=1.0, ge=0.001, le=1.0)
+    packmol_target: Literal["none", "sap_patch"] = "none"
+    sap_radius_angstrom: float = Field(default=5.0, ge=3, le=15)
     protein_mode: Literal["export", "predict", "import", "database"] = "export"
     accession: str = Field(default="P69905", pattern=r"^[A-Z0-9]{6,10}$")
     msa_mode: Literal["single_sequence", "server"] = "single_sequence"

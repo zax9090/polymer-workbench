@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "created_at": "2026-10-22T09:01:22.297945+00:00",
+  "created_at": "2026-10-22T10:05:53.730861+00:00",
   "rea_version": "6.7.0",
   "repositories": [
     {
@@ -692,6 +692,86 @@
         "source_unchanged": true,
         "stdout": "evidence/extensions/rea/martini-forcefields.json",
         "stderr": "evidence/extensions/rea/martini-forcefields.stderr.log"
+      }
+    },
+    {
+      "id": "peptides-py",
+      "repository": "althonos/peptides.py",
+      "url": "https://github.com/althonos/peptides.py",
+      "license": "GPL-3.0",
+      "source_files": [
+        {
+          "path": "README.md",
+          "source_url": "https://raw.githubusercontent.com/althonos/peptides.py/eedec6802b9d17d8895fe5686ae9e371f6be551b/README.md",
+          "sha256": "0f865de71ea1fabf782c4ac7f288664b87b3063b9128a32fd33ce56bdcda8f79",
+          "bytes": 8057,
+          "github_blob_sha": "9f71f62338cf6cd39b6753a94902a2c4e894d395"
+        },
+        {
+          "path": "COPYING",
+          "source_url": "https://raw.githubusercontent.com/althonos/peptides.py/eedec6802b9d17d8895fe5686ae9e371f6be551b/COPYING",
+          "sha256": "87946a54ba55e1b6a76c47ea26a3ea625882979fe5c9b3482af71823a602ba4b",
+          "bytes": 35148,
+          "github_blob_sha": "2ef1a0c5ea380bbfba1ff5ff6bf990618f65a251"
+        },
+        {
+          "path": "peptides/tables/hydrophobicity/BlackMould.csv",
+          "source_url": "https://raw.githubusercontent.com/althonos/peptides.py/eedec6802b9d17d8895fe5686ae9e371f6be551b/peptides/tables/hydrophobicity/BlackMould.csv",
+          "sha256": "5425276ef209aa8c5b99797a06fbfcaae659f97a9265a18d5fe0eb2b996143ab",
+          "bytes": 153,
+          "github_blob_sha": "52df13dd073aeda740c886a0459614523b097a9a"
+        }
+      ],
+      "anchors": [
+        {
+          "path": "peptides/tables/hydrophobicity/BlackMould.csv",
+          "needle": "F,1.0",
+          "purpose": "Black & Mould (1991) normalized hydrophobicity, maximum (Phe)"
+        },
+        {
+          "path": "peptides/tables/hydrophobicity/BlackMould.csv",
+          "needle": "G,0.501",
+          "purpose": "Glycine reference subtracted so Gly = 0 in SAP"
+        }
+      ],
+      "commit": "eedec6802b9d17d8895fe5686ae9e371f6be551b",
+      "resolved_at": "2026-10-22T10:00:00+00:00",
+      "note": "Only the 20 published scale values are used, with this file hash as provenance; no GPL code is copied.",
+      "verified_anchors": [
+        {
+          "path": "peptides/tables/hydrophobicity/BlackMould.csv",
+          "needle": "F,1.0",
+          "purpose": "Black & Mould (1991) normalized hydrophobicity, maximum (Phe)",
+          "line": 14,
+          "url": "https://github.com/althonos/peptides.py/blob/eedec6802b9d17d8895fe5686ae9e371f6be551b/peptides/tables/hydrophobicity/BlackMould.csv#L14"
+        },
+        {
+          "path": "peptides/tables/hydrophobicity/BlackMould.csv",
+          "needle": "G,0.501",
+          "purpose": "Glycine reference subtracted so Gly = 0 in SAP",
+          "line": 8,
+          "url": "https://github.com/althonos/peptides.py/blob/eedec6802b9d17d8895fe5686ae9e371f6be551b/peptides/tables/hydrophobicity/BlackMould.csv#L8"
+        }
+      ],
+      "rea_status": "verified_inventory",
+      "rea_command": {
+        "argv": [
+          "/opt/node22/bin/node",
+          "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+          "import-reference-source",
+          "/home/user/polymer-workbench/evidence/extensions/sources/peptides-py",
+          "--detail",
+          "summary",
+          "--format",
+          "json"
+        ],
+        "returncode": 0,
+        "elapsed_seconds": 1.675,
+        "executed_at": "2026-10-22T10:05:53.337243+00:00",
+        "source_sha256": "cdfa08d4995d80d23341b51bfc047fcdc6d57d1bdfc514f5a54c46bfc57eaae9",
+        "source_unchanged": true,
+        "stdout": "evidence/extensions/rea/peptides-py.json",
+        "stderr": "evidence/extensions/rea/peptides-py.stderr.log"
       }
     }
   ],

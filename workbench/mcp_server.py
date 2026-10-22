@@ -34,6 +34,8 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Generic CG bead jobs (polymer_cg, hoomd) are reduced-unit models with no chemical mapping; do not present them as material predictions.
 - Measurements you add are always stored unreviewed (verified=false). Only a person can mark data reviewed in the Polymer Lab window, and only reviewed experimental/literature data trains models.
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
+- polymer_atomistic with atomistic_mode bulk runs RadonPy's packing + Larsen 21-step + NPT sampling on a periodic cell (>=200 atoms). protocol_scale 1 uses RadonPy's full stage lengths (hours to days); smaller values are exploratory and say so in the result, together with RadonPy's convergence verdict.
+- Protein import/AlphaFold DB/ColabFold results include a SAP (spatial aggregation propensity) screen of one static structure. packmol_target "sap_patch" places polymer chains near the highest-SAP patch; that is a placement choice, not evidence of binding.
 - Campaign 'start' runs up to its budget of calculations automatically; confirm budgets with the user first.
 - If lab_status reports no server, ask the user to open Polymer Lab or run ./start.sh, or use start_lab_server (that server stops, cancelling running jobs, when this MCP session ends)."""
 
@@ -293,7 +295,8 @@ class PolymerLabTools:
           self.read_artifact, read_only=True, idempotent=True)
         t("submit_job", "Submit calculation job",
           "Queue one calculation with a validated JobConfig. Routes: polymer_cg (reduced-unit CG), polymer_atomistic (RDKit build or RadonPy MD), protein (AlphaFold DB, PDB import, AF3 export, ColabFold), "
-          "packmol, polyply, pysimm, hoomd, mixture (protein-polymer bridges; bridge_mode simulate runs Martini 3 GROMACS MD). source_job_id hands a finished PDB to packmol/mixture.",
+          "packmol (packmol_target sap_patch places chains near the protein's SAP patch), polyply, pysimm, hoomd, mixture (protein-polymer bridges; bridge_mode simulate runs Martini 3 GROMACS MD). "
+          "polymer_atomistic atomistic_mode bulk builds a periodic cell and runs RadonPy's 21-step equilibration (protocol_scale scales stage lengths). source_job_id hands a finished PDB to packmol/mixture.",
           _schema({"config": _job_config_schema()}, ["config"]), self.submit_job)
         t("cancel_job", "Cancel job", "Stop a queued or running job; partial files are kept.", _schema({"job_id": JOB_ID}, ["job_id"]), self.cancel_job, destructive=True)
         t("rerun_job", "Rerun job", "Queue a new job with the same configuration (calculation restarts from the beginning).", _schema({"job_id": JOB_ID}, ["job_id"]), self.rerun_job)
