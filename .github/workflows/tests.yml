@@ -27,13 +27,22 @@ jobs:
             requirements.lock.txt
             requirements.desktop.lock.txt
 
+      # Cached .deb files are tied to the runner image so dependencies match the installed base system.
+      - name: Runner image identity
+        id: image
+        run: echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache GROMACS packages
+        uses: actions/cache@v4
+        with:
+          path: ~/gromacs-debs
+          key: gromacs-debs-${{ steps.image.outputs.id }}-v1
+
       # GROMACS runs the Martini 3 mixture tests; Ubuntu 24.04 ships 2023.3, the version they were validated with.
+      # Two runs stalled in a silent apt-get update, so the script refreshes only the Ubuntu archive with retries.
       - name: Install GROMACS
-        timeout-minutes: 10
-        run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq --no-install-recommends gromacs
-          gmx --version | head -n 1
+        timeout-minutes: 20
+        run: scripts/ci_install_gromacs.sh "$HOME/gromacs-debs"
 
       - name: Install pinned research environment
         run: |
