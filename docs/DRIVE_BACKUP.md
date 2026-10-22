@@ -30,6 +30,34 @@
 
 "the Drive token has no refresh_token" 오류가 나면 Google이 갱신용 토큰 없이 응답한 것입니다. 이전에 같은 계정으로 rclone을 허용한 적이 있으면 이렇게 될 수 있습니다. 이 상태로는 한 시간 뒤 업로드가 끊깁니다. [서드파티 연결](https://myaccount.google.com/permissions)에서 rclone 접근을 해제한 뒤 2–3단계를 다시 하면 됩니다.
 
+## 본인 Google 클라이언트 ID (2026년 안에 필요)
+
+위 설정은 rclone이 여러 사용자와 함께 쓰는 Google 클라이언트를 씁니다. rclone은 이 공용 클라이언트를 2026년 중에 끝낸다고 알렸습니다. 끝나면 업로드가 실패하니, 본인 클라이언트를 만들어 두는 것이 좋습니다. 한 번만 하면 됩니다.
+
+1. https://console.cloud.google.com/ 에서 새 프로젝트를 만듭니다(이름은 자유).
+2. **API 및 서비스 → 라이브러리**에서 **Google Drive API**를 찾아 **사용**을 누릅니다.
+3. **Google 인증 플랫폼(OAuth 동의 화면)**을 설정합니다.
+   - 사용자 유형: **외부**
+   - 앱 이름과 이메일만 넣으면 됩니다.
+   - **대상 → 앱 게시(프로덕션으로 푸시)**를 누릅니다. **테스트** 상태로 두면 토큰이 7일 뒤 만료되어 백업이 멈춥니다.
+   - `drive.file`은 민감하지 않은 범위라 Google 심사 없이 게시됩니다.
+4. **클라이언트 → 클라이언트 만들기**에서 애플리케이션 유형을 **데스크톱 앱**으로 고릅니다. 클라이언트 ID(`...apps.googleusercontent.com`)와 보안 비밀(`GOCSPX-...`)이 나옵니다.
+5. rclone이 있는 컴퓨터의 터미널에서 다음을 실행합니다. 따옴표 안에 4단계의 두 값을 넣습니다.
+   ```sh
+   ID='여기에 클라이언트 ID'
+   SECRET='여기에 보안 비밀'
+   BLOB="$(printf '{"client_id":"%s","client_secret":"%s","scope":"drive.file"}' "$ID" "$SECRET" | base64 -w0 | tr -d '=')"
+   rclone authorize drive "$BLOB"
+   ```
+   - 브라우저에서 허용하면 앞의 2단계처럼 `eyJ0b2tlbiI6`으로 시작하는 긴 줄이 나옵니다.
+   - "Google에서 확인하지 않은 앱" 화면이 나오면 **고급 → (앱 이름)(으)로 이동**을 누릅니다. 본인이 만든 앱이라 괜찮습니다.
+6. GitHub **Settings → Secrets and variables → Actions**에서 비밀 값 세 개를 넣습니다.
+   - `DRIVE_CLIENT_ID`: 클라이언트 ID
+   - `DRIVE_CLIENT_SECRET`: 보안 비밀
+   - `RCLONE_DRIVE_TOKEN`: 5단계의 새 긴 줄. 기존 값을 바꿉니다.
+
+토큰은 그 토큰을 받은 클라이언트에서만 쓸 수 있습니다. 그래서 세 값은 함께 바꿔야 합니다. 클라이언트 ID와 보안 비밀 중 하나만 넣으면 업로드 단계가 오류를 냅니다.
+
 ## 선택 설정
 
 **Settings → Secrets and variables → Actions → Variables**에서 지정합니다.

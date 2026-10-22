@@ -87,6 +87,9 @@ jobs:
         env:
           NAME: ${{ steps.zip.outputs.name }}
           RCLONE_DRIVE_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
+          # Optional own Google OAuth client; rclone's shared one is retired during 2026.
+          DRIVE_CLIENT_ID: ${{ secrets.DRIVE_CLIENT_ID }}
+          DRIVE_CLIENT_SECRET: ${{ secrets.DRIVE_CLIENT_SECRET }}
         run: |
           case "$KEEP_DAYS" in
             "" | [1-9] | [1-9][0-9] | [1-9][0-9][0-9] | [1-9][0-9][0-9][0-9]) ;;
