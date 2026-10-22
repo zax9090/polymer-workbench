@@ -1,0 +1,99 @@
+name: drive-backup
+
+# Every new main commit goes to Google Drive as a zip of its files. The one-time setup (a Drive token
+# in the RCLONE_DRIVE_TOKEN secret) is in docs/DRIVE_BACKUP.md; until it is done the job only says so.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: drive-backup
+  cancel-in-progress: false
+
+env:
+  RCLONE_VERSION: v1.75.1
+  GO_VERSION: 1.26.9
+
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DRIVE_FOLDER: ${{ vars.DRIVE_BACKUP_FOLDER || 'PolymerLab-backups' }}
+      KEEP_DAYS: ${{ vars.DRIVE_BACKUP_KEEP_DAYS }}
+    steps:
+      # The token goes only to the steps that read it, not to the checkout, cache or rclone build.
+      - name: Check for the Drive token
+        id: token
+        env:
+          RCLONE_DRIVE_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
+        run: |
+          if [ -n "$RCLONE_DRIVE_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::RCLONE_DRIVE_TOKEN is not set, so nothing was uploaded. Setup: docs/DRIVE_BACKUP.md"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ready == 'true'
+
+      - name: Restore rclone
+        id: rclone
+        if: steps.token.outputs.ready == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/rclone-bin
+          key: rclone-${{ env.RCLONE_VERSION }}-go${{ env.GO_VERSION }}-v1
+
+      - uses: actions/setup-go@v5
+        if: steps.token.outputs.ready == 'true' && steps.rclone.outputs.cache-hit != 'true'
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      # Built from the tagged module, which go verifies against the checksum database (sum.golang.org).
+      - name: Build rclone
+        if: steps.token.outputs.ready == 'true' && steps.rclone.outputs.cache-hit != 'true'
+        env:
+          GOTOOLCHAIN: local
+        run: GOBIN="$HOME/rclone-bin" go install -trimpath -ldflags=-s "github.com/rclone/rclone@$RCLONE_VERSION"
+
+      - name: Zip the commit
+        id: zip
+        if: steps.token.outputs.ready == 'true'
+        run: |
+          stamp="$(TZ=UTC git log -1 --date=format-local:%Y%m%d-%H%M%S --format=%cd)"
+          name="polymer-workbench-$stamp-${GITHUB_SHA::8}.zip"
+          git archive --format=zip --prefix=polymer-workbench/ -o "$RUNNER_TEMP/$name" HEAD
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "$name: $(du -h "$RUNNER_TEMP/$name" | cut -f1)"
+
+      - name: Upload to Google Drive
+        if: steps.token.outputs.ready == 'true'
+        env:
+          NAME: ${{ steps.zip.outputs.name }}
+          RCLONE_DRIVE_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
+        run: |
+          case "$KEEP_DAYS" in
+            "" | [1-9] | [1-9][0-9] | [1-9][0-9][0-9] | [1-9][0-9][0-9][0-9]) ;;
+            *) echo "::error::DRIVE_BACKUP_KEEP_DAYS must be a whole number of days from 1 to 9999"; exit 1 ;;
+          esac
+          umask 077
+          config="$RUNNER_TEMP/rclone.conf"
+          trap 'rm -f "$config"' EXIT
+          # The secret is rclone authorize's answer; this writes a drive.file remote with its token.
+          python3 -I scripts/drive_backup_config.py "$config"
+          rclone() { "$HOME/rclone-bin/rclone" --config "$config" "$@"; }
+          rclone copyto "$RUNNER_TEMP/$NAME" "gdrive:$DRIVE_FOLDER/$NAME"
+          rclone copyto "$RUNNER_TEMP/$NAME" "gdrive:$DRIVE_FOLDER/polymer-workbench-latest.zip"
+          # Optional retention: dated snapshots older than DRIVE_BACKUP_KEEP_DAYS are deleted; latest stays.
+          if [ -n "$KEEP_DAYS" ]; then
+            rclone delete --min-age "${KEEP_DAYS}d" --include "polymer-workbench-2*.zip" "gdrive:$DRIVE_FOLDER"
+          fi
+          echo "Drive folder $DRIVE_FOLDER (newest five):"
+          rclone lsl "gdrive:$DRIVE_FOLDER" | sort -k2,3 | tail -n 5
