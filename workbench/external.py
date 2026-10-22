@@ -20,16 +20,18 @@ import urllib.request
 
 import numpy as np
 from workbench.science import build_linear_polymer, write_json
+from workbench.paths import runtime_environment, script_command, subprocess_environment
 
 
 def executable(name, env):
-    configured = os.environ.get(env)
+    process_env = runtime_environment()
+    configured = process_env.get(env)
     if configured:
         return shutil.which(configured)
     sibling = Path(sys.executable).parent / name
     if sibling.is_file() and os.access(sibling, os.X_OK):
         return str(sibling)
-    return shutil.which(name)
+    return shutil.which(name, path=process_env.get("PATH"))
 
 
 def available(module):
@@ -64,8 +66,7 @@ def blocked(output, route, missing, message, **kwargs):
 
 
 def run_command(argv, output, logname, stdin=None, timeout=7200, seed=None):
-    process_env = os.environ.copy()
-    process_env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + process_env.get("PATH", "")
+    process_env = subprocess_environment(str(argv[0]))
     process_env.setdefault("LAMMPS_EXEC", executable("lmp", "LAMMPS_EXEC") or "lmp")
     if seed is not None:
         process_env["PYTHONHASHSEED"] = str(seed)
@@ -94,7 +95,7 @@ def molecule_artifacts(config, output, emit):
     return mol, metadata
 
 
-RADONPY_SCRIPT = '''import json, os, random
+RADONPY_SCRIPT = '''import json, os, random, shlex
 from pathlib import Path
 import numpy as np
 from rdkit import Chem
@@ -109,7 +110,8 @@ mol=Chem.MolFromMolFile("structure.mol",removeHs=False)
 ff=GAFF2_mod()
 if not ff.ff_assign(mol,charge="gasteiger"):
     raise RuntimeError("GAFF2_mod parameter or Gasteiger charge assignment failed")
-solver=lammps.LAMMPS(work_dir=str(Path.cwd()),solver_path=os.environ.get("LAMMPS_EXEC"))
+solver_path=os.environ.get("LAMMPS_EXEC")
+solver=lammps.LAMMPS(work_dir=str(Path.cwd()),solver_path=shlex.quote(solver_path) if solver_path and os.name=="posix" else solver_path)
 protocol=md.MD(mol=mol)
 protocol.pbc=False
 protocol.boundary="f f f"
@@ -155,7 +157,7 @@ def atomistic(config, output, emit):
     if missing:
         return blocked(output, "polymer_atomistic", missing, "Geometry and a RadonPy→LAMMPS runner were exported; required engine is unavailable.")
     emit("simulate", 0.35, "RadonPy GAFF2_mod/Gasteiger → LAMMPS isolated-chain NVT")
-    run_command([python, "run_radonpy.py"], output, "radonpy.log", seed=config["seed"])
+    run_command(script_command(python, "run_radonpy.py"), output, "radonpy.log", seed=config["seed"])
     if not (output / "radonpy_complete.json").is_file():
         raise RuntimeError("RadonPy did not produce its completion artifact")
     # Replace the prepared frame with the computed final atomistic geometry.
@@ -387,7 +389,7 @@ def pysimm(config, output, emit):
     if missing:
         return blocked(output, "pysimm", missing, "RDKit geometry and pysimm→LAMMPS minimization runner exported.")
     emit("minimize", 0.5, "pysimm: GAFF2 assignment and LAMMPS minimization")
-    run_command([python, "run_pysimm.py"], output, "pysimm.log")
+    run_command(script_command(python, "run_pysimm.py"), output, "pysimm.log")
     if not (output / "pysimm_complete.json").exists():
         raise RuntimeError("pysimm did not produce a completed minimization")
     (output / "trajectory.json").unlink(missing_ok=True)
@@ -441,7 +443,7 @@ def hoomd(config, output, emit):
     if python == sys.executable and not available("hoomd"):
         return blocked(output, "hoomd", ["HOOMD-blue v4+ or HOOMD_PYTHON"], "Runnable HOOMD-blue CPU bead-spring script exported; HOOMD runtime is missing.")
     emit("simulate", 0.3, "HOOMD-blue: harmonic chains with Gaussian soft repulsion")
-    run_command([python, "run_hoomd.py"], output, "hoomd.log")
+    run_command(script_command(python, "run_hoomd.py"), output, "hoomd.log")
     if not (output / "hoomd_complete.json").exists():
         raise RuntimeError("HOOMD did not produce its completion artifact")
     from workbench.science import write_cg_pdb

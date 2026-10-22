@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-10-22T03:54:42.508074+00:00",
+  "installed_executable": "/home/kali/.local/opt/polymer-lab/current/PolymerLab",
+  "version": "Polymer Lab 0.2.0",
+  "executable_sha256": "6565b886a9c015632b6eae5f14afe92cc8c4f6283050acb1585bfc7ea9deb0b6",
+  "desktop_shortcut": "/home/kali/Desktop/Polymer Lab.desktop",
+  "migrated_jobs": 14,
+  "copied_files_sha256_matched": 195,
+  "original_data_retained": true,
+  "native_backend_started": true,
+  "qt_renderer_started": true,
+  "visual_inspection_performed": false,
+  "native_app_running": true,
+  "verified_at": "2026-10-22T03:55:44.542170+00:00"
+}

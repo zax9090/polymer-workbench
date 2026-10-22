@@ -14,8 +14,9 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from .paths import resource_root, runtime_environment, worker_command
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = resource_root()
 TERMINAL = {"completed", "failed", "blocked", "cancelled", "interrupted", "prepared"}
 
 
@@ -88,14 +89,11 @@ class JobManager:
                     return
                 self._update(job_id, status="running", started_at=now())
                 self._runtime(directory)
-                env = os.environ.copy()
-                env.update(PYTHONUNBUFFERED="1", OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1",
-                           MKL_NUM_THREADS="1", PYTHONPATH=str(ROOT))
+                env = runtime_environment()
                 # An isolated interpreter keeps long native MD/GPU work outside the API process.
                 log = open(directory / "worker.log", "w", encoding="utf-8")
                 try:
-                    proc = subprocess.Popen([sys.executable, str(ROOT / "scripts/engine_worker.py"),
-                        "--config", str(directory / "config.json"), "--output", str(directory)],
+                    proc = subprocess.Popen(worker_command(directory / "config.json", directory, source_root=ROOT),
                         cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
                 except Exception:
                     log.close()

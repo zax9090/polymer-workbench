@@ -10,3 +10,6 @@ evidence/sources/
 *.zip
 *.egg-info/
 .env
+build/
+dist/
+releases/

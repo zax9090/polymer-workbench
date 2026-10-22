@@ -1,0 +1,68 @@
+{
+  "validated_at": "2026-10-22T03:53:31.842804+00:00",
+  "executable_sha256": "6565b886a9c015632b6eae5f14afe92cc8c4f6283050acb1585bfc7ea9deb0b6",
+  "platform_scope": "Current Linux x86_64 host; not a compatibility guarantee for older distributions.",
+  "checks": [
+    {
+      "path": "PolymerLab",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/libexec/QtWebEngineProcess",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/plugins/platforms/libqxcb.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/PySide6/Qt/lib/libQt6WebEngineCore.so.6",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/lammps/lmp",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/lammps/liblammps.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/packmol/binaries/packmol",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/rdkit/Chem/rdchem.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/MDAnalysis/lib/c_distances_openmp.cpython-313-x86_64-linux-gnu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    },
+    {
+      "path": "_internal/MDAnalysis/lib/c_distances.cpython-313-x86_64-linux-gnu.so",
+      "exists": true,
+      "missing": [],
+      "returncode": 0
+    }
+  ],
+  "passed": true
+}

@@ -2,7 +2,23 @@
 
 고분자 구조 생성·MD·궤적 분석과 단백질 구조 가져오기/예측 작업을 한 로컬 화면에서 관리합니다. 계산은 별도 프로세스에서 실행하고, 설정·로그·원본 파일·라이브러리 버전·해시를 작업별로 보존합니다. 한국어 화면과 로컬 3Dmol.js 뷰어를 포함합니다.
 
-## 바로 실행
+## 데스크톱 프로그램 실행
+
+**Polymer Lab 0.2**는 독립된 창·한국어 메뉴·파일 가져오기·저장 창을 갖춘 Linux 데스크톱 프로그램입니다. 계산 서버를 자동으로 시작하고, 프로그램을 닫으면 진행 중인 계산을 중단한 뒤 기록을 보존합니다.
+
+이 컴퓨터에서는 앱 메뉴 또는 바탕화면의 **Polymer Lab 고분자 연구실**을 실행합니다. 배포본은 Python을 별도로 설치할 필요가 없습니다.
+
+```sh
+~/.local/bin/polymer-lab
+```
+
+배포 파일은 `releases/`의 Linux x86_64 압축 파일과 `.deb`입니다. 현재 Kali Linux의 glibc 2.43 환경에서 빌드했으므로 다른 운영체제·이전 Linux 배포판에서의 실행을 보장하지 않습니다. [설치·배포 안내](docs/DESKTOP.md)를 참고하세요.
+
+연구 기록은 기본적으로 `~/.local/share/polymer-lab/jobs/`에 저장됩니다. 기존 소스의 완료된 작업은 최초 설치 때 복사하며 원본은 보존합니다. 창 위치와 다운로드 폴더도 기억합니다. AlphaFold DB 조회와 AF3 입력 내보내기를 포함하며, **새 구조 추론에 필요한 ColabFold·모델 가중치·GPU 환경은 별도**입니다.
+
+소스에서 데스크톱을 실행하려면 `.venv/bin/pip install '.[desktop]'` 이후 `./launch-desktop.sh`를 사용합니다. 재빌드는 `.venv/bin/python scripts/build_desktop.py --deb`입니다.
+
+## 브라우저에서 실행
 
 현재 이 컴퓨터에는 프로젝트 전용 `.venv`와 기본 계산 도구가 설치되어 있습니다.
 
@@ -100,7 +116,7 @@ REA는 개발 분석에 사용합니다. 완료된 연구 작업은 각 계산 �
 
 ## 원본 보관·재실행
 
-`data/jobs/<작업ID>/`에 설정, `runtime.json`, 로그, 구조, 궤적, `result.json`, `manifest.json`을 보관합니다. 전체 ZIP 다운로드에는 이 파일들이 포함됩니다. `manifest.json`은 산출물 SHA-256을 기록하며 `runtime.json`은 설치 버전과 계산 코드 해시를 기록합니다. 다운로드는 실행 종료 또는 중단 완료 뒤 가능합니다.
+데스크톱은 `~/.local/share/polymer-lab/jobs/<작업ID>/`, 소스 웹 서버는 `data/jobs/<작업ID>/`에 설정, `runtime.json`, 로그, 구조, 궤적, `result.json`, `manifest.json`을 보관합니다. 전체 ZIP 다운로드에는 이 파일들이 포함됩니다. `manifest.json`은 산출물 SHA-256을 기록하며 `runtime.json`은 설치 버전과 계산 코드 해시를 기록합니다. 다운로드는 실행 종료 또는 중단 완료 뒤 가능합니다.
 
 `completed`는 해당 경로의 작업이 끝났다는 뜻입니다. `prepared`는 구조·토폴로지·예측 입력의 준비, `blocked`는 필요한 엔진이나 자료 부족을 의미합니다. 어느 상태도 연구 결과의 과학적 타당성을 자동 보증하지 않습니다. 서버 재시작 중 끊긴 작업은 `interrupted`가 되고 설정으로 다시 실행할 수 있습니다. 현재 재실행은 처음부터 다시 계산하며 체크포인트에서 자동 이어달리기는 구현하지 않았습니다.
 
@@ -123,6 +139,9 @@ CLI 직접 실행은 계산 파일을 만들며 HTTP 작업 관리자의 대기�
 
 ```text
 workbench/server.py        로컬 HTTP API
+workbench/desktop.py       독립 데스크톱 창·메뉴·서버 수명 관리
+workbench/__main__.py      데스크톱·서버·계산 프로세스 실행
+workbench/paths.py         배포 리소스·연구 데이터·엔진 실행 경로
 workbench/jobs.py          작업·프로세스·산출물 관리
 workbench/models.py        입력 검증
 workbench/science.py       조대화 계산·분석·RDKit 구조 생성
@@ -134,4 +153,4 @@ evidence/                 고정 소스·라이선스·분석 원본
 examples/                 실행 설정 예시
 ```
 
-제3자 코드·도구의 라이선스는 각 원본을 따릅니다. 3Dmol.js 배포본의 BSD 고지는 `workbench/static/vendor/3Dmol-LICENSE.txt`에 보관했습니다. 다른 연구 도구는 설치된 패키지로 사용하며 전체 코드를 합쳐 복제한 형태가 아닙니다.
+제3자 코드·도구의 라이선스는 각 원본을 따릅니다. 3Dmol.js 배포본의 BSD 고지는 `workbench/static/vendor/3Dmol-LICENSE.txt`에 보관했습니다. 데스크톱 배포본의 개별 패키지 라이선스와 버전 목록은 `_internal/licenses/`에 있으며, 엔진들은 각 패키지의 공개 API/CLI를 통해 연결합니다.

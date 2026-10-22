@@ -1,0 +1,71 @@
+{
+  "validated_at": "2026-10-22T03:53:17.978140+00:00",
+  "release": "/home/kali/Projects/polymer-workbench/build/Polymer Lab final relocated oredk07p/portable app with spaces",
+  "data": "/home/kali/Projects/polymer-workbench/build/Polymer Lab final relocated oredk07p/research data with spaces",
+  "executable_sha256": "6565b886a9c015632b6eae5f14afe92cc8c4f6283050acb1585bfc7ea9deb0b6",
+  "version": "0.2.0",
+  "source_sha256_matches": true,
+  "clean_environment": {
+    "PATH": "/usr/bin:/bin",
+    "PYTHONPATH": null,
+    "LD_LIBRARY_PATH": null,
+    "VIRTUAL_ENV": null
+  },
+  "jobs": [
+    {
+      "id": "0d05e8d6797e477bb007867fbb26b6db",
+      "route": "polymer_atomistic",
+      "status": "completed",
+      "error": null,
+      "engine": "RadonPy / LAMMPS",
+      "artifact_count": 25,
+      "random_seeds": {
+        "configured": 77,
+        "numpy_legacy": 77,
+        "python_random": 77,
+        "python_hash": "77",
+        "lammps": [
+          {
+            "seed": 704191,
+            "command": "velocity all create 300.000000 704191 mom yes rot yes dist gaussian"
+          }
+        ],
+        "scope": "same engine versions, serial environment and numerical settings; not a cross-platform bitwise guarantee"
+      }
+    },
+    {
+      "id": "003c65163bb34f5d82b3d57a2f23954f",
+      "route": "pysimm",
+      "status": "completed",
+      "error": null,
+      "engine": "pysimm / LAMMPS",
+      "artifact_count": 17
+    }
+  ],
+  "unauthenticated_status": 401,
+  "health": {
+    "ok": true,
+    "name": "Polymer Lab",
+    "version": "0.2.0",
+    "local_only": true
+  },
+  "engines": {
+    "numpy": true,
+    "rdkit": true,
+    "MDAnalysis": true,
+    "lammps": true,
+    "radonpy": true,
+    "pysimm": true,
+    "hoomd": false,
+    "packmol": true,
+    "polyply": true,
+    "gmx": false,
+    "colabfold_batch": false,
+    "3dmol": true,
+    "alphafold_db": true,
+    "rea": false
+  },
+  "server_exit": 0,
+  "graceful_shutdown_logged": true,
+  "passed": true
+}

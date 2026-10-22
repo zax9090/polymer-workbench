@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 import json
 import os
+import secrets
 from pathlib import Path
 import zipfile
 from urllib.parse import urlparse
@@ -13,20 +14,24 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .jobs import JobManager, ROOT
 from .models import JobConfig
+from .paths import default_jobs_root
 
 
 def create_app(data_root=None):
     @asynccontextmanager
     async def lifespan(app):
-        app.state.manager = JobManager(Path(data_root or os.environ.get("POLYMER_DATA_DIR", ROOT / "data" / "jobs")))
+        app.state.manager = JobManager(Path(data_root or default_jobs_root()))
         yield
         app.state.manager.close()
 
-    app = FastAPI(title="Polymer Lab", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Polymer Lab", version="0.2.0", lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
 
     @app.middleware("http")
     async def local_requests(request: Request, call_next):
+        desktop_token = os.environ.get("POLYMER_DESKTOP_TOKEN")
+        if desktop_token and not secrets.compare_digest(request.headers.get("x-polymer-token", ""), desktop_token):
+            return JSONResponse({"detail": "데스크톱 앱의 연결이 필요합니다."}, status_code=401)
         origin = request.headers.get("origin")
         if origin and urlparse(origin).netloc != request.headers.get("host"):
             return JSONResponse({"detail": "다른 웹사이트에서 로컬 연구 작업을 실행할 수 없습니다."}, status_code=403)
@@ -45,7 +50,7 @@ def create_app(data_root=None):
 
     @app.get("/api/health")
     def health():
-        return {"ok": True, "name": "Polymer Lab", "version": "0.1.0", "local_only": True}
+        return {"ok": True, "name": "Polymer Lab", "version": "0.2.0", "local_only": True}
 
     @app.get("/api/capabilities")
     def capabilities():
@@ -67,7 +72,7 @@ def create_app(data_root=None):
                     {"id": "alphafold_db", "name": "AlphaFold DB", "available": True, "version": None, "detail": "공개 예측 구조 조회 · 인터넷 연결 필요"}]
         rea_path = ROOT / "evidence" / "repositories.json"
         rea = json.loads(rea_path.read_text()).get("rea", {}) if rea_path.exists() else {}
-        engines.append({"id": "rea", "name": "REA", "available": (ROOT / "tools" / "rea" / "node_modules").exists(), "version": rea.get("version"), "detail": "개발 분석 도구 · 소스 근거와 실제 실행 검증은 구분"})
+        engines.append({"id": "rea", "name": "REA", "available": (ROOT / "tools" / "rea" / "node_modules").exists(), "version": rea.get("version"), "detail": "개발 분석 도구 · 데스크톱 배포본에는 분석 기록을 포함하며 REA 재실행 환경은 별도"})
         route_info = {
             "polymer_cg": ("조대화 고분자", "LAMMPS/NumPy → MDAnalysis → 궤적·관측값", ["numpy"]),
             "polymer_atomistic": ("전원자 고분자", "RDKit 구조 생성 또는 RadonPy/LAMMPS 고립 사슬 MD", ["rdkit"]),
