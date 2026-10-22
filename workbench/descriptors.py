@@ -159,7 +159,9 @@ def _mixture_features(report, analysis, add):
 def _bulk_features(report, complete, add):
     """RadonPy periodic-cell properties; units and scaled-protocol provenance travel with each value."""
     scale = complete.get("protocol_scale")
-    prefix = f"RadonPy NPT sampling after Larsen 21-step equilibration (stage length x{scale:g}, GAFF2_mod/Gasteiger); "
+    model = f"{complete.get('force_field', 'GAFF2_mod')}/{complete.get('charge_method', 'Gasteiger')}"
+    sampled = complete.get("sampling_description", "NPT sampling after Larsen 21-step equilibration")
+    prefix = f"{sampled} (stage length x{scale:g}, {model}), RadonPy estimators; "
     for name, key, method in (("bulk_density", "density", "mean thermo density"),
                               ("bulk_modulus", "bulk_modulus", "isothermal bulk modulus from volume fluctuations"),
                               ("heat_capacity_cp", "heat_capacity_cp", "Cp from enthalpy fluctuations"),
@@ -203,11 +205,18 @@ def extract_job_features(job_dir: Path, job=None) -> dict:
     def add(name, value, unit, method, **extra):
         if np.isfinite(value):
             report["values"][name] = {"value": float(value), "unit": unit, "method": method, **extra}
-    if config.get("route") == "polymer_atomistic" and config.get("atomistic_mode") == "bulk" and (directory / "bulk_complete.json").is_file():
-        _bulk_features(report, _read(directory / "bulk_complete.json"), add)
-        report["source_files"].append("bulk_complete.json")
-        report["source_sha256"] = {"bulk_complete.json": hashlib.sha256((directory / "bulk_complete.json").read_bytes()).hexdigest()}
-        return report
+    for mode, name in (("bulk", "bulk_complete.json"), ("crosslink", "cure_complete.json")):
+        if config.get("route") == "polymer_atomistic" and config.get("atomistic_mode") == mode and (directory / name).is_file():
+            complete = _read(directory / name)
+            _bulk_features(report, complete, add)
+            if mode == "crosslink":
+                conversion = complete.get("conversion") or {}
+                add("epoxide_conversion", conversion.get("epoxide", float("nan")), "fraction",
+                    "Epoxide groups opened by LAMMPS fix bond/react (primary + secondary amine reactions)")
+                report["unavailable"].pop("rg_mean", None)
+            report["source_files"].append(name)
+            report["source_sha256"] = {name: hashlib.sha256((directory / name).read_bytes()).hexdigest()}
+            return report
     if config.get("route") == "mixture" and (directory / "mixture_analysis.json").is_file():
         _mixture_features(report, _read(directory / "mixture_analysis.json"), add)
         report["source_files"].append("mixture_analysis.json")

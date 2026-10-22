@@ -10,7 +10,7 @@ const hspInput = id => { const value = Number($(id).value); if (!Number.isFinite
 function screenOwn(prediction, key) {
   const runs = (prediction.own_simulations || []).filter(run => run.values[key]);
   if (!runs.length) return '<span class="research-tag muted">내 벌크 계산 없음</span>';
-  return runs.map(run => { const v = run.values[key]; return `<div>${screenNumber(v.value)} <small>${escape(screenUnit(v.unit))}</small> · z ${screenNumber(v.z, 2)}<br><small>${escape(run.name || run.job_id)} · 단계 길이 ×${escape(run.protocol_scale ?? 1)}${run.radonpy_criteria_met === false ? ' · 수렴 기준 미달' : ''}</small></div>`; }).join('');
+  return runs.map(run => { const v = run.values[key]; return `<div>${screenNumber(v.value)} <small>${escape(screenUnit(v.unit))}</small> · z ${screenNumber(v.z, 2)}<br><small>${escape(run.name || run.job_id)} · ${run.force_field === 'pcff' ? 'PCFF' : 'GAFF2'} · 단계 길이 ×${escape(run.protocol_scale ?? 1)}${run.radonpy_criteria_met === false ? ' · 수렴 기준 미달' : ''}</small></div>`; }).join('');
 }
 
 function renderPredictions(data) {

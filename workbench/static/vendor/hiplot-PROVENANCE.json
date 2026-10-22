@@ -1,0 +1,15 @@
+{
+  "library": "HiPlot",
+  "version": "0.1.33",
+  "source_artifact": "hiplot-0.1.33-py3-none-any.whl (PyPI)",
+  "source_artifact_sha256": "82761a0e087a04d696914f4e141197e9f6ae776a590369ec9db01e26710f9f85",
+  "source_path": "hiplot/static/built/hiplot.bundle.js",
+  "source_sha256": "2be25d300ac50b070c331f1f02fd8c50fd74bee64da1a5234694c7b80fdc97ef",
+  "sha256": "b75aeaf48e8269da92e7c0c27db417ae8bd0463fae3a21f80748ffdefb19e9ed",
+  "modification": "Removed the one compiled CSS @import of https://fonts.googleapis.com (Lato) so the local app makes no third-party request; no code was changed.",
+  "license": "MIT",
+  "license_file": "hiplot-LICENSE.txt",
+  "repository": "https://github.com/facebookresearch/hiplot",
+  "api": "hiplot.render(element, {dataProviderName: 'none', experiment}) as used by the wheel's templates/index.html and render.py",
+  "note": "Only the browser bundle is vendored; the HiPlot Python server (flask, ipython) is not installed or used."
+}

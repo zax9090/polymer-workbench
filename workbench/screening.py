@@ -271,7 +271,8 @@ def own_simulations(prediction, experiments):
     """This workspace's completed bulk runs of the same repeat unit, next to the reference prediction."""
     rows = []
     for record in experiments:
-        if record.get("route") != "polymer_atomistic" or (record.get("material") or {}).get("repeat_smiles") != prediction["repeat_smiles"]:
+        if record.get("route") != "polymer_atomistic" or (record.get("config") or {}).get("atomistic_mode") == "crosslink" \
+                or (record.get("material") or {}).get("repeat_smiles") != prediction["repeat_smiles"]:
             continue
         found = (record.get("features") or {}).get("values") or {}
         values = {}
@@ -284,6 +285,7 @@ def own_simulations(prediction, experiments):
             config = record.get("config") or {}
             rows.append({"job_id": record.get("job_id"), "name": record.get("name"), "status": record.get("status"),
                          "temperature_kelvin": config.get("temperature_kelvin"), "protocol_scale": config.get("protocol_scale"),
+                         "force_field": config.get("atomistic_forcefield", "gaff2"),
                          "radonpy_criteria_met": next((v.get("radonpy_criteria_met") for v in found.values() if isinstance(v, dict) and "radonpy_criteria_met" in v), None),
                          "values": values})
     return rows

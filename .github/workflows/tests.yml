@@ -60,6 +60,19 @@ jobs:
       - name: Fetch pinned REA-audited sources
         run: .venv/bin/python scripts/audit_extensions.py --fetch-pinned
 
+      # EMC 9.4.4 (PCFF cells, epoxy cure) and xtb 6.7.1 (CM5 charges) are pinned by SHA-256 in
+      # workbench/engines.py; without them the end-to-end tests of those routes skip.
+      - name: Cache pinned engines
+        uses: actions/cache@v4
+        with:
+          path: data/engines
+          key: engines-emc-9.4.4-xtb-6.7.1-v1
+
+      - name: Fetch pinned engines
+        timeout-minutes: 10
+        continue-on-error: true
+        run: .venv/bin/python -c "from workbench import engines; [print(name, engines.ensure(name)[1]['source']) for name in engines.ENGINES]"
+
       - name: Run pytest
         timeout-minutes: 30
         run: |

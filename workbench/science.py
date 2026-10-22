@@ -38,7 +38,7 @@ def get_capabilities():
 
 def validate_config(raw: dict) -> dict:
     config = {**DEFAULTS, **raw}
-    if config["route"] in ("polymer_atomistic", "pysimm") and raw.get("atomistic_mode") != "bulk":
+    if config["route"] in ("polymer_atomistic", "pysimm") and raw.get("atomistic_mode") not in ("bulk", "crosslink"):
         config["chains"] = raw.get("chains", 1)
         if config["chains"] != 1:
             raise ValueError("The atomistic and pysimm routes currently support one isolated chain; set chains=1")

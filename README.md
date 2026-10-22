@@ -62,7 +62,9 @@ cd /home/kali/Projects/polymer-workbench
 | 조대화 고분자 | 사슬 생성 → LAMMPS Langevin MD → MDAnalysis 교차 확인 → 궤적/그래프 | 환산 단위의 미보정 비드-스프링 모델 |
 | 전원자 구조 | 반복단위 SMILES → RDKit 연결·3D 배치·MMFF 최적화 | 준비된 한 사슬 구조, MD 수행 아님 |
 | RadonPy MD | RDKit → GAFF2_mod/Gasteiger → LAMMPS 최소화·짧은 NVT | 고립된 한 사슬 계산, 벌크 물성 아님 |
-| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
+| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석. 전하는 Gasteiger 또는 xtb CM5 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
+| PCFF 벌크 셀 | EMC PCFF 타입·결합 증분 전하·사슬 성장 → LAMMPS class2 21단계 → NPT 샘플링 → RadonPy 물성 분석 | Class II 힘장의 같은 물성. EMC 계수를 LAMMPS 공개 pcff.frc와 msi2lmp 규칙으로 대조한 결과를 함께 표시 |
+| 에폭시–아민 가교 | EMC PCFF 혼합물 → 반응 템플릿 자동 생성 → 21단계 고밀도화 → LAMMPS fix bond/react → 냉각 NPT | 전환율과 이상적 겔화점, 경화 네트워크 밀도·탄성률. 접촉 즉시 반응하는 구조 모델이며 경화 속도론 아님 |
 | AlphaFold DB | UniProt ID → 공식 DB 예측 파일 → 원자 구조·pLDDT 분석 | 이미 존재하는 예측 가져오기, 새 추론 아님 |
 | 내 PDB 분석 | PDB → 구조 확인·기하 분석 | B-factor는 사용자가 지정할 때만 pLDDT로 해석 |
 | PACKMOL | RDKit 사슬 + 선택한 이전 구조 → 분자 배치 | MD용 초기 배치. 공통 힘장/토폴로지 설정이 추가로 필요 |
@@ -141,6 +143,10 @@ polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이�
 - **HSP 상용성:** Hansen 용매 248종으로 고분자 HSP에 대한 Ra·RED·χ 순위와 두 용매 혼합(두 비용매로 용매 만들기 포함)을 계산합니다. 용해·팽윤 시험 결과로 Hansen 구(δD·δP·δH·R0)를 피팅하고 측정값 초안으로 넘길 수 있습니다. 고분자 블렌드는 정규 용액 χ와 Flory–Huggins 임계 χ로 판정합니다.
 
 참조 데이터(RadonPy BSD-3, HSPiPy MIT)는 REA로 감사한 고정 커밋에서 `scripts/build_reference_data.py`가 다시 만듭니다. [빠른 예측 문서](docs/SCREENING.md)를 참고하세요.
+
+## PCFF · 가교 · REA로 고른 도구
+
+LAMMPS msi2lmp·bond/react, EMC, pysimm, xtb, pybaselines, PDBFixer, HiPlot을 내려받아 REA로 분석한 뒤 필요한 기능만 연결했습니다. PCFF 벌크 셀, 에폭시–아민 가교, xtb CM5 전하, DSC 용융 엔탈피·결정화도와 GPC 자동 기준선(pybaselines), 단백질 구조 보정(PDBFixer), 연구 데이터 다변수 비교(HiPlot)입니다. pysimm은 REA 확인 결과 방향족 PCFF 타입이 맞지 않아 쓰지 않았습니다. [PCFF · 가교 문서](docs/CLASS2_CROSSLINK.md)를 참고하세요.
 
 ## AI 에이전트 연동 (MCP)
 

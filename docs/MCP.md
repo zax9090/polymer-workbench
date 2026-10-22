@@ -52,6 +52,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 - **데이터 폴더 잠금:** 한 작업 폴더에는 서버 하나만 열립니다. 두 번째 서버는 시작하지 않고 오류를 냅니다. 서로의 실행 중 작업을 중단 처리하는 일을 막습니다.
 - **계산 예산:** `control_campaign`의 `start`는 캠페인 예산(최대 50개)까지 계산을 자동 실행합니다. 서버 안내문(instructions)은 예산을 사용자와 먼저 확인하도록 에이전트에게 요구합니다.
 - **pH와 전하:** 단백질 결과의 PROPKA3 분석·PDB2PQR 양성자화 구조와 `packmol_target` `negative_patch`/`positive_patch`, 혼합계 `protein_protonation: propka`는 `submit_job`의 JobConfig(`protein_ph`, `ionic_strength_molar`)로 지정합니다. 안내문은 pKa가 pH ±1 안인 기를 불확실한 상태로 다루고, 패치 배치를 결합 근거로 해석하지 않도록 에이전트에게 알립니다.
+- **PCFF · 가교 · 보정:** `submit_job`의 JobConfig로 `atomistic_forcefield: pcff`(EMC PCFF 벌크 셀), `charge_method: xtb_cm5`(GAFF2 벌크 셀의 xtb CM5 전하), `atomistic_mode: crosslink`(에폭시–아민 bond/react 경화), `protein_repair: pdbfixer`를 지정합니다. 안내문은 PCFF 계수 대조 결과를 함께 보고하고, 가교 결과를 경화 속도론이 아닌 네트워크 구조로, 단축 계산을 탐색용으로 다루도록 에이전트에게 알립니다. `analyze_instrument_curve`의 DSC `analysis: melting`은 용융 온도·엔탈피·결정화도 초안을 돌려줍니다.
 - **참조 예측 구분:** 서버 안내문은 `screen_polymer` 값이 공개 MD 데이터 기반 예측이며 측정값이 아님을, HSP 블렌드 χ가 수소결합·이온 상호작용을 표현하지 못함을 에이전트에게 알립니다. 구 피팅 결과는 초안으로만 돌려주고 저장은 `add_measurement`(검토 전)로만 합니다.
 - **해석 범위:** 서버 안내문은 `completed`/`prepared`/`blocked`의 의미, 짧은 계산·CG 모델·접촉 수의 해석 한계를 에이전트에게 알립니다. 도구 결과에는 각 경로의 경고와 단위가 그대로 포함됩니다.
 

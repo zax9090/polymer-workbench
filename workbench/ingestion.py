@@ -182,6 +182,72 @@ GPC_DETECTORS = {"RI", "UV", "ELSD"}
 MOLAR_MASS_FACTORS = {"g/mol": 1.0, "Da": 1.0, "kg/mol": 1e3}
 
 
+# Baselines under peaks: pybaselines' asymmetrically reweighted penalized least squares (arPLS,
+# Baek et al., Analyst 140, 250 (2015)); lam is the smoothness penalty, in squared x-index units.
+BASELINE_LAM = 1e6
+
+
+def _arpls(x, y, lam):
+    try:
+        import pybaselines
+        from pybaselines import Baseline
+    except ImportError as exc:
+        raise ValueError("Automatic baselines need pybaselines (pip install pybaselines)") from exc
+    lam = float(lam)
+    if not math.isfinite(lam) or not 1e2 <= lam <= 1e10:
+        raise ValueError("baseline_lam must be between 1e2 and 1e10")
+    baseline, params = Baseline(x_data=x).arpls(y, lam=lam)
+    return baseline, {"method": "arpls", "lam": lam, "library": f"pybaselines {pybaselines.__version__}",
+                      "iterations": len(params.get("tol_history", []))}
+
+
+def _dsc_melting(x, y, options, draft, temperature_unit):
+    """Melting endotherm: arPLS baseline, peak temperature and enthalpy from the heat-flow area."""
+    direction = options.get("endotherm")
+    if direction not in {"up", "down"}:
+        raise ValueError("endotherm must state whether endothermic heat flow points up or down")
+    unit = options.get("heat_flow_unit")
+    if unit not in {"W/g", "mW/mg", "mW"}:
+        raise ValueError("Melting enthalpy needs heat_flow_unit W/g, mW/mg (both per mass) or mW with sample_mass_mg")
+    rate = _positive(options, "heating_rate_k_per_min", "heating_rate_k_per_min", 200)
+    low, high = _window(options.get("integration_window"), "integration_window")
+    signal = y if direction == "up" else -y
+    baseline, fit = _arpls(x, signal, options.get("baseline_lam", BASELINE_LAM))
+    inside = (x >= low) & (x <= high)
+    if inside.sum() < 5:
+        raise ValueError("The integration window needs at least five data points")
+    tx, excess = x[inside], (signal - baseline)[inside]
+    weights = _trapezoid_weights(tx)
+    area = float(np.sum(weights * excess))  # heat-flow unit x temperature unit
+    negative = float(np.sum(weights * np.clip(excess, None, 0)))
+    if area <= 0:
+        raise ValueError("No endothermic area above the baseline inside the integration window")
+    if abs(negative) > 0.05 * area:
+        draft["warnings"].append("More than 5% of the window lies below the baseline; check the window and the endotherm direction.")
+    # dT = beta dt, so area / beta (K/s) is energy per mass: 1 W/g x 1 s = 1 J/g, and 1 mW/mg = 1 W/g.
+    per_mass = area / (rate / 60.0)
+    if unit == "mW":
+        per_mass /= _positive(options, "sample_mass_mg", "sample_mass_mg")
+    peak_input = float(tx[int(np.argmax(excess))])
+    peak = peak_input + (0 if temperature_unit == "K" else 273.15)
+    conditions = {"integration_window": [low, high], "heating_rate_k_per_min": rate, "endotherm": direction,
+                  "baseline": fit, "heat_flow_unit": unit, "temperature_unit_input": temperature_unit}
+    drafts = [{"property": "melting_temperature", "value": peak, "unit": "K", "method": "DSC endotherm peak temperature above an arPLS baseline", "conditions": conditions},
+              {"property": "melting_enthalpy", "value": per_mass, "unit": "J/g", "method": "DSC endotherm area above an arPLS baseline divided by the heating rate", "conditions": conditions}]
+    if options.get("reference_enthalpy_j_per_g") is not None:
+        reference = _positive(options, "reference_enthalpy_j_per_g", "reference_enthalpy_j_per_g")
+        if per_mass > reference:
+            draft["warnings"].append("Measured enthalpy exceeds the 100%-crystalline reference; crystallinity is not reported.")
+        else:
+            drafts.append({"property": "crystallinity", "value": per_mass / reference, "unit": "fraction",
+                           "method": "DSC melting enthalpy divided by the stated 100%-crystalline reference enthalpy",
+                           "conditions": {**conditions, "reference_enthalpy_j_per_g": reference}})
+    draft["fit"] = {"baseline": fit, "peak_input_units": peak_input, "area_input_units": area}
+    draft["baseline_preview"] = (baseline if direction == "up" else -baseline)[::max(1, len(x) // 500)].tolist()
+    draft["measurement_drafts"] = drafts
+    draft["warnings"].append("Melting enthalpy depends on the integration limits, baseline, heating rate and thermal history; cold crystallization and overlapping transitions are not separated.")
+
+
 def _gpc_calibration(options):
     unit = options.get("molar_mass_unit")
     if unit not in MOLAR_MASS_FACTORS:
@@ -241,20 +307,26 @@ def _gpc(x, y, options, draft):
     slope = np.polyder(coefficients)
     if np.any(np.polyval(slope, np.linspace(start, end, 2001)) >= 0):
         raise ValueError("The calibration polynomial is not monotonic across the integration window; lower the order or add standards")
-    before = _window(options.get("baseline_before"), "baseline_before")
-    after = _window(options.get("baseline_after"), "baseline_after")
-    if before[1] > start or after[0] < end:
-        raise ValueError("Baseline windows must lie before and after the integration window")
-    masks = [(x >= a) & (x <= b) for a, b in (before, after)]
-    if any(mask.sum() < 3 for mask in masks):
-        raise ValueError("Each GPC baseline window must contain at least three data points")
-    baseline_mask = masks[0] | masks[1]
-    baseline = np.polyfit(x[baseline_mask], y[baseline_mask], 1)
     inside = (x >= start) & (x <= end)
     if inside.sum() < 5:
         raise ValueError("integration_window must contain at least five data points")
     tx = x[inside]
-    signal = y[inside] - np.polyval(baseline, tx)
+    if options.get("baseline_method", "windows") == "arpls":
+        curve, baseline_record = _arpls(x, y, options.get("baseline_lam", BASELINE_LAM))
+        signal = (y - curve)[inside]
+        before = after = None
+    else:
+        before = _window(options.get("baseline_before"), "baseline_before")
+        after = _window(options.get("baseline_after"), "baseline_after")
+        if before[1] > start or after[0] < end:
+            raise ValueError("Baseline windows must lie before and after the integration window")
+        masks = [(x >= a) & (x <= b) for a, b in (before, after)]
+        if any(mask.sum() < 3 for mask in masks):
+            raise ValueError("Each GPC baseline window must contain at least three data points")
+        baseline_mask = masks[0] | masks[1]
+        baseline = np.polyfit(x[baseline_mask], y[baseline_mask], 1)
+        baseline_record = {"method": "linear fit to the two baseline windows", "slope": float(baseline[0]), "intercept": float(baseline[1])}
+        signal = y[inside] - np.polyval(baseline, tx)
     widths = _trapezoid_weights(tx)
     positive = float(np.sum(np.clip(signal, 0, None) * widths))
     negative = float(np.sum(np.clip(-signal, 0, None) * widths))
@@ -278,8 +350,8 @@ def _gpc(x, y, options, draft):
         conditions["eluent"] = _text(options, "eluent", "eluent")
     analysis = {"calibration": calibration,
                 "calibration_sha256": hashlib.sha256(json.dumps(calibration["standards"], sort_keys=True).encode()).hexdigest(),
-                "baseline_before": list(before), "baseline_after": list(after), "integration_window": [start, end],
-                "baseline": {"slope": float(baseline[0]), "intercept": float(baseline[1])},
+                "baseline_before": list(before) if before else None, "baseline_after": list(after) if after else None,
+                "integration_window": [start, end], "baseline": baseline_record,
                 "slices": int(inside.sum()), "clipped_negative_area_fraction": negative / (positive + negative),
                 "peak_molar_mass_g_mol": float(molar_mass[int(np.argmax(corrected))])}
     method = "SEC/GPC conventional calibration slice method on a baseline-corrected concentration-detector signal"
@@ -323,6 +395,11 @@ def analyze_curve(kind: str, text: str, options: dict | None = None) -> dict:
                                       "method": "OLS engineering stress versus strain in manually selected linear region",
                                       "conditions": {"linear_region_input": list(region), "strain_unit_input": strain_unit, "stress_unit_input": stress_unit}}
         draft["warnings"].append("Check extensometer calibration, specimen geometry, compliance/toe correction, strain rate and linear-region choice before saving.")
+    elif kind == "dsc" and options.get("analysis") == "melting":
+        temperature_unit = options.get("temperature_unit")
+        if temperature_unit not in {"K", "C", "°C"}:
+            raise ValueError("Explicit temperature_unit (K/C) is required")
+        _dsc_melting(x, y, options, draft, temperature_unit)
     elif kind == "dsc":
         temperature_unit = options.get("temperature_unit")
         if temperature_unit not in {"K", "C", "°C"} or not options.get("heat_flow_unit"):

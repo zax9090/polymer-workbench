@@ -42,6 +42,8 @@ TGA·GPC 초안의 `conditions`에는 같은 프로토콜의 반복 측정끼리
 
 PDF는 최대 10 MB·100페이지에서 텍스트를 추출하고 원본 파일·SHA256·페이지 번호를 보관합니다. 표와 그림의 의미를 추론하거나 자동 측정값을 등록하지 않습니다. 스캔 문서의 OCR, 외부 LLM 호출, 유료 문헌 데이터 수집은 수행하지 않습니다.
 
+DSC 용융 분석(`analysis: melting`)은 pybaselines arPLS 기준선 위의 흡열 면적을 가열 속도로 나눠 용융 온도·용융 엔탈피·결정화도 초안을 만듭니다. GPC는 `baseline_method: arpls`로 자동 기준선을 고를 수 있습니다. 연구 데이터 화면의 **다변수 비교**는 HiPlot 브라우저 번들로 계산 피처·조건과 측정값을 한 번에 비교합니다([PCFF · 가교 문서](CLASS2_CROSSLINK.md)).
+
 ## 일관된 백업
 
 프로세스/스레드 잠금으로 DuckDB 접근을 직렬화합니다. 내보내기는 하나의 읽기 트랜잭션에서 `experiments_master.parquet`와 `measurements.parquet`를 만들고, 개수·해시를 가진 `metadata.json`과 함께 새 폴더에 게시합니다. 동일 파일을 변경하는 실시간 클라우드 DB 동기화 방식이 아닙니다.
