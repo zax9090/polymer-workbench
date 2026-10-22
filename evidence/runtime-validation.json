@@ -1,0 +1,146 @@
+{
+  "verified_at": "2026-10-22T03:40:41.448266+00:00",
+  "kind": "actual_http_workflow_execution",
+  "checks": "All status assertions and downloaded artifact SHA256 checks passed",
+  "jobs": [
+    {
+      "id": "1432e119db6f4924adebf11c76b28571",
+      "name": "최종 검증 · LAMMPS 조대화 MD",
+      "route": "polymer_cg",
+      "status": "completed",
+      "engine": "LAMMPS 20250722 Langevin/NVE",
+      "summary": {
+        "initial_rg": 6.923924352635256,
+        "final_rg": 6.491803090213562,
+        "final_end_to_end": 20.513949675491112,
+        "final_potential_energy": 33.85019997647079,
+        "frames": 101,
+        "beads": 48
+      },
+      "message": null,
+      "metadata": null
+    },
+    {
+      "id": "e80b9f0c69ad44638db3014fd50e5594",
+      "name": "최종 검증 · RadonPy 350 K",
+      "route": "polymer_atomistic",
+      "status": "completed",
+      "engine": "RadonPy / LAMMPS",
+      "summary": null,
+      "message": "RadonPy→LAMMPS isolated-chain trajectory completed.",
+      "metadata": {
+        "force_field": "GAFF2_mod",
+        "charge_method": "Gasteiger",
+        "ensemble": "isolated-chain NVT",
+        "temperature_kelvin": 350.0,
+        "time_step_fs": 0.5,
+        "steps": 50,
+        "equilibrated": false,
+        "random_seeds": {
+          "configured": 77,
+          "numpy_legacy": 77,
+          "python_random": 77,
+          "python_hash": "77",
+          "lammps": [
+            {
+              "seed": 704191,
+              "command": "velocity all create 350.000000 704191 mom yes rot yes dist gaussian"
+            }
+          ],
+          "scope": "same engine versions, serial environment and numerical settings; not a cross-platform bitwise guarantee"
+        }
+      }
+    },
+    {
+      "id": "c08103ea66eb407f8719522c8bfe5bd3",
+      "name": "최종 검증 · AlphaFold DB P69905",
+      "route": "protein",
+      "status": "completed",
+      "engine": "AlphaFold Protein Structure Database",
+      "summary": {
+        "residues": 142,
+        "ca_radius_of_gyration_angstrom": 14.465664080284192,
+        "mean_plddt": 98.0637323943662,
+        "fraction_plddt_below_70": 0.007042253521126761
+      },
+      "message": "Imported an existing AlphaFold DB prediction; no new folding inference was run.",
+      "metadata": null
+    },
+    {
+      "id": "6efb4d2ff9c9452eb736d20fc48d06b3",
+      "name": "최종 검증 · 단백질 + 고분자 조립",
+      "route": "packmol",
+      "status": "prepared",
+      "engine": "PACKMOL",
+      "summary": null,
+      "message": "PACKMOL packing completed; force-field assignment and dynamics remain separate stages.",
+      "metadata": {
+        "box_angstrom": [
+          74.399,
+          74.399,
+          74.399
+        ],
+        "chains": 2,
+        "tolerance_angstrom": 2,
+        "imported_components": 1,
+        "packing_completed": true
+      }
+    },
+    {
+      "id": "c3ef78f06c8b42fd98e8a36a616f8ca3",
+      "name": "최종 검증 · polyply 토폴로지",
+      "route": "polyply",
+      "status": "prepared",
+      "engine": "polyply",
+      "summary": null,
+      "message": "Polyply molecular topology generated; supply the matching nonbonded forcefield_itp_text before coordinate generation.",
+      "metadata": null
+    },
+    {
+      "id": "889fa0456f9e4a6891b9a53a0d46fa37",
+      "name": "최종 검증 · pysimm 최소화",
+      "route": "pysimm",
+      "status": "completed",
+      "engine": "pysimm / LAMMPS",
+      "summary": null,
+      "message": "pysimm→LAMMPS energy minimization completed.",
+      "metadata": null
+    },
+    {
+      "id": "b04006e0b8104f838974524ffd129319",
+      "name": "최종 검증 · AF3 입력 내보내기",
+      "route": "protein",
+      "status": "prepared",
+      "engine": "AlphaFold 3 input exporter",
+      "summary": null,
+      "message": "FASTA and AlphaFold 3 input JSON prepared; no prediction executed.",
+      "metadata": null
+    },
+    {
+      "id": "5fc9c4afdc0e41308f72b9373b5f5bb0",
+      "name": "최종 검증 · ColabFold 의존성 확인",
+      "route": "protein",
+      "status": "blocked",
+      "engine": null,
+      "summary": null,
+      "message": "ColabFold input and command prepared; folding runtime is unavailable.",
+      "metadata": null
+    },
+    {
+      "id": "01ac54c4a8314fb7a225fb59d990ee80",
+      "name": "최종 검증 · HOOMD 의존성 확인",
+      "route": "hoomd",
+      "status": "blocked",
+      "engine": null,
+      "summary": null,
+      "message": "Runnable HOOMD-blue CPU bead-spring script exported; HOOMD runtime is missing.",
+      "metadata": null
+    }
+  ],
+  "unverified": [
+    "Browser visual QA (no connected browser)",
+    "HOOMD calculation",
+    "GROMACS calculation",
+    "New ColabFold/AlphaFold inference"
+  ]
+}

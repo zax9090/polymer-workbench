@@ -1,0 +1,11 @@
+{
+  "name": "전원자 올리고머 · RadonPy",
+  "route": "polymer_atomistic",
+  "atomistic_mode": "simulate",
+  "repeat_smiles": "[*]CC[*]",
+  "monomers": 4,
+  "chains": 1,
+  "steps": 100,
+  "temperature_kelvin": 300,
+  "seed": 42
+}

@@ -1,0 +1,432 @@
+[
+  {
+    "id": "radonpy",
+    "name": "RadonPy",
+    "repository": "RadonPy/RadonPy",
+    "url": "https://github.com/RadonPy/RadonPy",
+    "commit": "8834b9071ae93d9af36558a3c24545dd52e5ba1a",
+    "commit_date": "2026-10-13T18:07:08Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "13652ee7a4e006d12f97f470eb6887b063273452",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "3d7de701e30705db7e4d08d2a82b02c86d6f14da",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/LICENSE"
+      },
+      {
+        "path": "radonpy/core/poly.py",
+        "github_blob_sha": "6540030aebc236d3b6ae6c68609c2b73021acbf0",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/core/poly.py"
+      },
+      {
+        "path": "radonpy/sim/lammps.py",
+        "github_blob_sha": "73f5179d6ffc1697b1dc24216cd72c7e1c6a6394",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/lammps.py"
+      },
+      {
+        "path": "radonpy/sim/preset/eq.py",
+        "github_blob_sha": "c809315ca0201d595ff711cabf4f782a77af50f8",
+        "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/preset/eq.py"
+      }
+    ]
+  },
+  {
+    "id": "lammps",
+    "name": "LAMMPS",
+    "repository": "lammps/lammps",
+    "url": "https://github.com/lammps/lammps",
+    "commit": "a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b",
+    "commit_date": "2026-10-15T19:18:40Z",
+    "source_files": [
+      {
+        "path": "README",
+        "github_blob_sha": "a9991bd814c754b0b0a746a00fb2fdbc7c152bf5",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/README"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "202b8cd796b992878c21245f7b80a51ab54b63c6",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/LICENSE"
+      },
+      {
+        "path": "python/lammps/core.py",
+        "github_blob_sha": "1cec463d6331526ebe9bb729c706fb729f6f058e",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/python/lammps/core.py"
+      },
+      {
+        "path": "doc/src/Run_options.rst",
+        "github_blob_sha": "9314d65146f800b3013fe21c8e1d9596343dd3f1",
+        "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/doc/src/Run_options.rst"
+      }
+    ]
+  },
+  {
+    "id": "rdkit",
+    "name": "RDKit",
+    "repository": "rdkit/rdkit",
+    "url": "https://github.com/rdkit/rdkit",
+    "commit": "4a0ae3ac1e7f038bdb7ce037efab40796219d371",
+    "commit_date": "2026-10-21T15:24:36Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "d6dea2d924e062fc03d190be7fa5fbc25695541e",
+        "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/README.md"
+      },
+      {
+        "path": "license.txt",
+        "github_blob_sha": "a44b4f5514d036de96f06f3cded34f634fd14cde",
+        "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/license.txt"
+      },
+      {
+        "path": "rdkit/Chem/AllChem.py",
+        "github_blob_sha": "25c893b1b335fe25af3736d4c1b1413e69d4f1db",
+        "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/AllChem.py"
+      },
+      {
+        "path": "rdkit/Chem/__init__.py",
+        "github_blob_sha": "f6213496edb8fb42382e645c94488b99c1eb46a1",
+        "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/__init__.py"
+      }
+    ]
+  },
+  {
+    "id": "mdanalysis",
+    "name": "MDAnalysis",
+    "repository": "MDAnalysis/mdanalysis",
+    "url": "https://github.com/MDAnalysis/mdanalysis",
+    "commit": "0fd2f58c1c257e4a6aba43be273a7bd7323a578c",
+    "commit_date": "2026-10-21T08:23:52Z",
+    "source_files": [
+      {
+        "path": "README.rst",
+        "github_blob_sha": "40e922e575d3229e241323213d83c314eca2becc",
+        "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/README.rst"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "8d0eeadd954c9be8e92354f501c92d866ccea409",
+        "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/LICENSE"
+      },
+      {
+        "path": "package/MDAnalysis/core/universe.py",
+        "github_blob_sha": "e4534461b71bb456afcf06b8ffea80a508d7d9aa",
+        "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/core/universe.py"
+      },
+      {
+        "path": "package/MDAnalysis/analysis/polymer.py",
+        "github_blob_sha": "7a0510eab038cb76d03bd256099f716db4ceeee1",
+        "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/analysis/polymer.py"
+      }
+    ]
+  },
+  {
+    "id": "3dmol",
+    "name": "3Dmol.js",
+    "repository": "3dmol/3Dmol.js",
+    "url": "https://github.com/3dmol/3Dmol.js",
+    "commit": "c46c63b15881d41ff571e1579a11500bacf60b80",
+    "commit_date": "2026-10-21T00:04:59Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "583ddb7aff8e5b67c274b4a815ec23d164cac014",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "1b2a16924434597c8df20bbcc8de544ecf11c794",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/LICENSE"
+      },
+      {
+        "path": "package.json",
+        "github_blob_sha": "3c079c56136762482e207cfcacb22ab8b9eaa0fc",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/package.json"
+      },
+      {
+        "path": "src/3Dmol.ts",
+        "github_blob_sha": "082525441b3c108837e196d43d268859049cb902",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/3Dmol.ts"
+      },
+      {
+        "path": "src/GLViewer.ts",
+        "github_blob_sha": "182abf8e1e26c288fad63646e49ce2f1790cbb4d",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLViewer.ts"
+      },
+      {
+        "path": "src/GLModel.ts",
+        "github_blob_sha": "311ed9b57930877f859db71b69c786bc1b26b423",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLModel.ts"
+      },
+      {
+        "path": "webpack.config.js",
+        "github_blob_sha": "c70c99c37c47f8fd1c39e1f8183618b4e105d562",
+        "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/webpack.config.js"
+      }
+    ]
+  },
+  {
+    "id": "packmol",
+    "name": "PACKMOL",
+    "repository": "m3g/packmol",
+    "url": "https://github.com/m3g/packmol",
+    "commit": "14e50c65fa9120b58e1ba33ad482c7c7260f72b2",
+    "commit_date": "2026-05-27T14:20:14Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "79ef999e090bea5b6c211400833b49af3a8fc5d2",
+        "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "8db8be26484288e76741875de1ee9eb416db210c",
+        "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/LICENSE"
+      },
+      {
+        "path": "app/packmol.f90",
+        "github_blob_sha": "270831840c939b7987ce68e277773e52b82fc5b8",
+        "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/app/packmol.f90"
+      },
+      {
+        "path": "src/input.f90",
+        "github_blob_sha": "b464582ab5487c362a16e4a598326617e8e1b00d",
+        "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/input.f90"
+      },
+      {
+        "path": "src/getinp.f90",
+        "github_blob_sha": "0f8e54699f7e8e0e09a2bdcb1260aebfa1bb71a3",
+        "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/getinp.f90"
+      }
+    ]
+  },
+  {
+    "id": "pysimm",
+    "name": "pysimm",
+    "repository": "polysimtools/pysimm",
+    "url": "https://github.com/polysimtools/pysimm",
+    "commit": "fb33814128189a99d3c8d7c4eddac2dfe44262fe",
+    "commit_date": "2022-06-26T23:56:58Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "2ecc24a209b12378e7e76793f33a09f0286d1539",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "10bd50fcbf12346597e8d3097caea0a4d7ecff2b",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/LICENSE"
+      },
+      {
+        "path": "pysimm/lmps.py",
+        "github_blob_sha": "c69fa7b96e4dcf98954602c8555015e9613b9514",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/lmps.py"
+      },
+      {
+        "path": "pysimm/apps/random_walk.py",
+        "github_blob_sha": "20a10f92a5edc80c44f09eb631cf9a677d3e0a25",
+        "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/apps/random_walk.py"
+      }
+    ]
+  },
+  {
+    "id": "polyply",
+    "name": "polyply",
+    "repository": "marrink-lab/polyply_1.0",
+    "url": "https://github.com/marrink-lab/polyply_1.0",
+    "commit": "38d4d5424e1ef35c86e7cb8532fbd86ecf997221",
+    "commit_date": "2026-07-07T12:39:53Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "e8d49eabbd5be8b9695fc95bc74977f8c8ef98d6",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/LICENSE"
+      },
+      {
+        "path": "bin/polyply",
+        "github_blob_sha": "61efe8dc195a9c11d08b51c92b692c92efeb1632",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/bin/polyply"
+      },
+      {
+        "path": "polyply/src/gen_coords.py",
+        "github_blob_sha": "f14bd277fa3046d11e85ad1cab5a74b8f95cc155",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_coords.py"
+      },
+      {
+        "path": "polyply/src/gen_itp.py",
+        "github_blob_sha": "a982c2bf650744d8d2304d182c51bec3d420af91",
+        "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_itp.py"
+      }
+    ]
+  },
+  {
+    "id": "gromacs",
+    "name": "GROMACS",
+    "repository": "gromacs/gromacs",
+    "url": "https://github.com/gromacs/gromacs",
+    "commit": "8114322e2eae9ee44b94e45188b614638a90f098",
+    "commit_date": "2026-10-21T13:24:33Z",
+    "source_files": [
+      {
+        "path": "README",
+        "github_blob_sha": "cb16a28b92f2bc5f19d49160e02af24ceeab308d",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/README"
+      },
+      {
+        "path": "COPYING",
+        "github_blob_sha": "58af0d3787aec7d6f8d833535d64879156e7ec23",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/COPYING"
+      },
+      {
+        "path": "src/programs/gmx.cpp",
+        "github_blob_sha": "5c69042e6b6a6276976b14938bdd44c98269dad8",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/gmx.cpp"
+      },
+      {
+        "path": "docs/user-guide/mdp-options.rst",
+        "github_blob_sha": "21bc970882beb2e3e15e935c058ca71ecf81cc54",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/docs/user-guide/mdp-options.rst"
+      },
+      {
+        "path": "src/gromacs/gmxpreprocess/grompp.cpp",
+        "github_blob_sha": "c7204f9016988fb5831cc9a0f48a641f9313dc38",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/gromacs/gmxpreprocess/grompp.cpp"
+      },
+      {
+        "path": "src/programs/mdrun/mdrun.cpp",
+        "github_blob_sha": "aa213bd6611b282278a3eedd4620bf7de2b6738e",
+        "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/mdrun/mdrun.cpp"
+      }
+    ]
+  },
+  {
+    "id": "hoomd",
+    "name": "HOOMD-blue",
+    "repository": "glotzerlab/hoomd-blue",
+    "url": "https://github.com/glotzerlab/hoomd-blue",
+    "commit": "3a5ef59990c5129d5d1b08da115215bf279d8259",
+    "commit_date": "2026-10-22T01:17:19Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "77de690b65f3ef7dcbd094d8191c4aa6988bac27",
+        "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "5159a05b6461d95f1200f5f2e7e3f7c1d3edec34",
+        "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/LICENSE"
+      },
+      {
+        "path": "hoomd/simulation.py",
+        "github_blob_sha": "6779b395f1a1bda7f2f5c653a477fb00b270a09b",
+        "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/simulation.py"
+      },
+      {
+        "path": "hoomd/md/integrate.py",
+        "github_blob_sha": "deed943a97c96444b0580d29024fdddbd95702c7",
+        "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/md/integrate.py"
+      }
+    ]
+  },
+  {
+    "id": "alphafold",
+    "name": "AlphaFold 2",
+    "repository": "google-deepmind/alphafold",
+    "url": "https://github.com/google-deepmind/alphafold",
+    "commit": "c77e5d2a8961d1a353632c462914ff0a32a950f6",
+    "commit_date": "2026-04-22T17:03:49Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "e0d1aa1089b71fcfa8a08c71fce85bac5a1d715d",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/LICENSE"
+      },
+      {
+        "path": "run_alphafold.py",
+        "github_blob_sha": "3d8a4f4689cac26e54563a458775d3888ae9eed2",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py"
+      }
+    ]
+  },
+  {
+    "id": "colabfold",
+    "name": "ColabFold",
+    "repository": "sokrypton/ColabFold",
+    "url": "https://github.com/sokrypton/ColabFold",
+    "commit": "8da9d16d6a12cce74aad48b61b9775d19ca37bcc",
+    "commit_date": "2026-10-21T16:34:37Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "55909c620e9148b58713ca1414dd3cdc2145a00d",
+        "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "4aab10a667a13d810b86f6df1b61fa1a1bfc87dd",
+        "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/LICENSE"
+      },
+      {
+        "path": "colabfold/batch.py",
+        "github_blob_sha": "e0359d073a064ece71b838123b63f7c50116da19",
+        "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/colabfold/batch.py"
+      },
+      {
+        "path": "pyproject.toml",
+        "github_blob_sha": "60b3fb13bb0fd0aca850e9c9a89349fe3433edeb",
+        "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/pyproject.toml"
+      }
+    ]
+  },
+  {
+    "id": "alphafold3",
+    "name": "AlphaFold 3",
+    "repository": "google-deepmind/alphafold3",
+    "url": "https://github.com/google-deepmind/alphafold3",
+    "commit": "3033a1ce47a9d107be7db9e644208b63e2d84a92",
+    "commit_date": "2026-10-21T14:16:17Z",
+    "source_files": [
+      {
+        "path": "README.md",
+        "github_blob_sha": "67281a1411a196946f0afb1f6709fa3658616db5",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/README.md"
+      },
+      {
+        "path": "LICENSE",
+        "github_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/LICENSE"
+      },
+      {
+        "path": "WEIGHTS_TERMS_OF_USE.md",
+        "github_blob_sha": "9f7db84d5fbe43c7d49b1556c0bd4d4d37e27144",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/WEIGHTS_TERMS_OF_USE.md"
+      },
+      {
+        "path": "run_alphafold.py",
+        "github_blob_sha": "8e26483076a7ab4d7d5f438f32648075db77fd13",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/run_alphafold.py"
+      },
+      {
+        "path": "docs/input.md",
+        "github_blob_sha": "c67e482713bc764331428743eeecaf33e760aee2",
+        "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/docs/input.md"
+      }
+    ]
+  }
+]

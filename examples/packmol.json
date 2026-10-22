@@ -1,0 +1,7 @@
+{
+  "route": "packmol",
+  "repeat_smiles": "[*:1]CC[*:2]",
+  "monomers": 4,
+  "chains": 3,
+  "seed": 42
+}

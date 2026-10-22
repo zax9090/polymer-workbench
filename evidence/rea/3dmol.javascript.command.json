@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "analyze-javascript-application",
+    "/home/kali/Projects/polymer-workbench/evidence/sources/3dmol",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 14.459,
+  "stdout": "evidence/rea/3dmol.javascript.json",
+  "stderr": "evidence/rea/3dmol.javascript.stderr.log",
+  "executed_at": "2026-10-22T03:36:02.263790+00:00",
+  "source_set_sha256": "678e877bee5fc187c84c90c5a931b45e64fa961f9d300e6bc67f421b09c2c6a0",
+  "source_unchanged_during_analysis": true
+}

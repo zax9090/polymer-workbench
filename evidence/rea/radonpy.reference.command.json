@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/sources/radonpy",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 0.916,
+  "stdout": "evidence/rea/radonpy.reference.json",
+  "stderr": "evidence/rea/radonpy.reference.stderr.log",
+  "executed_at": "2026-10-22T03:35:43.913684+00:00",
+  "source_set_sha256": "7eb3407b92cbe61d1ac06b51985d9685965b3b77d9d87717819a7cd116580904",
+  "source_unchanged_during_analysis": true
+}

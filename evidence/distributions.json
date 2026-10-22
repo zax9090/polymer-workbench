@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-22T03:36:01.707453+00:00",
+  "artifacts": [
+    {
+      "name": "3Dmol-min.js",
+      "source_url": "https://3dmol.org/build/3Dmol-min.js",
+      "local_path": "workbench/static/vendor/3Dmol-min.js",
+      "sha256": "4ab374e1830bccec950b280fd285a430e05e91bd13c9ef0097c611c66de6cb36",
+      "bytes": 545215
+    },
+    {
+      "name": "3Dmol-LICENSE.txt",
+      "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/master/LICENSE",
+      "local_path": "workbench/static/vendor/3Dmol-LICENSE.txt",
+      "sha256": "4c6eaaed856f3f28a3b1a98e74f4a8a71618de7d51ea4155c29f6f793bcef861",
+      "bytes": 4283
+    }
+  ],
+  "scope": "The browser distribution was retrieved from the official 3Dmol website. It is separately hashed; no equivalence to the pinned source commit or complete build reproducibility is asserted."
+}

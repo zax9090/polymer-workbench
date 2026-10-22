@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "import-reference-source",
+    "/home/kali/Projects/polymer-workbench/evidence/sources/hoomd",
+    "--detail",
+    "summary",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 1.518,
+  "stdout": "evidence/rea/hoomd.reference.json",
+  "stderr": "evidence/rea/hoomd.reference.stderr.log",
+  "executed_at": "2026-10-22T03:35:47.803004+00:00",
+  "source_set_sha256": "05195595e843ee2360fe0ac433f950476b01c341190637c033c418e9a6bf5244",
+  "source_unchanged_during_analysis": true
+}

@@ -1,0 +1,7 @@
+{
+  "route": "pysimm",
+  "repeat_smiles": "[*:1]CC[*:2]",
+  "monomers": 4,
+  "chains": 1,
+  "seed": 42
+}

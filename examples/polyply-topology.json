@@ -1,0 +1,10 @@
+{
+  "name": "polyply · Martini 3 PEO",
+  "route": "polyply",
+  "polyply_library": "martini3",
+  "polyply_residue": "PEO",
+  "monomers": 4,
+  "chains": 1,
+  "box_nm": 15,
+  "seed": 42
+}

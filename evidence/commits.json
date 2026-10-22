@@ -1,0 +1,54 @@
+{
+  "RadonPy/RadonPy": {
+    "sha": "8834b9071ae93d9af36558a3c24545dd52e5ba1a",
+    "date": "2026-10-13T18:07:08Z"
+  },
+  "lammps/lammps": {
+    "sha": "a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b",
+    "date": "2026-10-15T19:18:40Z"
+  },
+  "rdkit/rdkit": {
+    "sha": "4a0ae3ac1e7f038bdb7ce037efab40796219d371",
+    "date": "2026-10-21T15:24:36Z"
+  },
+  "MDAnalysis/mdanalysis": {
+    "sha": "0fd2f58c1c257e4a6aba43be273a7bd7323a578c",
+    "date": "2026-10-21T08:23:52Z"
+  },
+  "3dmol/3Dmol.js": {
+    "sha": "c46c63b15881d41ff571e1579a11500bacf60b80",
+    "date": "2026-10-21T00:04:59Z"
+  },
+  "m3g/packmol": {
+    "sha": "14e50c65fa9120b58e1ba33ad482c7c7260f72b2",
+    "date": "2026-05-27T14:20:14Z"
+  },
+  "polysimtools/pysimm": {
+    "sha": "fb33814128189a99d3c8d7c4eddac2dfe44262fe",
+    "date": "2022-06-26T23:56:58Z"
+  },
+  "marrink-lab/polyply_1.0": {
+    "sha": "38d4d5424e1ef35c86e7cb8532fbd86ecf997221",
+    "date": "2026-07-07T12:39:53Z"
+  },
+  "gromacs/gromacs": {
+    "sha": "8114322e2eae9ee44b94e45188b614638a90f098",
+    "date": "2026-10-21T13:24:33Z"
+  },
+  "glotzerlab/hoomd-blue": {
+    "sha": "3a5ef59990c5129d5d1b08da115215bf279d8259",
+    "date": "2026-10-22T01:17:19Z"
+  },
+  "google-deepmind/alphafold": {
+    "sha": "c77e5d2a8961d1a353632c462914ff0a32a950f6",
+    "date": "2026-04-22T17:03:49Z"
+  },
+  "sokrypton/ColabFold": {
+    "sha": "8da9d16d6a12cce74aad48b61b9775d19ca37bcc",
+    "date": "2026-10-21T16:34:37Z"
+  },
+  "google-deepmind/alphafold3": {
+    "sha": "3033a1ce47a9d107be7db9e644208b63e2d84a92",
+    "date": "2026-10-21T14:16:17Z"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+    "capabilities",
+    "--format",
+    "json"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 2.069,
+  "stdout": "evidence/rea/capabilities.json",
+  "stderr": "evidence/rea/capabilities.stderr.log",
+  "executed_at": "2026-10-22T03:35:50.961852+00:00",
+  "source_set_sha256": null,
+  "source_unchanged_during_analysis": null
+}

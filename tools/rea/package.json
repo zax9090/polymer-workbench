@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "polymer-workbench-rea",
+  "version": "0.1.0",
+  "dependencies": {
+    "rea-agents": "6.7.0"
+  }
+}

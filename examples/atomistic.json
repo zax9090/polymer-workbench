@@ -1,0 +1,10 @@
+{
+  "route": "polymer_atomistic",
+  "atomistic_mode": "simulate",
+  "repeat_smiles": "[*:1]CC[*:2]",
+  "monomers": 4,
+  "chains": 1,
+  "steps": 1000,
+  "temperature_kelvin": 300.0,
+  "seed": 42
+}

@@ -1,0 +1,1861 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-22T03:36:41.865401+00:00",
+  "source_provider": "GitHub connector for pinned commit/file reads; official raw URLs for byte-exact refresh",
+  "rea": {
+    "version": "6.7.0",
+    "installed_locally": true,
+    "installation": "tools/rea",
+    "capabilities": "evidence/rea/capabilities.json",
+    "providers": "evidence/rea/providers.json",
+    "limitations": [
+      "Partial source snapshots, not full repository or dependency audits.",
+      "Historical reference import is identity/inventory analysis, not native/Python decompilation.",
+      "Only the selected 3Dmol sources received JavaScript/TypeScript static graph analysis.",
+      "No AlphaFold model inference or native decompiler execution is implied by this report."
+    ]
+  },
+  "repositories": [
+    {
+      "id": "radonpy",
+      "name": "RadonPy",
+      "repository": "RadonPy/RadonPy",
+      "url": "https://github.com/RadonPy/RadonPy",
+      "commit": "8834b9071ae93d9af36558a3c24545dd52e5ba1a",
+      "commit_date": "2026-10-13T18:07:08Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "13652ee7a4e006d12f97f470eb6887b063273452",
+          "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/README.md",
+          "sha256": "639450057cb6420917f1e8e70caa44f72bfa23d07e8897c84fcc92544d7d472f",
+          "bytes": 10621,
+          "local_path": "evidence/sources/radonpy/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "3d7de701e30705db7e4d08d2a82b02c86d6f14da",
+          "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/LICENSE",
+          "sha256": "0f660cb23fa6c593637c177cda5b08942a3e433c6a0a0cbb2860fcedf07c72f8",
+          "bytes": 1526,
+          "local_path": "evidence/sources/radonpy/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "radonpy/core/poly.py",
+          "github_blob_sha": "6540030aebc236d3b6ae6c68609c2b73021acbf0",
+          "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/core/poly.py",
+          "sha256": "1cb8ce58358a9a129435b7cf9af4d529941e7f176dad2eeb5aa355231e077cf8",
+          "bytes": 202953,
+          "local_path": "evidence/sources/radonpy/radonpy/core/poly.py",
+          "verified": true
+        },
+        {
+          "path": "radonpy/sim/lammps.py",
+          "github_blob_sha": "73f5179d6ffc1697b1dc24216cd72c7e1c6a6394",
+          "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/lammps.py",
+          "sha256": "4a8bb86604af9848b3a6544faf59ea49f8ce22471e2e1c6e3675e116e847437f",
+          "bytes": 164152,
+          "local_path": "evidence/sources/radonpy/radonpy/sim/lammps.py",
+          "verified": true
+        },
+        {
+          "path": "radonpy/sim/preset/eq.py",
+          "github_blob_sha": "c809315ca0201d595ff711cabf4f782a77af50f8",
+          "source_url": "https://raw.githubusercontent.com/RadonPy/RadonPy/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/preset/eq.py",
+          "sha256": "fa4ef31a1d9ad17ffc9cc6596dcfe620323ad9c3ff2c514a866d4d5a5b5425e4",
+          "bytes": 29435,
+          "local_path": "evidence/sources/radonpy/radonpy/sim/preset/eq.py",
+          "verified": true
+        }
+      ],
+      "license": "BSD-3-Clause",
+      "license_file": "LICENSE",
+      "role": "전원자 고분자 구조 생성, 평형화, LAMMPS 연동",
+      "inputs": [
+        "연결 원자를 지정한 반복단위 RDKit Mol",
+        "중합도·사슬 수·힘장·온도·압력"
+      ],
+      "outputs": [
+        "RDKit Mol 및 셀",
+        "LAMMPS 입력·데이터·궤적·분석 결과"
+      ],
+      "connection": "RDKit Mol → polymerize_rw/terminate_rw → 힘장 할당 → amorphous_cell → eq preset → LAMMPS",
+      "limitations": [
+        "스냅샷은 일부 핵심 소스이며 전체 패키지가 아닙니다.",
+        "원자별 힘장 파라미터와 전하가 없는 좌표만으로 전원자 물성을 계산하지 않습니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "radonpy/core/poly.py",
+          "line_start": 726,
+          "line_end": 734,
+          "symbol": "def polymerize_rw(",
+          "description": "사슬 생성",
+          "sha256": "1cb8ce58358a9a129435b7cf9af4d529941e7f176dad2eeb5aa355231e077cf8",
+          "url": "https://github.com/RadonPy/RadonPy/blob/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/core/poly.py#L726"
+        },
+        {
+          "path": "radonpy/core/poly.py",
+          "line_start": 1532,
+          "line_end": 1540,
+          "symbol": "def amorphous_cell(",
+          "description": "비정질 셀 생성",
+          "sha256": "1cb8ce58358a9a129435b7cf9af4d529941e7f176dad2eeb5aa355231e077cf8",
+          "url": "https://github.com/RadonPy/RadonPy/blob/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/core/poly.py#L1532"
+        },
+        {
+          "path": "radonpy/sim/lammps.py",
+          "line_start": 73,
+          "line_end": 81,
+          "symbol": "def exec(",
+          "description": "LAMMPS 실행 경계",
+          "sha256": "4a8bb86604af9848b3a6544faf59ea49f8ce22471e2e1c6e3675e116e847437f",
+          "url": "https://github.com/RadonPy/RadonPy/blob/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/lammps.py#L73"
+        },
+        {
+          "path": "radonpy/sim/preset/eq.py",
+          "line_start": 462,
+          "line_end": 470,
+          "symbol": "def exec(self, confId=0, temp=300.0",
+          "description": "평형화 실행",
+          "sha256": "fa4ef31a1d9ad17ffc9cc6596dcfe620323ad9c3ff2c514a866d4d5a5b5425e4",
+          "url": "https://github.com/RadonPy/RadonPy/blob/8834b9071ae93d9af36558a3c24545dd52e5ba1a/radonpy/sim/preset/eq.py#L462"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/radonpy.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_ea1906d1cc5a0cf89d1d6652be75878a5f9cc584cbcab11d19796673d713116f",
+          "graph_sha256": "24eb336ce6196d390753fd9350d833875b27dfdfbb7288a5d485a5c4f2476420",
+          "root_sha256": "3a7b370eb81f5f5b606de460a1fa3cc3c0fad2b1ee6b909d6465e010b34e6ed4",
+          "inventory_state": "partial",
+          "entry_count": 9,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/radonpy",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 0.916,
+          "stdout": "evidence/rea/radonpy.reference.json",
+          "stderr": "evidence/rea/radonpy.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:43.913684+00:00",
+          "source_set_sha256": "7eb3407b92cbe61d1ac06b51985d9685965b3b77d9d87717819a7cd116580904",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/RadonPy/RadonPy/blob/8834b9071ae93d9af36558a3c24545dd52e5ba1a/LICENSE"
+    },
+    {
+      "id": "lammps",
+      "name": "LAMMPS",
+      "repository": "lammps/lammps",
+      "url": "https://github.com/lammps/lammps",
+      "commit": "a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b",
+      "commit_date": "2026-10-15T19:18:40Z",
+      "source_files": [
+        {
+          "path": "README",
+          "github_blob_sha": "a9991bd814c754b0b0a746a00fb2fdbc7c152bf5",
+          "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/README",
+          "sha256": "4882d77e4b18cb6a25d14ee8f2c6b8e907c3e6afa38bee3c68f680a6aacd43b0",
+          "bytes": 2983,
+          "local_path": "evidence/sources/lammps/README",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "202b8cd796b992878c21245f7b80a51ab54b63c6",
+          "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/LICENSE",
+          "sha256": "be38e38d9482c2beae35408e413045b4363e0e067b0d9f31549047948637a7ed",
+          "bytes": 17712,
+          "local_path": "evidence/sources/lammps/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "python/lammps/core.py",
+          "github_blob_sha": "1cec463d6331526ebe9bb729c706fb729f6f058e",
+          "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/python/lammps/core.py",
+          "sha256": "9ae6d72c607d6ebb7ec4a7d5aca59ffa304639070be0c1559f39730276992738",
+          "bytes": 107240,
+          "local_path": "evidence/sources/lammps/python/lammps/core.py",
+          "verified": true
+        },
+        {
+          "path": "doc/src/Run_options.rst",
+          "github_blob_sha": "9314d65146f800b3013fe21c8e1d9596343dd3f1",
+          "source_url": "https://raw.githubusercontent.com/lammps/lammps/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/doc/src/Run_options.rst",
+          "sha256": "753fa35c1574731ae5da7994a59c0ada64a076ff38bc2d895afe3712c16c2760",
+          "bytes": 27693,
+          "local_path": "evidence/sources/lammps/doc/src/Run_options.rst",
+          "verified": true
+        }
+      ],
+      "license": "GPL-2.0",
+      "license_file": "LICENSE",
+      "role": "분자동역학 계산 엔진",
+      "inputs": [
+        "입력 스크립트",
+        "원자·결합·힘장·박스 데이터"
+      ],
+      "outputs": [
+        "로그",
+        "dump 궤적",
+        "restart/data 파일"
+      ],
+      "connection": "입력 스크립트를 독립 프로세스 또는 Python lammps.file()로 실행하고 결과를 MDAnalysis로 전달",
+      "limitations": [
+        "구동 가능한 패키지·퍼텐셜은 설치 빌드마다 다릅니다.",
+        "계산 단위 체계와 원자 ID를 후처리까지 보존해야 합니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "python/lammps/core.py",
+          "line_start": 127,
+          "line_end": 135,
+          "symbol": "class lammps:",
+          "description": "Python 라이브러리",
+          "sha256": "9ae6d72c607d6ebb7ec4a7d5aca59ffa304639070be0c1559f39730276992738",
+          "url": "https://github.com/lammps/lammps/blob/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/python/lammps/core.py#L127"
+        },
+        {
+          "path": "python/lammps/core.py",
+          "line_start": 794,
+          "line_end": 802,
+          "symbol": "def file(",
+          "description": "파일 실행",
+          "sha256": "9ae6d72c607d6ebb7ec4a7d5aca59ffa304639070be0c1559f39730276992738",
+          "url": "https://github.com/lammps/lammps/blob/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/python/lammps/core.py#L794"
+        },
+        {
+          "path": "python/lammps/core.py",
+          "line_start": 853,
+          "line_end": 861,
+          "symbol": "def commands_string(",
+          "description": "명령 묶음 실행",
+          "sha256": "9ae6d72c607d6ebb7ec4a7d5aca59ffa304639070be0c1559f39730276992738",
+          "url": "https://github.com/lammps/lammps/blob/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/python/lammps/core.py#L853"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/lammps.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_8d7a0aabd1ca929b9cbf7de720a1083f03d9601622efb41436a647f97688fcd4",
+          "graph_sha256": "8df325e78481993e4929629527545a7172b14d6c4ef28c8016009f7276768507",
+          "root_sha256": "9a951a841355a3b68b1fa9858200cf353396bb43f37e55879324d5ffe0e93084",
+          "inventory_state": "partial",
+          "entry_count": 8,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/lammps",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.016,
+          "stdout": "evidence/rea/lammps.reference.json",
+          "stderr": "evidence/rea/lammps.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:44.012863+00:00",
+          "source_set_sha256": "27e8e3958fab1331d173731713a9d5548e1cb8438deff7cc0d1874653f5f0b0b",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/lammps/lammps/blob/a0e2bd6efb3d67a29c0c4e4de3b19556ffdb9d5b/LICENSE"
+    },
+    {
+      "id": "rdkit",
+      "name": "RDKit",
+      "repository": "rdkit/rdkit",
+      "url": "https://github.com/rdkit/rdkit",
+      "commit": "4a0ae3ac1e7f038bdb7ce037efab40796219d371",
+      "commit_date": "2026-10-21T15:24:36Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "d6dea2d924e062fc03d190be7fa5fbc25695541e",
+          "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/README.md",
+          "sha256": "e3f46ec360f5aa3b8000ea36ea84bfc94511d60bcdb508fb3c19cc47a16dd1cd",
+          "bytes": 3801,
+          "local_path": "evidence/sources/rdkit/README.md",
+          "verified": true
+        },
+        {
+          "path": "license.txt",
+          "github_blob_sha": "a44b4f5514d036de96f06f3cded34f634fd14cde",
+          "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/license.txt",
+          "sha256": "daeb8d194502cbcf34c05c39541a0d02be65bc9bada5b891c1974cd24e9fca30",
+          "bytes": 1580,
+          "local_path": "evidence/sources/rdkit/license.txt",
+          "verified": true
+        },
+        {
+          "path": "rdkit/Chem/AllChem.py",
+          "github_blob_sha": "25c893b1b335fe25af3736d4c1b1413e69d4f1db",
+          "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/AllChem.py",
+          "sha256": "09d86eba00b7da0d692a5b71a604f8bbcde3be56a6e262c8435964c56f126aa1",
+          "bytes": 17005,
+          "local_path": "evidence/sources/rdkit/rdkit/Chem/AllChem.py",
+          "verified": true
+        },
+        {
+          "path": "rdkit/Chem/__init__.py",
+          "github_blob_sha": "f6213496edb8fb42382e645c94488b99c1eb46a1",
+          "source_url": "https://raw.githubusercontent.com/rdkit/rdkit/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/__init__.py",
+          "sha256": "4fe6189bd305d334657baaf1779a3999fee6e6e9bd4857711a630e84a30ca569",
+          "bytes": 10470,
+          "local_path": "evidence/sources/rdkit/rdkit/Chem/__init__.py",
+          "verified": true
+        }
+      ],
+      "license": "BSD-3-Clause",
+      "license_file": "license.txt",
+      "role": "화학 구조 입력·검증·3차원 conformer 생성",
+      "inputs": [
+        "SMILES/SDF",
+        "반복단위와 연결점"
+      ],
+      "outputs": [
+        "RDKit Mol",
+        "좌표·결합을 포함한 SDF/PDB"
+      ],
+      "connection": "화학 연결을 검증한 Mol을 RadonPy에 전달하고 구조 미리보기를 SDF로 저장",
+      "limitations": [
+        "3D conformer 및 UFF 최소화는 응축상 물성 예측과 다릅니다.",
+        "고분자 반복단위 연결 규칙은 별도 구현·검증이 필요합니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "rdkit/Chem/__init__.py",
+          "line_start": 26,
+          "line_end": 34,
+          "symbol": "from rdkit.Chem.rdmolfiles import",
+          "description": "분자 파일 입출력",
+          "sha256": "4fe6189bd305d334657baaf1779a3999fee6e6e9bd4857711a630e84a30ca569",
+          "url": "https://github.com/rdkit/rdkit/blob/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/__init__.py#L26"
+        },
+        {
+          "path": "rdkit/Chem/AllChem.py",
+          "line_start": 25,
+          "line_end": 33,
+          "symbol": "from rdkit.Chem.rdDistGeom import",
+          "description": "conformer 생성 API",
+          "sha256": "09d86eba00b7da0d692a5b71a604f8bbcde3be56a6e262c8435964c56f126aa1",
+          "url": "https://github.com/rdkit/rdkit/blob/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/AllChem.py#L25"
+        },
+        {
+          "path": "rdkit/Chem/AllChem.py",
+          "line_start": 27,
+          "line_end": 35,
+          "symbol": "from rdkit.Chem.rdForceFieldHelpers import",
+          "description": "분자 힘장 도우미",
+          "sha256": "09d86eba00b7da0d692a5b71a604f8bbcde3be56a6e262c8435964c56f126aa1",
+          "url": "https://github.com/rdkit/rdkit/blob/4a0ae3ac1e7f038bdb7ce037efab40796219d371/rdkit/Chem/AllChem.py#L27"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/rdkit.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_b5f87270762a214d677cbfe82b1cf33a3c138df409baebc6e74a2a3826d8e389",
+          "graph_sha256": "ea4874afcd38f222342f31f455c203f16f26459fcfc1da1d59e6f506c6a71908",
+          "root_sha256": "a2a542c91c56e4797eee41e24782822b29b74587dbfa249cef45c4df977c4bf7",
+          "inventory_state": "partial",
+          "entry_count": 6,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/rdkit",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.918,
+          "stdout": "evidence/rea/rdkit.reference.json",
+          "stderr": "evidence/rea/rdkit.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:44.914142+00:00",
+          "source_set_sha256": "7349c5aae7182639bdb28f775655f585da625738881928323cf8563c26806008",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/rdkit/rdkit/blob/4a0ae3ac1e7f038bdb7ce037efab40796219d371/license.txt"
+    },
+    {
+      "id": "mdanalysis",
+      "name": "MDAnalysis",
+      "repository": "MDAnalysis/mdanalysis",
+      "url": "https://github.com/MDAnalysis/mdanalysis",
+      "commit": "0fd2f58c1c257e4a6aba43be273a7bd7323a578c",
+      "commit_date": "2026-10-21T08:23:52Z",
+      "source_files": [
+        {
+          "path": "README.rst",
+          "github_blob_sha": "40e922e575d3229e241323213d83c314eca2becc",
+          "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/README.rst",
+          "sha256": "aee8fbeb2a61bc9d2949ce2611b026fb1ea3d57355e4fcc6890be6ae2a0b19d1",
+          "bytes": 9742,
+          "local_path": "evidence/sources/mdanalysis/README.rst",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "8d0eeadd954c9be8e92354f501c92d866ccea409",
+          "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/LICENSE",
+          "sha256": "7614dd55e5b9851e0a2d197abc0e319dd10034f5a729aa7e698193aa7a8779e9",
+          "bytes": 82409,
+          "local_path": "evidence/sources/mdanalysis/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "package/MDAnalysis/core/universe.py",
+          "github_blob_sha": "e4534461b71bb456afcf06b8ffea80a508d7d9aa",
+          "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/core/universe.py",
+          "sha256": "7f4e330df7f869b09c924a90755cc500f9b418de6034cba5ab1890236b25151d",
+          "bytes": 84197,
+          "local_path": "evidence/sources/mdanalysis/package/MDAnalysis/core/universe.py",
+          "verified": true
+        },
+        {
+          "path": "package/MDAnalysis/analysis/polymer.py",
+          "github_blob_sha": "7a0510eab038cb76d03bd256099f716db4ceeee1",
+          "source_url": "https://raw.githubusercontent.com/MDAnalysis/mdanalysis/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/analysis/polymer.py",
+          "sha256": "cb299fb85238532659e6756900d021c482821dc1dfcfd10b19793fc397218e2b",
+          "bytes": 12808,
+          "local_path": "evidence/sources/mdanalysis/package/MDAnalysis/analysis/polymer.py",
+          "verified": true
+        }
+      ],
+      "license": "LGPL-3.0-or-later",
+      "license_file": "LICENSE",
+      "role": "토폴로지·궤적 기반 분자 분석",
+      "inputs": [
+        "토폴로지",
+        "시간순 궤적"
+      ],
+      "outputs": [
+        "프레임별 좌표",
+        "사슬 persistence length 등 분석값"
+      ],
+      "connection": "Universe(topology, trajectory) → 원자 선택·사슬 분리 → 분석 → 공통 결과 JSON",
+      "limitations": [
+        "주기경계 unwrap, 원자 순서, 질량, 시간 및 길이 단위가 분석에 영향을 줍니다.",
+        "현재 스냅샷 라이선스는 LGPL-3.0+이며 설치한 구버전 조건은 별도 확인 대상입니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "package/MDAnalysis/core/universe.py",
+          "line_start": 331,
+          "line_end": 339,
+          "symbol": "class Universe(object):",
+          "description": "토폴로지·궤적 컨테이너",
+          "sha256": "7f4e330df7f869b09c924a90755cc500f9b418de6034cba5ab1890236b25151d",
+          "url": "https://github.com/MDAnalysis/mdanalysis/blob/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/core/universe.py#L331"
+        },
+        {
+          "path": "package/MDAnalysis/analysis/polymer.py",
+          "line_start": 109,
+          "line_end": 117,
+          "symbol": "class PersistenceLength(",
+          "description": "고분자 분석",
+          "sha256": "cb299fb85238532659e6756900d021c482821dc1dfcfd10b19793fc397218e2b",
+          "url": "https://github.com/MDAnalysis/mdanalysis/blob/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/package/MDAnalysis/analysis/polymer.py#L109"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/mdanalysis.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_5c06d23ca76b2a95cc52c946e479a897718ad83c289e0be64b18596fa0f973b3",
+          "graph_sha256": "6d8bd5e1b0bb603f424f8fc79940c1c8065068f2f533f6b6678dec8c2d0715a2",
+          "root_sha256": "63f429bde1b7c8f03b57fc8c2980ebc8dfac8267d8f8afc7a8e821e86de9c185",
+          "inventory_state": "partial",
+          "entry_count": 8,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/mdanalysis",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.066,
+          "stdout": "evidence/rea/mdanalysis.reference.json",
+          "stderr": "evidence/rea/mdanalysis.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:44.982818+00:00",
+          "source_set_sha256": "ce5c5e1f88a25140d511201259a45c0835734baa064365e4af195e4229d3e1bf",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/MDAnalysis/mdanalysis/blob/0fd2f58c1c257e4a6aba43be273a7bd7323a578c/LICENSE"
+    },
+    {
+      "id": "3dmol",
+      "name": "3Dmol.js",
+      "repository": "3dmol/3Dmol.js",
+      "url": "https://github.com/3dmol/3Dmol.js",
+      "commit": "c46c63b15881d41ff571e1579a11500bacf60b80",
+      "commit_date": "2026-10-21T00:04:59Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "583ddb7aff8e5b67c274b4a815ec23d164cac014",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/README.md",
+          "sha256": "98112a8d344dc8b8a2fe1ddac57eadff57b3e8bcd9a4df63b4a385214baa8a63",
+          "bytes": 3904,
+          "local_path": "evidence/sources/3dmol/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "1b2a16924434597c8df20bbcc8de544ecf11c794",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/LICENSE",
+          "sha256": "4c6eaaed856f3f28a3b1a98e74f4a8a71618de7d51ea4155c29f6f793bcef861",
+          "bytes": 4283,
+          "local_path": "evidence/sources/3dmol/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "package.json",
+          "github_blob_sha": "3c079c56136762482e207cfcacb22ab8b9eaa0fc",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/package.json",
+          "sha256": "2f63f83a80edf5bd6a5564653a531365de38150c94dfb2e270486ebed0970746",
+          "bytes": 2965,
+          "local_path": "evidence/sources/3dmol/package.json",
+          "verified": true
+        },
+        {
+          "path": "src/3Dmol.ts",
+          "github_blob_sha": "082525441b3c108837e196d43d268859049cb902",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/3Dmol.ts",
+          "sha256": "ca098203ff3a99741f025f825317330b41c920f74d9ba4036da98d720eb05cf1",
+          "bytes": 522,
+          "local_path": "evidence/sources/3dmol/src/3Dmol.ts",
+          "verified": true
+        },
+        {
+          "path": "src/GLViewer.ts",
+          "github_blob_sha": "182abf8e1e26c288fad63646e49ce2f1790cbb4d",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLViewer.ts",
+          "sha256": "9ebc81e31740adce48d638fe75a74ee043772eed73186eae4acd650d4e5196fa",
+          "bytes": 193546,
+          "local_path": "evidence/sources/3dmol/src/GLViewer.ts",
+          "verified": true
+        },
+        {
+          "path": "src/GLModel.ts",
+          "github_blob_sha": "311ed9b57930877f859db71b69c786bc1b26b423",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLModel.ts",
+          "sha256": "31e2da7321b970a8c3fef22b69575f839e572b3c9a726c97f0137e28569a2090",
+          "bytes": 161019,
+          "local_path": "evidence/sources/3dmol/src/GLModel.ts",
+          "verified": true
+        },
+        {
+          "path": "webpack.config.js",
+          "github_blob_sha": "c70c99c37c47f8fd1c39e1f8183618b4e105d562",
+          "source_url": "https://raw.githubusercontent.com/3dmol/3Dmol.js/c46c63b15881d41ff571e1579a11500bacf60b80/webpack.config.js",
+          "sha256": "a5c048402443901be6f8317096fad0eb97b4dfccbaa1bb08c93219aa526649d6",
+          "bytes": 2318,
+          "local_path": "evidence/sources/3dmol/webpack.config.js",
+          "verified": true
+        }
+      ],
+      "license": "BSD-3-Clause; bundled third-party notices",
+      "license_file": "LICENSE",
+      "role": "브라우저 분자 3D 화면",
+      "inputs": [
+        "SDF/PDB/mmCIF 등 구조 텍스트",
+        "프레임·스타일·선택 정보"
+      ],
+      "outputs": [
+        "WebGL 화면",
+        "선택·카메라·프레임 상태"
+      ],
+      "connection": "$3Dmol.createViewer → addModel(data, format) → setStyle → zoomTo → render",
+      "limitations": [
+        "REA 정적 분석은 보관한 일부 TypeScript/JavaScript 파일에 한정됩니다.",
+        "참조 파일 일부가 스냅샷에 없으므로 unresolved imports가 존재합니다.",
+        "분자 뷰어는 계산 엔진이 아닙니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "src/GLViewer.ts",
+          "line_start": 5001,
+          "line_end": 5009,
+          "symbol": "export function createViewer(",
+          "description": "뷰어 생성",
+          "sha256": "9ebc81e31740adce48d638fe75a74ee043772eed73186eae4acd650d4e5196fa",
+          "url": "https://github.com/3dmol/3Dmol.js/blob/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLViewer.ts#L5001"
+        },
+        {
+          "path": "src/GLViewer.ts",
+          "line_start": 3702,
+          "line_end": 3710,
+          "symbol": "public addModel(",
+          "description": "구조 로딩",
+          "sha256": "9ebc81e31740adce48d638fe75a74ee043772eed73186eae4acd650d4e5196fa",
+          "url": "https://github.com/3dmol/3Dmol.js/blob/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLViewer.ts#L3702"
+        },
+        {
+          "path": "src/GLModel.ts",
+          "line_start": 29,
+          "line_end": 37,
+          "symbol": "export class GLModel",
+          "description": "분자 모델",
+          "sha256": "31e2da7321b970a8c3fef22b69575f839e572b3c9a726c97f0137e28569a2090",
+          "url": "https://github.com/3dmol/3Dmol.js/blob/c46c63b15881d41ff571e1579a11500bacf60b80/src/GLModel.ts#L29"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory_and_static_javascript",
+        "raw_output": "evidence/rea/3dmol.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_a662d8594d5aa9e6a092029c989b33acdd6dce06f0572cf89ffd6ea4901f6ec4",
+          "graph_sha256": "b38e9f8de27f2a9ef73db2199cc974e406334680ec56bfb27022ea05aebb373d",
+          "root_sha256": "37c6c2f5dd722938e0d50eb3da8df143719b2ae06c890d08c2b3cc40c32c7f6d",
+          "inventory_state": "partial",
+          "entry_count": 8,
+          "relationship_count": 54
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/3dmol",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.317,
+          "stdout": "evidence/rea/3dmol.reference.json",
+          "stderr": "evidence/rea/3dmol.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:45.331804+00:00",
+          "source_set_sha256": "678e877bee5fc187c84c90c5a931b45e64fa961f9d300e6bc67f421b09c2c6a0",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다.",
+        "javascript_raw_output": "evidence/rea/3dmol.javascript.json",
+        "javascript_evidence_id": "ev_178199af4fff08962b58a74e1af90e51d6f2bef835b8ba15ec4c0acd16cc6a83",
+        "javascript_stats": {
+          "relevant_files": 5,
+          "nested_asar_containers": 0,
+          "text_bytes_read": 360370,
+          "invalid_utf8_files": 0,
+          "parsed_javascript_files": 4,
+          "skipped_javascript_files": 0,
+          "visited_ast_nodes": 39157,
+          "findings": 219,
+          "modules": 0,
+          "parse_failures": 0
+        },
+        "javascript_limitations": [
+          "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+          "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+          "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+          "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+          "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+          "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+        ],
+        "javascript_status": "verified"
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/3dmol/3Dmol.js/blob/c46c63b15881d41ff571e1579a11500bacf60b80/LICENSE"
+    },
+    {
+      "id": "packmol",
+      "name": "PACKMOL",
+      "repository": "m3g/packmol",
+      "url": "https://github.com/m3g/packmol",
+      "commit": "14e50c65fa9120b58e1ba33ad482c7c7260f72b2",
+      "commit_date": "2026-05-27T14:20:14Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "79ef999e090bea5b6c211400833b49af3a8fc5d2",
+          "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/README.md",
+          "sha256": "796541d8a6af78229c11b0bb75092fb5dc80159cc129c3b21f7d6269ca1da6d5",
+          "bytes": 3619,
+          "local_path": "evidence/sources/packmol/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "8db8be26484288e76741875de1ee9eb416db210c",
+          "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/LICENSE",
+          "sha256": "b7f87d528cc3b9b8d8724ec67ed47754e05fb984a63e2cb6dd3167e62df86af7",
+          "bytes": 1118,
+          "local_path": "evidence/sources/packmol/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "app/packmol.f90",
+          "github_blob_sha": "270831840c939b7987ce68e277773e52b82fc5b8",
+          "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/app/packmol.f90",
+          "sha256": "8d539bae69e3c639c16a1b559b8e76306c3e33d9e7bdf416bd4fbad4b33c21fe",
+          "bytes": 32036,
+          "local_path": "evidence/sources/packmol/app/packmol.f90",
+          "verified": true
+        },
+        {
+          "path": "src/input.f90",
+          "github_blob_sha": "b464582ab5487c362a16e4a598326617e8e1b00d",
+          "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/input.f90",
+          "sha256": "18592a215f6ee45228ce0c38e1929655a996a64da76feca8ff3a5c456f056550",
+          "bytes": 2672,
+          "local_path": "evidence/sources/packmol/src/input.f90",
+          "verified": true
+        },
+        {
+          "path": "src/getinp.f90",
+          "github_blob_sha": "0f8e54699f7e8e0e09a2bdcb1260aebfa1bb71a3",
+          "source_url": "https://raw.githubusercontent.com/m3g/packmol/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/getinp.f90",
+          "sha256": "b90901186b50b7df4c00924e53ad834fc31fd4402fed3f191a658d79250d814b",
+          "bytes": 43278,
+          "local_path": "evidence/sources/packmol/src/getinp.f90",
+          "verified": true
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "role": "고분자·용매·첨가제 초기 공간 배치",
+      "inputs": [
+        "구조 파일",
+        "분자 개수·영역·거리 허용치 설정"
+      ],
+      "outputs": [
+        "초기 배치 좌표 파일"
+      ],
+      "connection": "구조 파일과 .inp 설정 → packmol stdin → 배치 좌표 → 힘장·토폴로지 단계",
+      "limitations": [
+        "좌표 배치만 담당하며 전하·힘장·평형화는 별도입니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "app/packmol.f90",
+          "line_start": 34,
+          "line_end": 42,
+          "symbol": "program packmol",
+          "description": "Fortran 프로그램",
+          "sha256": "8d539bae69e3c639c16a1b559b8e76306c3e33d9e7bdf416bd4fbad4b33c21fe",
+          "url": "https://github.com/m3g/packmol/blob/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/app/packmol.f90#L34"
+        },
+        {
+          "path": "src/getinp.f90",
+          "line_start": 265,
+          "line_end": 273,
+          "symbol": "! Checking for the name of the output file",
+          "description": "출력 파일 설정",
+          "sha256": "b90901186b50b7df4c00924e53ad834fc31fd4402fed3f191a658d79250d814b",
+          "url": "https://github.com/m3g/packmol/blob/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/getinp.f90#L265"
+        },
+        {
+          "path": "src/getinp.f90",
+          "line_start": 567,
+          "line_end": 575,
+          "symbol": "! Getting the tolerance",
+          "description": "거리 허용치 읽기",
+          "sha256": "b90901186b50b7df4c00924e53ad834fc31fd4402fed3f191a658d79250d814b",
+          "url": "https://github.com/m3g/packmol/blob/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/src/getinp.f90#L567"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/packmol.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_2b13d16eea64550e44c8a0d0874faaa5aacb75d49e9747e8547ec86fc8e9cf83",
+          "graph_sha256": "6d0f1b2c067f06c4ed509a3516313d4c408931f371712c9e8ea5487e906f04a9",
+          "root_sha256": "665fd14dcc09c6a797d4dcada0c8aad7603e0d07e64c6026289f3e35963d5718",
+          "inventory_state": "partial",
+          "entry_count": 7,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/packmol",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.367,
+          "stdout": "evidence/rea/packmol.reference.json",
+          "stderr": "evidence/rea/packmol.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:46.283342+00:00",
+          "source_set_sha256": "ea025867e5545ff204cd92566559a2087110b8293ffec52ed84bd48ae7eda23c",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/m3g/packmol/blob/14e50c65fa9120b58e1ba33ad482c7c7260f72b2/LICENSE"
+    },
+    {
+      "id": "pysimm",
+      "name": "pysimm",
+      "repository": "polysimtools/pysimm",
+      "url": "https://github.com/polysimtools/pysimm",
+      "commit": "fb33814128189a99d3c8d7c4eddac2dfe44262fe",
+      "commit_date": "2022-06-26T23:56:58Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "2ecc24a209b12378e7e76793f33a09f0286d1539",
+          "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/README.md",
+          "sha256": "6bc73a510fa62d023a5afd020c4f445320142f97a778c6595c2b82ff254e28c3",
+          "bytes": 7663,
+          "local_path": "evidence/sources/pysimm/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "10bd50fcbf12346597e8d3097caea0a4d7ecff2b",
+          "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/LICENSE",
+          "sha256": "6ec396b5bc668be729e0c78a8dfd92ff8cda1146fa359a56d9255c2ec06ee7b7",
+          "bytes": 1105,
+          "local_path": "evidence/sources/pysimm/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "pysimm/lmps.py",
+          "github_blob_sha": "c69fa7b96e4dcf98954602c8555015e9613b9514",
+          "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/lmps.py",
+          "sha256": "73e870b728a145cc67778460748bf64803386161ce41fdc794a777b18f434dd9",
+          "bytes": 45939,
+          "local_path": "evidence/sources/pysimm/pysimm/lmps.py",
+          "verified": true
+        },
+        {
+          "path": "pysimm/apps/random_walk.py",
+          "github_blob_sha": "20a10f92a5edc80c44f09eb631cf9a677d3e0a25",
+          "source_url": "https://raw.githubusercontent.com/polysimtools/pysimm/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/apps/random_walk.py",
+          "sha256": "9e127e3eaf09045863526485885839b645ee01688157c646d51ceeac870cec09",
+          "bytes": 37078,
+          "local_path": "evidence/sources/pysimm/pysimm/apps/random_walk.py",
+          "verified": true
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "role": "고분자 모델링 및 LAMMPS 실행 보조",
+      "inputs": [
+        "pysimm System",
+        "힘장 및 실행 설정"
+      ],
+      "outputs": [
+        "LAMMPS 입력",
+        "계산 후 System 및 파일"
+      ],
+      "connection": "System → lmps.Simulation → run(); LAMMPS_EXEC 환경 변수가 실행 파일을 지정",
+      "limitations": [
+        "RadonPy와 별도의 분자 객체/힘장 체계를 가지므로 명시적인 변환이 필요합니다.",
+        "가져온 기본 브랜치의 마지막 커밋은 2022년입니다; 현 환경 실행 호환성은 따로 검증합니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "pysimm/lmps.py",
+          "line_start": 60,
+          "line_end": 68,
+          "symbol": "LAMMPS_EXEC =",
+          "description": "실행 파일 설정",
+          "sha256": "73e870b728a145cc67778460748bf64803386161ce41fdc794a777b18f434dd9",
+          "url": "https://github.com/polysimtools/pysimm/blob/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/lmps.py#L60"
+        },
+        {
+          "path": "pysimm/lmps.py",
+          "line_start": 801,
+          "line_end": 809,
+          "symbol": "class Simulation(object):",
+          "description": "시뮬레이션 객체",
+          "sha256": "73e870b728a145cc67778460748bf64803386161ce41fdc794a777b18f434dd9",
+          "url": "https://github.com/polysimtools/pysimm/blob/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/lmps.py#L801"
+        },
+        {
+          "path": "pysimm/lmps.py",
+          "line_start": 936,
+          "line_end": 944,
+          "symbol": "def run(self, np=",
+          "description": "실행 API",
+          "sha256": "73e870b728a145cc67778460748bf64803386161ce41fdc794a777b18f434dd9",
+          "url": "https://github.com/polysimtools/pysimm/blob/fb33814128189a99d3c8d7c4eddac2dfe44262fe/pysimm/lmps.py#L936"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/pysimm.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_40bb37acbf854e9e23866aef2cfef0cef1bc6feadd23658f323f96c378ed0c71",
+          "graph_sha256": "11ffbb736aeaebe08c05ebb45c1e779e93c98961165e510a6ea1aa68451b9df7",
+          "root_sha256": "e40cf3a89cf1d5ca849d97b5da0f99a32a3a54840749a573e778248c1a030453",
+          "inventory_state": "partial",
+          "entry_count": 6,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/pysimm",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.266,
+          "stdout": "evidence/rea/pysimm.reference.json",
+          "stderr": "evidence/rea/pysimm.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:46.250896+00:00",
+          "source_set_sha256": "82f8d51d43282acd82dd44dd31aeb0604942e47cad8f4d88b60bf767a0269037",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/polysimtools/pysimm/blob/fb33814128189a99d3c8d7c4eddac2dfe44262fe/LICENSE"
+    },
+    {
+      "id": "polyply",
+      "name": "polyply",
+      "repository": "marrink-lab/polyply_1.0",
+      "url": "https://github.com/marrink-lab/polyply_1.0",
+      "commit": "38d4d5424e1ef35c86e7cb8532fbd86ecf997221",
+      "commit_date": "2026-07-07T12:39:53Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "e8d49eabbd5be8b9695fc95bc74977f8c8ef98d6",
+          "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/README.md",
+          "sha256": "4c255f93f7559d1aac0a83fd57ab0488e668e24b720423f28e66a08d2c656ce1",
+          "bytes": 7205,
+          "local_path": "evidence/sources/polyply/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "bytes": 11357,
+          "local_path": "evidence/sources/polyply/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "bin/polyply",
+          "github_blob_sha": "61efe8dc195a9c11d08b51c92b692c92efeb1632",
+          "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/bin/polyply",
+          "sha256": "9bcb5a4593440741c31d82c7dd0506a3338d44c7fe612dbe011a8c8749db51e5",
+          "bytes": 16407,
+          "local_path": "evidence/sources/polyply/bin/polyply",
+          "verified": true
+        },
+        {
+          "path": "polyply/src/gen_coords.py",
+          "github_blob_sha": "f14bd277fa3046d11e85ad1cab5a74b8f95cc155",
+          "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_coords.py",
+          "sha256": "09560bd34f4c07826034c2bea188d7145e622a37bbd1eb4182da4f5ad119bdd2",
+          "bytes": 11621,
+          "local_path": "evidence/sources/polyply/polyply/src/gen_coords.py",
+          "verified": true
+        },
+        {
+          "path": "polyply/src/gen_itp.py",
+          "github_blob_sha": "a982c2bf650744d8d2304d182c51bec3d420af91",
+          "source_url": "https://raw.githubusercontent.com/marrink-lab/polyply_1.0/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_itp.py",
+          "sha256": "0d6b3a362c29fce544041cc86a43565111e6c20b207db58657c9751bc958767e",
+          "bytes": 8513,
+          "local_path": "evidence/sources/polyply/polyply/src/gen_itp.py",
+          "verified": true
+        }
+      ],
+      "license": "Apache-2.0",
+      "license_file": "LICENSE",
+      "role": "원자·조대화 고분자 토폴로지 및 좌표 생성",
+      "inputs": [
+        "잔기 서열",
+        "지원 라이브러리/힘장 블록",
+        "topology와 build 설정"
+      ],
+      "outputs": [
+        "ITP 토폴로지",
+        "GRO 좌표"
+      ],
+      "connection": "polyply gen_params → ITP/TOP → polyply gen_coords → GRO → GROMACS grompp/mdrun",
+      "limitations": [
+        "gen_params는 gen_itp 별칭이며 내부 구현 파일은 gen_itp.py입니다.",
+        "임의 SMILES를 Martini 힘장으로 자동 변환하는 도구로 가정하지 않습니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "bin/polyply",
+          "line_start": 51,
+          "line_end": 59,
+          "symbol": "subparsers.add_parser('gen_params'",
+          "description": "CLI 토폴로지 명령",
+          "sha256": "9bcb5a4593440741c31d82c7dd0506a3338d44c7fe612dbe011a8c8749db51e5",
+          "url": "https://github.com/marrink-lab/polyply_1.0/blob/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/bin/polyply#L51"
+        },
+        {
+          "path": "bin/polyply",
+          "line_start": 52,
+          "line_end": 60,
+          "symbol": "subparsers.add_parser('gen_coords'",
+          "description": "CLI 좌표 명령",
+          "sha256": "9bcb5a4593440741c31d82c7dd0506a3338d44c7fe612dbe011a8c8749db51e5",
+          "url": "https://github.com/marrink-lab/polyply_1.0/blob/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/bin/polyply#L52"
+        },
+        {
+          "path": "polyply/src/gen_itp.py",
+          "line_start": 42,
+          "line_end": 50,
+          "symbol": "def gen_params(",
+          "description": "ITP 생성 구현",
+          "sha256": "0d6b3a362c29fce544041cc86a43565111e6c20b207db58657c9751bc958767e",
+          "url": "https://github.com/marrink-lab/polyply_1.0/blob/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_itp.py#L42"
+        },
+        {
+          "path": "polyply/src/gen_coords.py",
+          "line_start": 96,
+          "line_end": 104,
+          "symbol": "def gen_coords(",
+          "description": "좌표 생성 구현",
+          "sha256": "09560bd34f4c07826034c2bea188d7145e622a37bbd1eb4182da4f5ad119bdd2",
+          "url": "https://github.com/marrink-lab/polyply_1.0/blob/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/polyply/src/gen_coords.py#L96"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/polyply.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_b2e83f4b89e331a0cbe0a1dcec93a05463c0bf1b931f488f1788dfa2554a0976",
+          "graph_sha256": "3a1c3407793f094a96cb7b77e7252f7a58abe700af3d501e92270921d8b80bc2",
+          "root_sha256": "57e9de6019bf0a5eb950560a0c48e3631aafc1b4c56eee1978cf8c48fdb083c2",
+          "inventory_state": "partial",
+          "entry_count": 8,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/polyply",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.171,
+          "stdout": "evidence/rea/polyply.reference.json",
+          "stderr": "evidence/rea/polyply.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:46.505238+00:00",
+          "source_set_sha256": "90096c714f23939764fcdd71e32f7d6d4fe13bc68271c5259fe1f66cbcce9066",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/marrink-lab/polyply_1.0/blob/38d4d5424e1ef35c86e7cb8532fbd86ecf997221/LICENSE"
+    },
+    {
+      "id": "gromacs",
+      "name": "GROMACS",
+      "repository": "gromacs/gromacs",
+      "url": "https://github.com/gromacs/gromacs",
+      "commit": "8114322e2eae9ee44b94e45188b614638a90f098",
+      "commit_date": "2026-10-21T13:24:33Z",
+      "source_files": [
+        {
+          "path": "README",
+          "github_blob_sha": "cb16a28b92f2bc5f19d49160e02af24ceeab308d",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/README",
+          "sha256": "8e6a6a4b73ddbdf810b85e05ddd74a9f84eda4574cdadc761f3b3da004642d4d",
+          "bytes": 4712,
+          "local_path": "evidence/sources/gromacs/README",
+          "verified": true
+        },
+        {
+          "path": "COPYING",
+          "github_blob_sha": "58af0d3787aec7d6f8d833535d64879156e7ec23",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/COPYING",
+          "sha256": "b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe",
+          "bytes": 26526,
+          "local_path": "evidence/sources/gromacs/COPYING",
+          "verified": true
+        },
+        {
+          "path": "src/programs/gmx.cpp",
+          "github_blob_sha": "5c69042e6b6a6276976b14938bdd44c98269dad8",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/gmx.cpp",
+          "sha256": "0ed258fcd08f5ef1f854739d4a9f9bdc9d5295225fc01baf1faaa4ba65b394ba",
+          "bytes": 2741,
+          "local_path": "evidence/sources/gromacs/src/programs/gmx.cpp",
+          "verified": true
+        },
+        {
+          "path": "docs/user-guide/mdp-options.rst",
+          "github_blob_sha": "21bc970882beb2e3e15e935c058ca71ecf81cc54",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/docs/user-guide/mdp-options.rst",
+          "sha256": "2b735a22a5e899aaa59c0251a243909d48e67f6144e3e4a28cf0e4e5c0b2c6f4",
+          "bytes": 144668,
+          "local_path": "evidence/sources/gromacs/docs/user-guide/mdp-options.rst",
+          "verified": true
+        },
+        {
+          "path": "src/gromacs/gmxpreprocess/grompp.cpp",
+          "github_blob_sha": "c7204f9016988fb5831cc9a0f48a641f9313dc38",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/gromacs/gmxpreprocess/grompp.cpp",
+          "sha256": "cef1720888d70c287f1030c982ae539c35c0685d292e80747fbb01efd1545119",
+          "bytes": 111836,
+          "local_path": "evidence/sources/gromacs/src/gromacs/gmxpreprocess/grompp.cpp",
+          "verified": true
+        },
+        {
+          "path": "src/programs/mdrun/mdrun.cpp",
+          "github_blob_sha": "aa213bd6611b282278a3eedd4620bf7de2b6738e",
+          "source_url": "https://raw.githubusercontent.com/gromacs/gromacs/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/mdrun/mdrun.cpp",
+          "sha256": "85cfdc5dcb643c738da3efd4d2cad90cfa8d6744c55693cc9a95cf4ee1c8db46",
+          "bytes": 16641,
+          "local_path": "evidence/sources/gromacs/src/programs/mdrun/mdrun.cpp",
+          "verified": true
+        }
+      ],
+      "license": "LGPL-2.1",
+      "license_file": "COPYING",
+      "role": "전원자 및 조대화 분자동역학 엔진",
+      "inputs": [
+        "MDP 실행 설정",
+        "TOP/ITP 토폴로지",
+        "GRO/PDB 좌표 또는 TPR"
+      ],
+      "outputs": [
+        "TPR 실행 입력",
+        "궤적·에너지·로그·체크포인트"
+      ],
+      "connection": "gmx grompp로 입력을 검증·컴파일 → gmx mdrun으로 실행 → MDAnalysis 분석",
+      "limitations": [
+        "LAMMPS와 단위·힘장 표현이 달라 좌표만 변환해서 동등한 모델이 되지 않습니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "src/programs/gmx.cpp",
+          "line_start": 56,
+          "line_end": 64,
+          "symbol": "int main(",
+          "description": "명령 디스패치",
+          "sha256": "0ed258fcd08f5ef1f854739d4a9f9bdc9d5295225fc01baf1faaa4ba65b394ba",
+          "url": "https://github.com/gromacs/gromacs/blob/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/gmx.cpp#L56"
+        },
+        {
+          "path": "src/gromacs/gmxpreprocess/grompp.cpp",
+          "line_start": 2108,
+          "line_end": 2116,
+          "symbol": "int gmx_grompp(",
+          "description": "전처리 실행",
+          "sha256": "cef1720888d70c287f1030c982ae539c35c0685d292e80747fbb01efd1545119",
+          "url": "https://github.com/gromacs/gromacs/blob/8114322e2eae9ee44b94e45188b614638a90f098/src/gromacs/gmxpreprocess/grompp.cpp#L2108"
+        },
+        {
+          "path": "src/gromacs/gmxpreprocess/grompp.cpp",
+          "line_start": 2217,
+          "line_end": 2225,
+          "symbol": "t_filenm fnm[]",
+          "description": "전처리 입출력",
+          "sha256": "cef1720888d70c287f1030c982ae539c35c0685d292e80747fbb01efd1545119",
+          "url": "https://github.com/gromacs/gromacs/blob/8114322e2eae9ee44b94e45188b614638a90f098/src/gromacs/gmxpreprocess/grompp.cpp#L2217"
+        },
+        {
+          "path": "src/programs/mdrun/mdrun.cpp",
+          "line_start": 90,
+          "line_end": 98,
+          "symbol": "int gmx_mdrun(int argc",
+          "description": "MD 실행",
+          "sha256": "85cfdc5dcb643c738da3efd4d2cad90cfa8d6744c55693cc9a95cf4ee1c8db46",
+          "url": "https://github.com/gromacs/gromacs/blob/8114322e2eae9ee44b94e45188b614638a90f098/src/programs/mdrun/mdrun.cpp#L90"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/gromacs.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_fe5a2c7f012d441527bd7f40cddd7dacf1f42eaba394b6f564ae69b00729f59b",
+          "graph_sha256": "293bcf217aad29b8e21a1dedafea3294407290737c44a55c1d9a8eb927e9aa2b",
+          "root_sha256": "7544151611fdea0cb8c4751bf9f28b1b571c1265609ab120b29b7fe7445e4767",
+          "inventory_state": "partial",
+          "entry_count": 13,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/gromacs",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.468,
+          "stdout": "evidence/rea/gromacs.reference.json",
+          "stderr": "evidence/rea/gromacs.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:47.721263+00:00",
+          "source_set_sha256": "61355788fc4ae10568fbe2f68b268144a5608c1fba09f1ce8328916fbae3371a",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/gromacs/gromacs/blob/8114322e2eae9ee44b94e45188b614638a90f098/COPYING"
+    },
+    {
+      "id": "hoomd",
+      "name": "HOOMD-blue",
+      "repository": "glotzerlab/hoomd-blue",
+      "url": "https://github.com/glotzerlab/hoomd-blue",
+      "commit": "3a5ef59990c5129d5d1b08da115215bf279d8259",
+      "commit_date": "2026-10-22T01:17:19Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "77de690b65f3ef7dcbd094d8191c4aa6988bac27",
+          "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/README.md",
+          "sha256": "349d02a33ee43a8c14548cc0b207187546ede3d8bbb29fe525f29733a8273f2b",
+          "bytes": 4309,
+          "local_path": "evidence/sources/hoomd/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "5159a05b6461d95f1200f5f2e7e3f7c1d3edec34",
+          "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/LICENSE",
+          "sha256": "f22a68da2b61f63ea6f53f7be3e3478d6d3e638fd4b2bb5d6560cedcf09e556a",
+          "bytes": 1532,
+          "local_path": "evidence/sources/hoomd/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "hoomd/simulation.py",
+          "github_blob_sha": "6779b395f1a1bda7f2f5c653a477fb00b270a09b",
+          "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/simulation.py",
+          "sha256": "74e83a9149fd13cf38ee3d75f280085d42acaed4abf6196d9b1716690af72c3e",
+          "bytes": 20108,
+          "local_path": "evidence/sources/hoomd/hoomd/simulation.py",
+          "verified": true
+        },
+        {
+          "path": "hoomd/md/integrate.py",
+          "github_blob_sha": "deed943a97c96444b0580d29024fdddbd95702c7",
+          "source_url": "https://raw.githubusercontent.com/glotzerlab/hoomd-blue/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/md/integrate.py",
+          "sha256": "1221f29d1789b521adaa9ad588271a7f064c298efef09d97387cf74432797587",
+          "bytes": 15018,
+          "local_path": "evidence/sources/hoomd/hoomd/md/integrate.py",
+          "verified": true
+        }
+      ],
+      "license": "BSD-3-Clause",
+      "license_file": "LICENSE",
+      "role": "CPU/GPU 조대화 연성물질 시뮬레이션",
+      "inputs": [
+        "Snapshot 또는 GSD",
+        "입자·결합·힘·적분기·단위 정의"
+      ],
+      "outputs": [
+        "시뮬레이션 state",
+        "설정한 writer의 GSD/로그"
+      ],
+      "connection": "Simulation → create_state_from_snapshot/GSD → md.Integrator → run(steps) → GSD 분석",
+      "limitations": [
+        "전원자 모델과 조대화 모델의 에너지·길이·시간 척도는 따로 정의해야 합니다.",
+        "GPU 지원 여부는 빌드·장치에 의존합니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "hoomd/simulation.py",
+          "line_start": 34,
+          "line_end": 42,
+          "symbol": "class Simulation(",
+          "description": "시뮬레이션 객체",
+          "sha256": "74e83a9149fd13cf38ee3d75f280085d42acaed4abf6196d9b1716690af72c3e",
+          "url": "https://github.com/glotzerlab/hoomd-blue/blob/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/simulation.py#L34"
+        },
+        {
+          "path": "hoomd/simulation.py",
+          "line_start": 193,
+          "line_end": 201,
+          "symbol": "def create_state_from_gsd(",
+          "description": "GSD 입력",
+          "sha256": "74e83a9149fd13cf38ee3d75f280085d42acaed4abf6196d9b1716690af72c3e",
+          "url": "https://github.com/glotzerlab/hoomd-blue/blob/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/simulation.py#L193"
+        },
+        {
+          "path": "hoomd/simulation.py",
+          "line_start": 484,
+          "line_end": 492,
+          "symbol": "def run(self, steps",
+          "description": "계산 실행",
+          "sha256": "74e83a9149fd13cf38ee3d75f280085d42acaed4abf6196d9b1716690af72c3e",
+          "url": "https://github.com/glotzerlab/hoomd-blue/blob/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/simulation.py#L484"
+        },
+        {
+          "path": "hoomd/md/integrate.py",
+          "line_start": 169,
+          "line_end": 177,
+          "symbol": "class Integrator(",
+          "description": "적분기",
+          "sha256": "1221f29d1789b521adaa9ad588271a7f064c298efef09d97387cf74432797587",
+          "url": "https://github.com/glotzerlab/hoomd-blue/blob/3a5ef59990c5129d5d1b08da115215bf279d8259/hoomd/md/integrate.py#L169"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/hoomd.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_bf20e022876317230395ef79fdd82b84c292c2f5046f73ad809cc1ed22b3c7eb",
+          "graph_sha256": "6612ba4d35db0c9ac563dbdd52c77883b9704b7bfd5f0c68fecc740fb3573664",
+          "root_sha256": "ca52ec2112f91faaad8e08e2ca41f5a5109fa6bcc278ed7b80ac052a497ca122",
+          "inventory_state": "partial",
+          "entry_count": 6,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/hoomd",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.518,
+          "stdout": "evidence/rea/hoomd.reference.json",
+          "stderr": "evidence/rea/hoomd.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:47.803004+00:00",
+          "source_set_sha256": "05195595e843ee2360fe0ac433f950476b01c341190637c033c418e9a6bf5244",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/glotzerlab/hoomd-blue/blob/3a5ef59990c5129d5d1b08da115215bf279d8259/LICENSE"
+    },
+    {
+      "id": "alphafold",
+      "name": "AlphaFold 2",
+      "repository": "google-deepmind/alphafold",
+      "url": "https://github.com/google-deepmind/alphafold",
+      "commit": "c77e5d2a8961d1a353632c462914ff0a32a950f6",
+      "commit_date": "2026-04-22T17:03:49Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "e0d1aa1089b71fcfa8a08c71fce85bac5a1d715d",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/README.md",
+          "sha256": "39a82c6f8ecfaf16872275167e98ff00109321f8de150edf5212dc9ed36f3763",
+          "bytes": 35387,
+          "local_path": "evidence/sources/alphafold/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358,
+          "local_path": "evidence/sources/alphafold/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "run_alphafold.py",
+          "github_blob_sha": "3d8a4f4689cac26e54563a458775d3888ae9eed2",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py",
+          "sha256": "142f6ca9d2082474d56228061c363a3bd8509f85d8d9c5534918074c46bbc707",
+          "bytes": 23280,
+          "local_path": "evidence/sources/alphafold/run_alphafold.py",
+          "verified": true
+        }
+      ],
+      "license": "Apache-2.0 source; model/database terms separate",
+      "license_file": "LICENSE",
+      "role": "단백질 서열 기반 구조 예측",
+      "inputs": [
+        "단백질 FASTA",
+        "모델 파라미터 및 검색 데이터베이스",
+        "단량체/복합체 모델 설정"
+      ],
+      "outputs": [
+        "PDB/mmCIF 구조",
+        "pLDDT/PAE 및 ranking 정보"
+      ],
+      "connection": "FASTA → run_alphafold.py → 예측 구조·신뢰도 → 3Dmol 및 별도 생체분자 MD 준비",
+      "limitations": [
+        "일반 합성고분자의 물성 예측 모델이 아닙니다.",
+        "학습 파라미터·대용량 데이터베이스·계산 환경이 필요합니다.",
+        "구조 예측 점수는 결합 에너지나 MD 검증 결과가 아닙니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "run_alphafold.py",
+          "line_start": 58,
+          "line_end": 66,
+          "symbol": "'fasta_paths'",
+          "description": "FASTA 입력",
+          "sha256": "142f6ca9d2082474d56228061c363a3bd8509f85d8d9c5534918074c46bbc707",
+          "url": "https://github.com/google-deepmind/alphafold/blob/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py#L58"
+        },
+        {
+          "path": "run_alphafold.py",
+          "line_start": 345,
+          "line_end": 353,
+          "symbol": "def predict_structure(",
+          "description": "예측 파이프라인",
+          "sha256": "142f6ca9d2082474d56228061c363a3bd8509f85d8d9c5534918074c46bbc707",
+          "url": "https://github.com/google-deepmind/alphafold/blob/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py#L345"
+        },
+        {
+          "path": "run_alphafold.py",
+          "line_start": 461,
+          "line_end": 469,
+          "symbol": "unrelaxed_pdb_path =",
+          "description": "구조 출력",
+          "sha256": "142f6ca9d2082474d56228061c363a3bd8509f85d8d9c5534918074c46bbc707",
+          "url": "https://github.com/google-deepmind/alphafold/blob/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py#L461"
+        },
+        {
+          "path": "run_alphafold.py",
+          "line_start": 538,
+          "line_end": 546,
+          "symbol": "ranking_output_path =",
+          "description": "순위 출력",
+          "sha256": "142f6ca9d2082474d56228061c363a3bd8509f85d8d9c5534918074c46bbc707",
+          "url": "https://github.com/google-deepmind/alphafold/blob/c77e5d2a8961d1a353632c462914ff0a32a950f6/run_alphafold.py#L538"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/alphafold.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_bab4ffe6de67f6590fde56793c3b70047740fa6e154eca92977e3eb7a7d32420",
+          "graph_sha256": "674b577f9393051a597258bbe6b5e77f52a634aad588052e0888004081c8e7eb",
+          "root_sha256": "e8c9f050544e06cab33d0c1ef7fc5560c7e309a27e2210e0654e1ad1abb1f08c",
+          "inventory_state": "partial",
+          "entry_count": 3,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/alphafold",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.016,
+          "stdout": "evidence/rea/alphafold.reference.json",
+          "stderr": "evidence/rea/alphafold.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:47.522804+00:00",
+          "source_set_sha256": "4673e88eacb78ceccbacde4836e1270a4b7006a415291b734838af447ece0d10",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/google-deepmind/alphafold/blob/c77e5d2a8961d1a353632c462914ff0a32a950f6/LICENSE"
+    },
+    {
+      "id": "colabfold",
+      "name": "ColabFold",
+      "repository": "sokrypton/ColabFold",
+      "url": "https://github.com/sokrypton/ColabFold",
+      "commit": "8da9d16d6a12cce74aad48b61b9775d19ca37bcc",
+      "commit_date": "2026-10-21T16:34:37Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "55909c620e9148b58713ca1414dd3cdc2145a00d",
+          "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/README.md",
+          "sha256": "a384ec62c86d568aeb0fe3e8a3b111f071fbcfacb937b407eb6da24fc70c823f",
+          "bytes": 21782,
+          "local_path": "evidence/sources/colabfold/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "4aab10a667a13d810b86f6df1b61fa1a1bfc87dd",
+          "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/LICENSE",
+          "sha256": "f7a0429ad8a5ebc35994ba24d65a2962fc8c106ff28d2c7e43125ba4d2208108",
+          "bytes": 1075,
+          "local_path": "evidence/sources/colabfold/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "colabfold/batch.py",
+          "github_blob_sha": "e0359d073a064ece71b838123b63f7c50116da19",
+          "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/colabfold/batch.py",
+          "sha256": "a65a1fb4301ae82de8b307a8d698f327a79b8fa66c8f053f4ddeff52c87020c4",
+          "bytes": 94154,
+          "local_path": "evidence/sources/colabfold/colabfold/batch.py",
+          "verified": true
+        },
+        {
+          "path": "pyproject.toml",
+          "github_blob_sha": "60b3fb13bb0fd0aca850e9c9a89349fe3433edeb",
+          "source_url": "https://raw.githubusercontent.com/sokrypton/ColabFold/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/pyproject.toml",
+          "sha256": "06af11a1d40f9e4b4b30ac1d96c2f88e2bbefc64c029573b45f3b733153f6873",
+          "bytes": 2736,
+          "local_path": "evidence/sources/colabfold/pyproject.toml",
+          "verified": true
+        }
+      ],
+      "license": "MIT source; model/database terms separate",
+      "license_file": "LICENSE",
+      "role": "AlphaFold 계열 단백질 구조 예측의 배치 실행 경로",
+      "inputs": [
+        "FASTA/A3M 쿼리",
+        "모델·MSA 설정"
+      ],
+      "outputs": [
+        "구조 파일",
+        "score JSON·MSA·신뢰도 그림"
+      ],
+      "connection": "colabfold_batch 입력 결과폴더 → 생성 구조와 점수 수집 → 공통 단백질 결과 형식",
+      "limitations": [
+        "MSA 서비스 모드를 사용하면 서열이 외부 서버로 전송될 수 있습니다.",
+        "로컬 single_sequence/A3M 또는 사전 구성된 MSA 경로를 명시적으로 선택해야 합니다.",
+        "가중치·JAX·GPU 환경까지 설치되었다는 의미는 아닙니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "colabfold/batch.py",
+          "line_start": 1224,
+          "line_end": 1232,
+          "symbol": "def run(",
+          "description": "배치 예측 API",
+          "sha256": "a65a1fb4301ae82de8b307a8d698f327a79b8fa66c8f053f4ddeff52c87020c4",
+          "url": "https://github.com/sokrypton/ColabFold/blob/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/colabfold/batch.py#L1224"
+        },
+        {
+          "path": "colabfold/batch.py",
+          "line_start": 1815,
+          "line_end": 1823,
+          "symbol": "def main():",
+          "description": "CLI 입력 처리",
+          "sha256": "a65a1fb4301ae82de8b307a8d698f327a79b8fa66c8f053f4ddeff52c87020c4",
+          "url": "https://github.com/sokrypton/ColabFold/blob/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/colabfold/batch.py#L1815"
+        },
+        {
+          "path": "colabfold/batch.py",
+          "line_start": 723,
+          "line_end": 731,
+          "symbol": "if msa_mode == \"single_sequence\":",
+          "description": "MSA 없는 경로",
+          "sha256": "a65a1fb4301ae82de8b307a8d698f327a79b8fa66c8f053f4ddeff52c87020c4",
+          "url": "https://github.com/sokrypton/ColabFold/blob/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/colabfold/batch.py#L723"
+        },
+        {
+          "path": "pyproject.toml",
+          "line_start": 58,
+          "line_end": 66,
+          "symbol": "colabfold_batch",
+          "description": "실행 명령 등록",
+          "sha256": "06af11a1d40f9e4b4b30ac1d96c2f88e2bbefc64c029573b45f3b733153f6873",
+          "url": "https://github.com/sokrypton/ColabFold/blob/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/pyproject.toml#L58"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/colabfold.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_3f15d1e67fdf1a91b6f963cf15fb552b07a41f8e0b862a5a3cd59358eecd8261",
+          "graph_sha256": "fe73df7b7419212a489f7c16b460f1bc8264baab9a98149658d07072c86548d5",
+          "root_sha256": "38d186c2782cc1cd1c3a88bdd04365d02530533a8bf4e99fd4577b26a307de0b",
+          "inventory_state": "partial",
+          "entry_count": 5,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/colabfold",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.367,
+          "stdout": "evidence/rea/colabfold.reference.json",
+          "stderr": "evidence/rea/colabfold.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:48.891595+00:00",
+          "source_set_sha256": "af5134a777b5c9736d771697b64efb7edbff604a26c13ca5aa9f2bbef853cb5e",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/sokrypton/ColabFold/blob/8da9d16d6a12cce74aad48b61b9775d19ca37bcc/LICENSE"
+    },
+    {
+      "id": "alphafold3",
+      "name": "AlphaFold 3",
+      "repository": "google-deepmind/alphafold3",
+      "url": "https://github.com/google-deepmind/alphafold3",
+      "commit": "3033a1ce47a9d107be7db9e644208b63e2d84a92",
+      "commit_date": "2026-10-21T14:16:17Z",
+      "source_files": [
+        {
+          "path": "README.md",
+          "github_blob_sha": "67281a1411a196946f0afb1f6709fa3658616db5",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/README.md",
+          "sha256": "0aff5538016f91aae06209319e4514e23a2fc6156854271f75873f8b78e0e44f",
+          "bytes": 13259,
+          "local_path": "evidence/sources/alphafold3/README.md",
+          "verified": true
+        },
+        {
+          "path": "LICENSE",
+          "github_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "bytes": 11358,
+          "local_path": "evidence/sources/alphafold3/LICENSE",
+          "verified": true
+        },
+        {
+          "path": "WEIGHTS_TERMS_OF_USE.md",
+          "github_blob_sha": "9f7db84d5fbe43c7d49b1556c0bd4d4d37e27144",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/WEIGHTS_TERMS_OF_USE.md",
+          "sha256": "41adf62ff5eabc58831c828793988537948663c139f8b87d8d413851b150b6e5",
+          "bytes": 16130,
+          "local_path": "evidence/sources/alphafold3/WEIGHTS_TERMS_OF_USE.md",
+          "verified": true
+        },
+        {
+          "path": "run_alphafold.py",
+          "github_blob_sha": "8e26483076a7ab4d7d5f438f32648075db77fd13",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/run_alphafold.py",
+          "sha256": "5b188d9e1c3ad4ae2643f8999864d3c2674a33217e53fbd0ecabb02f3ccdd159",
+          "bytes": 41707,
+          "local_path": "evidence/sources/alphafold3/run_alphafold.py",
+          "verified": true
+        },
+        {
+          "path": "docs/input.md",
+          "github_blob_sha": "c67e482713bc764331428743eeecaf33e760aee2",
+          "source_url": "https://raw.githubusercontent.com/google-deepmind/alphafold3/3033a1ce47a9d107be7db9e644208b63e2d84a92/docs/input.md",
+          "sha256": "75d1dd7a7e0c1113a9d1c2bd4e997ff3728ced2f4d6fe557dd8121d303e12509",
+          "bytes": 40801,
+          "local_path": "evidence/sources/alphafold3/docs/input.md",
+          "verified": true
+        }
+      ],
+      "license": "Apache-2.0 source; restricted model parameter/output terms",
+      "license_file": "LICENSE",
+      "role": "단백질·핵산·리간드 등 생체분자 복합체 구조 예측",
+      "inputs": [
+        "공식 AlphaFold 3 JSON",
+        "모델 파라미터",
+        "필요한 검색 데이터베이스"
+      ],
+      "outputs": [
+        "mmCIF 구조",
+        "신뢰도·ranking·입력 JSON"
+      ],
+      "connection": "구조화된 생체분자 입력 JSON → run_alphafold.py --json_path --model_dir --output_dir → 구조와 신뢰도 수집",
+      "limitations": [
+        "소스 라이선스와 모델 파라미터·출력 이용 조건은 별개입니다.",
+        "공식 가중치 접근과 GPU 환경이 필요합니다.",
+        "합성고분자의 열역학 물성이나 안정적인 결합을 직접 검증하지 않습니다."
+      ],
+      "entrypoints": [
+        {
+          "path": "run_alphafold.py",
+          "line_start": 81,
+          "line_end": 89,
+          "symbol": "'json_path'",
+          "description": "JSON 입력",
+          "sha256": "5b188d9e1c3ad4ae2643f8999864d3c2674a33217e53fbd0ecabb02f3ccdd159",
+          "url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/run_alphafold.py#L81"
+        },
+        {
+          "path": "run_alphafold.py",
+          "line_start": 96,
+          "line_end": 104,
+          "symbol": "'model_dir'",
+          "description": "가중치 위치",
+          "sha256": "5b188d9e1c3ad4ae2643f8999864d3c2674a33217e53fbd0ecabb02f3ccdd159",
+          "url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/run_alphafold.py#L96"
+        },
+        {
+          "path": "run_alphafold.py",
+          "line_start": 573,
+          "line_end": 581,
+          "symbol": "def predict_structure(",
+          "description": "구조 예측",
+          "sha256": "5b188d9e1c3ad4ae2643f8999864d3c2674a33217e53fbd0ecabb02f3ccdd159",
+          "url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/run_alphafold.py#L573"
+        },
+        {
+          "path": "WEIGHTS_TERMS_OF_USE.md",
+          "line_start": 17,
+          "line_end": 25,
+          "symbol": "non-commercial use by",
+          "description": "별도 모델 이용 조건",
+          "sha256": "41adf62ff5eabc58831c828793988537948663c139f8b87d8d413851b150b6e5",
+          "url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/WEIGHTS_TERMS_OF_USE.md#L17"
+        },
+        {
+          "path": "docs/input.md",
+          "line_start": 137,
+          "line_end": 145,
+          "symbol": "\"dialect\"",
+          "description": "입력 형식",
+          "sha256": "75d1dd7a7e0c1113a9d1c2bd4e997ff3728ced2f4d6fe557dd8121d303e12509",
+          "url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/docs/input.md#L137"
+        }
+      ],
+      "rea": {
+        "status": "verified",
+        "method": "historical_source_inventory",
+        "raw_output": "evidence/rea/alphafold3.reference.json",
+        "manifest": {
+          "schema": "HistoricalSourceManifest",
+          "authority": "historical-reference",
+          "manifest_id": "hsm_b382b0e09fbe34fba639321a83b4fd427ee09d03ce10aa91ed67e2a1a52b6bfc",
+          "graph_sha256": "bfd093b3a469bfdb4ef908664b74abce8a75b0bb2bdd4397ee4a1dbb20b56ded",
+          "root_sha256": "7d62f52e36b56d5000d77a65b7d8c96de6f1b8c31561b0737e9d537bff50f464",
+          "inventory_state": "partial",
+          "entry_count": 6,
+          "relationship_count": 0
+        },
+        "command": {
+          "command": [
+            "/usr/bin/node",
+            "/home/kali/Projects/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+            "import-reference-source",
+            "/home/kali/Projects/polymer-workbench/evidence/sources/alphafold3",
+            "--detail",
+            "summary",
+            "--format",
+            "json"
+          ],
+          "returncode": 0,
+          "elapsed_seconds": 1.267,
+          "stdout": "evidence/rea/alphafold3.reference.json",
+          "stderr": "evidence/rea/alphafold3.reference.stderr.log",
+          "executed_at": "2026-10-22T03:35:48.990899+00:00",
+          "source_set_sha256": "991efb3b44cb5e88b76a5d8a1630a07aff4ea7b1174336f01148c71470df839d",
+          "source_unchanged_during_analysis": true
+        },
+        "meaning": "REA 소스 인벤토리·해시 확인입니다. Python/C++/Fortran 디컴파일이나 과학적 검증이 아닙니다."
+      },
+      "source_review": "manual_static_interface_review",
+      "snapshot_scope": "selected_entrypoints_not_complete_repository",
+      "license_url": "https://github.com/google-deepmind/alphafold3/blob/3033a1ce47a9d107be7db9e644208b63e2d84a92/LICENSE"
+    }
+  ]
+}

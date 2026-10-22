@@ -1,0 +1,7 @@
+{
+  "name": "AlphaFold 3 예측 입력 준비",
+  "route": "protein",
+  "protein_mode": "export",
+  "sequence": "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG",
+  "seed": 42
+}

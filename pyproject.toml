@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polymer-workbench"
+version = "0.1.0"
+description = "Local, evidence-backed polymer and protein research workflows"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "numpy>=2,<3", "scipy>=1.14,<2"]
+
+[project.optional-dependencies]
+science = ["rdkit>=2024.9", "MDAnalysis>=2.8", "lammps>=2024.8"]
+builders = ["radonpy-pypi>=0.2.11", "packmol>=21", "polyply>=1.8", "pysmiles>=2.1", "cgsmiles>=1"]
+test = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["workbench*"]
+
+[tool.setuptools.package-data]
+workbench = ["static/**/*", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

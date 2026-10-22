@@ -1,0 +1,7 @@
+{
+  "route": "polyply",
+  "polyply_library": "martini3",
+  "polyply_residue": "PEO",
+  "monomers": 12,
+  "chains": 2
+}

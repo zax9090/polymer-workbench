@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/
+tools/rea/node_modules/
+tools/rea/npm/
+tools/engines/
+evidence/sources/
+*.zip
+*.egg-info/
+.env

@@ -1,0 +1,119 @@
+{
+  "radonpy": {
+    "license": "BSD-3-Clause", "license_file": "LICENSE",
+    "role": "전원자 고분자 구조 생성, 평형화, LAMMPS 연동",
+    "inputs": ["연결 원자를 지정한 반복단위 RDKit Mol", "중합도·사슬 수·힘장·온도·압력"],
+    "outputs": ["RDKit Mol 및 셀", "LAMMPS 입력·데이터·궤적·분석 결과"],
+    "connection": "RDKit Mol → polymerize_rw/terminate_rw → 힘장 할당 → amorphous_cell → eq preset → LAMMPS",
+    "limitations": ["스냅샷은 일부 핵심 소스이며 전체 패키지가 아닙니다.", "원자별 힘장 파라미터와 전하가 없는 좌표만으로 전원자 물성을 계산하지 않습니다."],
+    "anchors": [["radonpy/core/poly.py", "def polymerize_rw(", "사슬 생성"], ["radonpy/core/poly.py", "def amorphous_cell(", "비정질 셀 생성"], ["radonpy/sim/lammps.py", "    def exec(", "LAMMPS 실행 경계"], ["radonpy/sim/preset/eq.py", "    def exec(self, confId=0, temp=300.0", "평형화 실행"]]
+  },
+  "lammps": {
+    "license": "GPL-2.0", "license_file": "LICENSE",
+    "role": "분자동역학 계산 엔진",
+    "inputs": ["입력 스크립트", "원자·결합·힘장·박스 데이터"],
+    "outputs": ["로그", "dump 궤적", "restart/data 파일"],
+    "connection": "입력 스크립트를 독립 프로세스 또는 Python lammps.file()로 실행하고 결과를 MDAnalysis로 전달",
+    "limitations": ["구동 가능한 패키지·퍼텐셜은 설치 빌드마다 다릅니다.", "계산 단위 체계와 원자 ID를 후처리까지 보존해야 합니다."],
+    "anchors": [["python/lammps/core.py", "class lammps:", "Python 라이브러리"], ["python/lammps/core.py", "  def file(", "파일 실행"], ["python/lammps/core.py", "  def commands_string(", "명령 묶음 실행"]]
+  },
+  "rdkit": {
+    "license": "BSD-3-Clause", "license_file": "license.txt",
+    "role": "화학 구조 입력·검증·3차원 conformer 생성",
+    "inputs": ["SMILES/SDF", "반복단위와 연결점"],
+    "outputs": ["RDKit Mol", "좌표·결합을 포함한 SDF/PDB"],
+    "connection": "화학 연결을 검증한 Mol을 RadonPy에 전달하고 구조 미리보기를 SDF로 저장",
+    "limitations": ["3D conformer 및 UFF 최소화는 응축상 물성 예측과 다릅니다.", "고분자 반복단위 연결 규칙은 별도 구현·검증이 필요합니다."],
+    "anchors": [["rdkit/Chem/__init__.py", "from rdkit.Chem.rdmolfiles import", "분자 파일 입출력"], ["rdkit/Chem/AllChem.py", "from rdkit.Chem.rdDistGeom import", "conformer 생성 API"], ["rdkit/Chem/AllChem.py", "from rdkit.Chem.rdForceFieldHelpers import", "분자 힘장 도우미"]]
+  },
+  "mdanalysis": {
+    "license": "LGPL-3.0-or-later", "license_file": "LICENSE",
+    "role": "토폴로지·궤적 기반 분자 분석",
+    "inputs": ["토폴로지", "시간순 궤적"],
+    "outputs": ["프레임별 좌표", "사슬 persistence length 등 분석값"],
+    "connection": "Universe(topology, trajectory) → 원자 선택·사슬 분리 → 분석 → 공통 결과 JSON",
+    "limitations": ["주기경계 unwrap, 원자 순서, 질량, 시간 및 길이 단위가 분석에 영향을 줍니다.", "현재 스냅샷 라이선스는 LGPL-3.0+이며 설치한 구버전 조건은 별도 확인 대상입니다."],
+    "anchors": [["package/MDAnalysis/core/universe.py", "class Universe(object):", "토폴로지·궤적 컨테이너"], ["package/MDAnalysis/analysis/polymer.py", "class PersistenceLength(", "고분자 분석"]]
+  },
+  "3dmol": {
+    "license": "BSD-3-Clause; bundled third-party notices", "license_file": "LICENSE",
+    "role": "브라우저 분자 3D 화면",
+    "inputs": ["SDF/PDB/mmCIF 등 구조 텍스트", "프레임·스타일·선택 정보"],
+    "outputs": ["WebGL 화면", "선택·카메라·프레임 상태"],
+    "connection": "$3Dmol.createViewer → addModel(data, format) → setStyle → zoomTo → render",
+    "limitations": ["REA 정적 분석은 보관한 일부 TypeScript/JavaScript 파일에 한정됩니다.", "참조 파일 일부가 스냅샷에 없으므로 unresolved imports가 존재합니다.", "분자 뷰어는 계산 엔진이 아닙니다."],
+    "anchors": [["src/GLViewer.ts", "export function createViewer(", "뷰어 생성"], ["src/GLViewer.ts", "    public addModel(", "구조 로딩"], ["src/GLModel.ts", "export class GLModel", "분자 모델"]]
+  },
+  "packmol": {
+    "license": "MIT", "license_file": "LICENSE",
+    "role": "고분자·용매·첨가제 초기 공간 배치",
+    "inputs": ["구조 파일", "분자 개수·영역·거리 허용치 설정"],
+    "outputs": ["초기 배치 좌표 파일"],
+    "connection": "구조 파일과 .inp 설정 → packmol stdin → 배치 좌표 → 힘장·토폴로지 단계",
+    "limitations": ["좌표 배치만 담당하며 전하·힘장·평형화는 별도입니다."],
+    "anchors": [["app/packmol.f90", "program packmol", "Fortran 프로그램"], ["src/getinp.f90", "! Checking for the name of the output file", "출력 파일 설정"], ["src/getinp.f90", "! Getting the tolerance", "거리 허용치 읽기"]]
+  },
+  "pysimm": {
+    "license": "MIT", "license_file": "LICENSE",
+    "role": "고분자 모델링 및 LAMMPS 실행 보조",
+    "inputs": ["pysimm System", "힘장 및 실행 설정"],
+    "outputs": ["LAMMPS 입력", "계산 후 System 및 파일"],
+    "connection": "System → lmps.Simulation → run(); LAMMPS_EXEC 환경 변수가 실행 파일을 지정",
+    "limitations": ["RadonPy와 별도의 분자 객체/힘장 체계를 가지므로 명시적인 변환이 필요합니다.", "가져온 기본 브랜치의 마지막 커밋은 2022년입니다; 현 환경 실행 호환성은 따로 검증합니다."],
+    "anchors": [["pysimm/lmps.py", "LAMMPS_EXEC =", "실행 파일 설정"], ["pysimm/lmps.py", "class Simulation(object):", "시뮬레이션 객체"], ["pysimm/lmps.py", "    def run(self, np=", "실행 API"]]
+  },
+  "polyply": {
+    "license": "Apache-2.0", "license_file": "LICENSE",
+    "role": "원자·조대화 고분자 토폴로지 및 좌표 생성",
+    "inputs": ["잔기 서열", "지원 라이브러리/힘장 블록", "topology와 build 설정"],
+    "outputs": ["ITP 토폴로지", "GRO 좌표"],
+    "connection": "polyply gen_params → ITP/TOP → polyply gen_coords → GRO → GROMACS grompp/mdrun",
+    "limitations": ["gen_params는 gen_itp 별칭이며 내부 구현 파일은 gen_itp.py입니다.", "임의 SMILES를 Martini 힘장으로 자동 변환하는 도구로 가정하지 않습니다."],
+    "anchors": [["bin/polyply", "subparsers.add_parser('gen_params'", "CLI 토폴로지 명령"], ["bin/polyply", "subparsers.add_parser('gen_coords'", "CLI 좌표 명령"], ["polyply/src/gen_itp.py", "def gen_params(", "ITP 생성 구현"], ["polyply/src/gen_coords.py", "def gen_coords(", "좌표 생성 구현"]]
+  },
+  "gromacs": {
+    "license": "LGPL-2.1", "license_file": "COPYING",
+    "role": "전원자 및 조대화 분자동역학 엔진",
+    "inputs": ["MDP 실행 설정", "TOP/ITP 토폴로지", "GRO/PDB 좌표 또는 TPR"],
+    "outputs": ["TPR 실행 입력", "궤적·에너지·로그·체크포인트"],
+    "connection": "gmx grompp로 입력을 검증·컴파일 → gmx mdrun으로 실행 → MDAnalysis 분석",
+    "limitations": ["LAMMPS와 단위·힘장 표현이 달라 좌표만 변환해서 동등한 모델이 되지 않습니다."],
+    "anchors": [["src/programs/gmx.cpp", "int main(", "명령 디스패치"], ["src/gromacs/gmxpreprocess/grompp.cpp", "int gmx_grompp(", "전처리 실행"], ["src/gromacs/gmxpreprocess/grompp.cpp", "t_filenm fnm[]", "전처리 입출력"], ["src/programs/mdrun/mdrun.cpp", "int gmx_mdrun(int argc", "MD 실행"]]
+  },
+  "hoomd": {
+    "license": "BSD-3-Clause", "license_file": "LICENSE",
+    "role": "CPU/GPU 조대화 연성물질 시뮬레이션",
+    "inputs": ["Snapshot 또는 GSD", "입자·결합·힘·적분기·단위 정의"],
+    "outputs": ["시뮬레이션 state", "설정한 writer의 GSD/로그"],
+    "connection": "Simulation → create_state_from_snapshot/GSD → md.Integrator → run(steps) → GSD 분석",
+    "limitations": ["전원자 모델과 조대화 모델의 에너지·길이·시간 척도는 따로 정의해야 합니다.", "GPU 지원 여부는 빌드·장치에 의존합니다."],
+    "anchors": [["hoomd/simulation.py", "class Simulation(", "시뮬레이션 객체"], ["hoomd/simulation.py", "    def create_state_from_gsd(", "GSD 입력"], ["hoomd/simulation.py", "    def run(self, steps", "계산 실행"], ["hoomd/md/integrate.py", "class Integrator(", "적분기"]]
+  },
+  "alphafold": {
+    "license": "Apache-2.0 source; model/database terms separate", "license_file": "LICENSE",
+    "role": "단백질 서열 기반 구조 예측",
+    "inputs": ["단백질 FASTA", "모델 파라미터 및 검색 데이터베이스", "단량체/복합체 모델 설정"],
+    "outputs": ["PDB/mmCIF 구조", "pLDDT/PAE 및 ranking 정보"],
+    "connection": "FASTA → run_alphafold.py → 예측 구조·신뢰도 → 3Dmol 및 별도 생체분자 MD 준비",
+    "limitations": ["일반 합성고분자의 물성 예측 모델이 아닙니다.", "학습 파라미터·대용량 데이터베이스·계산 환경이 필요합니다.", "구조 예측 점수는 결합 에너지나 MD 검증 결과가 아닙니다."],
+    "anchors": [["run_alphafold.py", "    'fasta_paths'", "FASTA 입력"], ["run_alphafold.py", "def predict_structure(", "예측 파이프라인"], ["run_alphafold.py", "unrelaxed_pdb_path =", "구조 출력"], ["run_alphafold.py", "ranking_output_path =", "순위 출력"]]
+  },
+  "colabfold": {
+    "license": "MIT source; model/database terms separate", "license_file": "LICENSE",
+    "role": "AlphaFold 계열 단백질 구조 예측의 배치 실행 경로",
+    "inputs": ["FASTA/A3M 쿼리", "모델·MSA 설정"],
+    "outputs": ["구조 파일", "score JSON·MSA·신뢰도 그림"],
+    "connection": "colabfold_batch 입력 결과폴더 → 생성 구조와 점수 수집 → 공통 단백질 결과 형식",
+    "limitations": ["MSA 서비스 모드를 사용하면 서열이 외부 서버로 전송될 수 있습니다.", "로컬 single_sequence/A3M 또는 사전 구성된 MSA 경로를 명시적으로 선택해야 합니다.", "가중치·JAX·GPU 환경까지 설치되었다는 의미는 아닙니다."],
+    "anchors": [["colabfold/batch.py", "def run(", "배치 예측 API"], ["colabfold/batch.py", "def main():", "CLI 입력 처리"], ["colabfold/batch.py", "if msa_mode == \"single_sequence\":", "MSA 없는 경로"], ["pyproject.toml", "colabfold_batch", "실행 명령 등록"]]
+  },
+  "alphafold3": {
+    "license": "Apache-2.0 source; restricted model parameter/output terms", "license_file": "LICENSE",
+    "role": "단백질·핵산·리간드 등 생체분자 복합체 구조 예측",
+    "inputs": ["공식 AlphaFold 3 JSON", "모델 파라미터", "필요한 검색 데이터베이스"],
+    "outputs": ["mmCIF 구조", "신뢰도·ranking·입력 JSON"],
+    "connection": "구조화된 생체분자 입력 JSON → run_alphafold.py --json_path --model_dir --output_dir → 구조와 신뢰도 수집",
+    "limitations": ["소스 라이선스와 모델 파라미터·출력 이용 조건은 별개입니다.", "공식 가중치 접근과 GPU 환경이 필요합니다.", "합성고분자의 열역학 물성이나 안정적인 결합을 직접 검증하지 않습니다."],
+    "anchors": [["run_alphafold.py", "    'json_path'", "JSON 입력"], ["run_alphafold.py", "    'model_dir'", "가중치 위치"], ["run_alphafold.py", "def predict_structure(", "구조 예측"], ["WEIGHTS_TERMS_OF_USE.md", "non-commercial use by", "별도 모델 이용 조건"], ["docs/input.md", "\"dialect\"", "입력 형식"]]
+  }
+}
