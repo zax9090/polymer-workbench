@@ -32,7 +32,7 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq --no-install-recommends gromacs strace
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq --no-install-recommends gromacs
           gmx --version | head -n 1
 
       - name: Install pinned research environment
@@ -50,20 +50,6 @@ jobs:
       # Pinned upstream bytes let the reference-data rebuild test run instead of skipping.
       - name: Fetch pinned REA-audited sources
         run: .venv/bin/python scripts/audit_extensions.py --fetch-pinned
-
-      # TEMPORARY diagnosis of the SIGTERM seen during the in-process LAMMPS test; removed with the fix.
-      - name: Diagnose in-process MPI initialization
-        continue-on-error: true
-        timeout-minutes: 5
-        run: |
-          export PATH="$PWD/.venv/bin:$PATH"
-          export LD_LIBRARY_PATH="$PWD/.venv/lib:${LD_LIBRARY_PATH:-}"
-          ls -l /dev/infiniband 2>&1 | head -5 || true
-          ls /sys/class/infiniband 2>&1 | head -5 || true
-          env | grep -E '^(PMI|HYDRA|MPI|UCX|FI_|OMPI|SLURM)' || true
-          setsid bash -c 'MPIR_CVAR_DEBUG_SUMMARY=1 strace -f -qq -e trace=kill,tgkill,execve,setsid,setpgid -o strace.log .venv/bin/python -c "from lammps import lammps; l=lammps(cmdargs=[\"-screen\",\"none\",\"-log\",\"none\"]); l.close(); print(\"probe alive\")"; echo "probe exit $?"' || true
-          grep -v ENOENT strace.log | grep -E 'kill|execve|setsid|setpgid' | grep -v '"/opt/hostedtoolcache\|\.venv/bin/python"' | head -40 || true
-          setsid bash -c '.venv/bin/python -m pytest -q -p no:cacheprovider "tests/test_science.py::ScientificChecks::test_lammps_matches_independent_potential"; echo "isolated test exit $?"' || true
 
       - name: Run pytest
         timeout-minutes: 30
