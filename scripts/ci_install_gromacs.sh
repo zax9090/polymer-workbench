@@ -32,13 +32,27 @@ if compgen -G "$DEBS/*.deb" >/dev/null; then
   rm -f "$DEBS"/*.deb
 fi
 
+# Process names (comm, at most 15 characters) of apt, dpkg, apt-daily and unattended-upgrades.
+APT_PROCESSES='apt|apt-get|dpkg|apt.systemd.dai|unattended-upgr'
 echo "Other apt/dpkg processes:"
-pgrep -a -f 'apt|dpkg|unattended' | grep -v -e pgrep -e ci_install_gromacs || echo "  none"
+pgrep -a -x "$APT_PROCESSES" || echo "  none"
 
-# Only the Ubuntu archive: copy the source files that point at *.ubuntu.com/ubuntu.
+# Only the Ubuntu archive. GitHub runner images point ubuntu.sources at mirror+file:/etc/apt/apt-mirrors.txt
+# rather than an ubuntu.com URI, so select by file name as well as by URI.
+SOURCES_DIR="${CI_APT_SOURCES_DIR:-/etc/apt/sources.list.d}"
 PARTS="$(mktemp -d)"
-grep -l -E 'ubuntu\.com/ubuntu' /etc/apt/sources.list.d/* 2>/dev/null | while read -r file; do cp "$file" "$PARTS/"; done
-echo "Sources refreshed: $(ls "$PARTS" | tr '\n' ' ')"
+for file in "$SOURCES_DIR"/*; do
+  [ -f "$file" ] || continue
+  if [ "$(basename "$file")" = ubuntu.sources ] || grep -q -E 'ubuntu\.com/ubuntu|mirror\+file:' "$file"; then
+    cp "$file" "$PARTS/"
+  fi
+done
+if [ -z "$(ls -A "$PARTS")" ] && ! grep -q -E '^[[:space:]]*deb[[:space:]]' /etc/apt/sources.list 2>/dev/null; then
+  echo "No Ubuntu archive source file found; refreshing every configured source" >&2
+  PARTS="$SOURCES_DIR"
+fi
+echo "Sources refreshed from $PARTS:"
+grep -h -E '^[[:space:]]*(URIs:|deb[[:space:]])' /etc/apt/sources.list "$PARTS"/* 2>/dev/null | sed 's/^/  /' || true
 OPTS=(-o Dir::Etc::sourcelist=/etc/apt/sources.list -o Dir::Etc::sourceparts="$PARTS"
       -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120)
 
@@ -47,7 +61,7 @@ for attempt in 1 2 3; do
     break
   fi
   echo "apt-get update attempt $attempt failed or exceeded 180 s" >&2
-  pgrep -a -f 'apt|dpkg|unattended' | grep -v -e pgrep -e ci_install_gromacs || true
+  pgrep -a -x "$APT_PROCESSES" || true
   if [ "$attempt" = 3 ]; then
     exit 1
   fi
