@@ -30,7 +30,7 @@ hiddenimports = [
     "workbench.science", "workbench.external", "workbench.jobs",
     "workbench.research_api", "workbench.research_store", "workbench.descriptors",
     "workbench.ingestion", "workbench.learning", "workbench.campaigns",
-    "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.screening", "workbench.compatibility",
+    "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.protonation", "workbench.screening", "workbench.compatibility",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
@@ -46,7 +46,7 @@ def production_module(name):
 for package in (
     "rdkit", "MDAnalysis", "lammps", "radonpy", "pysimm", "polyply", "vermouth",
     "pysmiles", "cgsmiles", "packmol", "mdtraj", "duckdb", "pymbar", "pypdf",
-    "baybe", "botorch", "gpytorch", "linear_operator", "cattrs",
+    "baybe", "botorch", "gpytorch", "linear_operator", "cattrs", "propka", "pdb2pqr",
 ):
     spec = importlib.util.find_spec(package)
     if spec is None:
@@ -73,7 +73,7 @@ for distribution in (
     "PySide6", "PySide6-Essentials", "PySide6-Addons", "shiboken6",
     "pyside6-webengine", "pyside6-pdf",
     "duckdb", "scikit-learn", "pymbar", "pypdf", "narwhals", "numexpr",
-    "baybe", "botorch", "gpytorch", "linear_operator", "torch", "attrs", "cattrs",
+    "baybe", "botorch", "gpytorch", "linear_operator", "torch", "attrs", "cattrs", "propka", "pdb2pqr",
 ):
     try:
         datas += copy_metadata(distribution)

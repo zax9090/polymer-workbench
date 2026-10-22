@@ -76,9 +76,11 @@ cd /home/kali/Projects/polymer-workbench
 
 ## 단백질 SAP 응집 취약 부위
 
-PDB 가져오기·AlphaFold DB·ColabFold 결과에는 SAP(spatial aggregation propensity, Chennamsetty et al. 2009) 검사가 붙습니다. mdtraj Shrake–Rupley로 중원자 SASA를 구하고, 각 원자 반경 5 Å 안에 곁사슬의 절반 이상이 들어온 잔기에 대해 (노출 곁사슬 면적 / Ala-X-Ala 기준 면적) × Black & Mould 소수성(Gly = 0)을 더합니다. 상위 잔기와 가장 높은 SAP 잔기 주변의 양수 패치를 결과와 3D 화면(붉은 막대)에 표시하고, `sap.json`과 B-factor 열에 SAP를 담은 `structure_sap.pdb`를 저장합니다. 원 논문은 MD 앙상블 평균을 쓰지만 여기서는 정적 구조 한 개를 씁니다. 응집 속도나 고분자 결합을 예측하지 않습니다.
+PDB 가져오기·AlphaFold DB·ColabFold 결과에는 SAP(spatial aggregation propensity, Chennamsetty et al. 2009) 검사가 붙습니다. mdtraj Shrake–Rupley로 중원자 SASA를 구하고, 각 원자 반경 5 Å 안에 곁사슬의 절반 이상이 들어온 잔기에 대해 (노출 곁사슬 면적 / Ala-X-Ala 기준 면적) × Black & Mould 소수성(Gly = 0)을 더합니다. 상위 잔기와 가장 높은 SAP 잔기 주변의 양수 패치를 결과와 3D 화면(주황색 막대)에 표시하고, `sap.json`과 B-factor 열에 SAP를 담은 `structure_sap.pdb`를 저장합니다. 원 논문은 MD 앙상블 평균을 쓰지만 여기서는 정적 구조 한 개를 씁니다. 응집 속도나 고분자 결합을 예측하지 않습니다.
 
 PACKMOL 경로에서 **고분자 배치 위치**를 "SAP 응집 취약 부위 주변"으로 고르면 단백질을 박스 중앙에 고정하고, 패치 반경 + 사슬 크기 절반 + 4 Å 구 안에 고분자 사슬을 배치합니다. 다중 모델(NMR) PDB는 첫 모델만 배치합니다.
+
+같은 결과에는 **PROPKA3 양성자화 분석**도 붙습니다. 지정한 pH(기본 7.0)에서 이온화 가능기별 pKa·전하·상태, 단백질 순전하와 등전점, pH ±1 안에 있어 상태가 불확실한 기를 계산합니다. 노출된 중원자에서 Debye–Hückel 차폐 쿨롱 표면 전위(물 유전율, 지정 이온 세기)를 구해 가장 강한 양·음전하 패치를 찾고 3D 화면에 파란·붉은 막대로 표시합니다. 또 PDB2PQR로 같은 pH의 양성자화 구조(수소 포함, ASH/GLH/HID/HIE/HIP/LYN 등 AMBER 잔기 이름, PQR 전하)를 저장합니다. PACKMOL 배치 위치 "음전하 표면 패치"(양이온 고분자용)·"양전하 표면 패치"(음이온 고분자용)는 이 패치 주변 구 안에 사슬을 배치하고, 반복단위 SMILES의 형식 전하가 패치와 반대 부호인지 기록합니다. 혼합계 브릿지에서 **단백질 양성자화**를 "PROPKA3 · 지정 pH"로 고르면 martinize2(`-from amber`)·tleap·OpenFF 입력이 이 구조를 씁니다. PROPKA 연결은 원본 저장소의 회귀 기준 5종을 0.01 pKa 이내로 재현합니다. 표면 전위는 단백질 내부의 낮은 유전율을 무시한 선별용 추정이며, 정밀한 정전기 지도는 PQR을 APBS에 넣어 계산하세요.
 
 ## 단백질과 고분자를 이어서 실행
 
@@ -194,6 +196,7 @@ workbench/models.py        입력 검증
 workbench/science.py       조대화 계산·분석·RDKit 구조 생성
 workbench/external.py      RadonPy/PACKMOL/단백질/선택 엔진 어댑터
 workbench/screening.py     PI1070 참조 MD 대리 모델(계산 전 물성 예측)
+workbench/protonation.py   PROPKA3 pKa·전하·표면 전하 패치, PDB2PQR 양성자화 구조
 workbench/compatibility.py Hansen 용매 순위·구 피팅·블렌드 χ
 workbench/data/            감사한 참조 데이터·라이선스·출처 manifest
 workbench/static/          한국어 화면·3D 뷰어

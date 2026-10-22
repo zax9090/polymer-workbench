@@ -98,7 +98,7 @@ def _validated(config):
               "polyply_residue": "PEO", "monomers": 24, "chains": 2, "temperature_kelvin": 300.0,
               "box_nm": 15.0, "seed": 42, "secondary_structure": "", "pdb_text": "",
               "polymer_net_charge": 0, "steps": 10000, "equilibration_steps": 50000, "salt_molar": 0.15,
-              "contact_cutoff_nm": 0.6, "elastic_network": False, **config}
+              "contact_cutoff_nm": 0.6, "elastic_network": False, "protein_protonation": "as_input", "protein_ph": 7.0, **config}
     if values["bridge_track"] not in {"martini3", "amber", "openff"}:
         raise ValueError("bridge_track must be martini3, amber or openff")
     if values["bridge_mode"] not in {"prepare", "protein_cg", "simulate"}:
@@ -110,7 +110,9 @@ def _validated(config):
         v = values[key]
         if isinstance(v, bool) or not isinstance(v, int) or not low <= v <= high:
             raise ValueError(f"{key} must be an integer in [{low}, {high}]")
-    for key, low, high in (("temperature_kelvin", 250, 400), ("box_nm", 5, 100), ("salt_molar", 0, 1), ("contact_cutoff_nm", 0.3, 1.5)):
+    if values["protein_protonation"] not in {"as_input", "propka"}:
+        raise ValueError("protein_protonation must be as_input or propka")
+    for key, low, high in (("temperature_kelvin", 250, 400), ("box_nm", 5, 100), ("salt_molar", 0, 1), ("contact_cutoff_nm", 0.3, 1.5), ("protein_ph", 0, 14)):
         v = float(values[key])
         if not math.isfinite(v) or not low <= v <= high:
             raise ValueError(f"Solvated-mixture {key} must be in [{low}, {high}]")
@@ -392,8 +394,20 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
     simulation = None
     track = cfg["bridge_track"]
     emit("bridge_preflight", 0.1, "Checking force-field components and mixed-system preparation requirements")
+    protonation = None
     if cfg["pdb_text"]:
         (output / "protein_input.pdb").write_text(cfg["pdb_text"])
+        if cfg["protein_protonation"] == "propka":
+            # PROPKA states at the chosen pH, written with AMBER residue names (ASH/GLH/HID/HIE/HIP/LYN) that
+            # martinize2 (-from amber), tleap and OpenFF all read; the submitted structure is kept alongside.
+            from workbench.protonation import protonate
+            emit("protonation", 0.12, f"PDB2PQR + PROPKA: assigning protonation states at pH {cfg['protein_ph']:g}")
+            (output / "protein_submitted.pdb").write_text(cfg["pdb_text"])
+            protonation = protonate(cfg["pdb_text"], cfg["protein_ph"], output)
+            shutil.copyfile(output / "protein_protonated.pdb", output / "protein_input.pdb")
+            notes.append(f"Protein protonation assigned by PDB2PQR + PROPKA at pH {protonation['ph']:g}: integer charge {protonation['integer_charge']:+d}, states {protonation['residue_states'] or 'all standard'}.")
+            if protonation["omitted_count"]:
+                notes.append(f"PDB2PQR omitted {protonation['omitted_count']} hetero group(s) without parameters: {', '.join(protonation['omitted_residues'][:5])}.")
     else:
         requirements.append("protein_input.pdb with reviewed termini, protonation and cofactors")
     if track == "martini3":
@@ -403,6 +417,8 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
         if not cfg["secondary_structure"]:
             requirements.append("Explicit per-residue secondary structure from a reviewed DSSP assignment")
         martinize = [caps["executables"]["martinize2"] or "martinize2", "-f", "protein_input.pdb", "-x", "protein_cg.pdb", "-o", "protein.top", "-ff", "martini3001", "-name", "Protein", "-p", "backbone"]
+        if protonation:
+            martinize += ["-from", "amber"]
         if cfg["secondary_structure"]:
             martinize += ["-ss", cfg["secondary_structure"]]
         # An elastic network is never assumed; the folded/IDR model is an explicit choice.
@@ -523,7 +539,7 @@ quit
     executed = state == "completed"
     manifest = {"schema_version":1,"created_at":datetime.now(timezone.utc).isoformat(),"track":track,
                 "mode":cfg["bridge_mode"],"status":state,"simulation_executed":executed,
-                "protein":protein,"requested_polymer":{"library":cfg["polyply_library"],"residue":cfg["polyply_residue"],"monomers":cfg["monomers"],"chains":cfg["chains"]},
+                "protein":protein,"protonation":protonation,"requested_polymer":{"library":cfg["polyply_library"],"residue":cfg["polyply_residue"],"monomers":cfg["monomers"],"chains":cfg["chains"]},
                 "temperature_kelvin":cfg["temperature_kelvin"],"seed":cfg["seed"],"stages":stages,
                 "generated_components":generated,"requirements":requirements,"notes":notes,
                 "simulation":{key: simulation.get(key) for key in ("solvation", "forcefield", "layout", "gromacs_version", "threads")} if simulation else None,

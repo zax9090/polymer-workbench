@@ -10,6 +10,10 @@ martinize2는 `-ff martini3001 -p backbone`으로 단백질 좌표와 topology/I
 
 함께 저장되는 GROMACS .mdp 파일은 최소화 → restrained NVT → restrained NPT → 짧은 production의 시작 템플릿이다. `command_plan.json`은 argv 배열로 명령과 전제조건을 기록하며 실행 셸 파일이 아니다. `insane`의 용매화 명령도 검토된 mixed_solute.pdb와 완전한 매개변수를 전제로 한다. `-maxwarn` 같은 경고 무시 옵션을 붙이지 않는다. POSRES include와 일치한 원자 인덱스, 비결합 Martini 파일, 물·이온 모델, 분자 순서/개수, charge와 salt concentration, grompp 통과가 필요하다.
 
+### 단백질 양성자화
+
+`protein_protonation`의 기본값 `as_input`은 제출한 PDB의 잔기 이름과 양성자화를 그대로 씁니다. `propka`를 고르면 PDB2PQR 3.7.1이 PROPKA3로 `protein_ph`에서의 상태를 정해 수소를 붙이고 AMBER 잔기 이름(ASH, GLH, HID/HIE/HIP, LYN 등)으로 `protein_protonated.pdb`·`.pqr`을 씁니다. 이 파일이 `protein_input.pdb`가 되고 제출한 원본은 `protein_submitted.pdb`로 남습니다. Martini 3 트랙은 `martinize2 -from amber`로 읽어 Martini 3의 양성자화 변이 잔기(ASH·GLH·HIP·LYN 매핑)를 씁니다. AMBER·OpenFF 트랙의 tleap·통합 명세도 같은 구조를 씁니다. 매개변수가 없는 헤테로 그룹(리간드·이온)은 PDB2PQR이 제외하며 `bridge_manifest.json`의 `protonation`에 개수와 이름을 기록합니다. villin 헤드피스(PDB 1VII)는 pH 7에서 정수 전하 +2, pH 3에서 ASH 2·GLH 2로 +6이 되고 martinize2 CG 토폴로지의 전하 합도 같습니다. 이어지는 용매화 단계는 이 전하로 반대 이온 수를 정합니다.
+
 ## Martini 3 용매화 혼합계 MD
 
 `bridge_track=martini3`, `bridge_mode=simulate`는 위 구성요소 생성 뒤 다음을 실제로 실행한다. 각 단계가 실패하면 그 자리에서 작업을 실패로 끝내며, 앞 단계 산출물과 로그를 보존한다.

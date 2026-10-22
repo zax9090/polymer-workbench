@@ -81,6 +81,8 @@ AlphaFold 계열의 소스 코드와 모델 가중치·데이터베이스·출�
 |---|---|---|
 | radonpy-pypi 0.2.11 (BSD-3-Clause) | 비정질 벌크 셀 | `amorphous_cell`, `packing`, `eq21step`, `sampling`, `get_all_prop`, `check_eq` |
 | mdtraj 1.11.2 (LGPL-2.1+) | SAP 응집 취약 부위 탐색 | `_ATOMIC_RADII`, `shrake_rupley` |
+| propka 3.5.1 (LGPL-2.1) | pKa·전하·등전점 | `single`, `get_pi`, `Group.calculate_charge`, `ConformationContainer.calculate_charge` |
+| pdb2pqr 3.7.1 (BSD-3-Clause) | pH별 양성자화 구조·PQR | `run_pdb2pqr`, `run_propka`, `get_molecule` |
 
 ```sh
 python3 tools/rea/bootstrap.py
@@ -88,6 +90,8 @@ python3 tools/rea/bootstrap.py
 ```
 
 SAP 소수성 척도는 `althonos/peptides.py` 고정 커밋 `eedec680`의 `BlackMould.csv`를 확장 감사(`evidence/extensions/`)에 등록해 값 20개와 파일 해시를 검증했습니다. GPL 코드는 가져오지 않고 발표된 수치만 씁니다.
+
+PROPKA(`jensengroup/propka@94142ffc`, v3.5.1)와 PDB2PQR(`Electrostatics/pdb2pqr@c7149977`, v3.7.1)도 확장 감사에 등록했습니다. PROPKA 항목에는 원본 회귀 시험의 1HPX 구조와 기준 결과를 포함했고, Polymer Lab 연결은 1HPX·4DFR·1FTJ·3SGB·sample-issue-140의 기준 pKa와 등전점을 그대로 재현합니다(원본 허용 오차 0.01). REA 배포본 감사 중에 PDB2PQR의 `get_pdb_file`이 입력 경로가 파일이 아니면 RCSB에서 내려받는다는 것을 확인해, Polymer Lab은 항상 임시 로컬 파일을 넘기고 테스트에서 네트워크 호출을 막아 검사합니다. 전하 계산은 PROPKA의 Henderson–Hasselbalch 식(`Group.calculate_charge`)을 그대로 쓰고, PROPKA 요약처럼 다른 기와 결합되어 버려지는 pKa는 보고에서 제외하되 전하에는 포함합니다.
 
 빠른 예측의 참조 데이터도 확장 감사에 등록했습니다. `radonpy-pi1070`은 `RadonPy/RadonPy@8834b907`의 `data/PI1070.csv`(SHA-256 `4ee41d52…`)·README·LICENSE, `hspipy`는 `Gnpd/HSPiPy@b2cd91aa`의 `hspipy/db.csv`(`42cb4179…`)와 구 피팅 코드(`hsp_estimator.py`, `loss.py`, `utils.py`)입니다. 두 항목 모두 REA `import-reference-source` 인벤토리가 `verified_inventory`입니다. PyPI의 HSPiPy 1.1.8 휠(SHA-256 `d916f2d6…`)도 REA `inspect-artifact`로 20개 항목을 목록화해 `db.csv`가 저장소 파일과 바이트 단위로 같음을 확인했습니다(`evidence/artifacts/hspipy.json`, `scripts/build_reference_data.py --audit-wheel`). PolyMetriX 0.2.0 휠(`824d12d4…`)은 35개 항목에 데이터 파일이 없어(정제 Tg CSV는 Zenodo 배포) 사용하지 않았습니다. HSP 구 피팅은 HSPiPy의 DATAFIT 정의와 최소 R0 규칙을 읽고 따로 구현했으며 HSPiPy 결과와 비교했습니다([빠른 예측 문서](SCREENING.md)). `scripts/build_reference_data.py`는 이 고정 원본의 해시를 다시 확인한 뒤 `workbench/data/`의 번들 부분집합을 결정적으로 만들고, `--check`로 커밋된 파일과 비교합니다.
 

@@ -338,22 +338,41 @@ def packmol(config, output, emit):
         imported_block = f"structure imported_component.pdb\n number 1\n inside box 0. 0. 0. {box:.6f} {box:.6f} {box:.6f}\nend structure\n"
     chain_constraint = f" inside box 0. 0. 0. {box:.6f} {box:.6f} {box:.6f}\n"
     targeting = None
-    if config.get("packmol_target", "none") == "sap_patch":
+    target = config.get("packmol_target", "none")
+    if target != "none":
         if not imported:
-            raise ValueError("SAP-targeted packing needs a protein structure (source_job_id or pdb_text)")
-        from workbench.sap import sap_scan, write_sap_outputs
-        sap = write_sap_outputs(sap_scan(imported, float(config.get("sap_radius_angstrom", 5.0))), imported, output)
-        if not sap["patch"]:
-            raise ValueError("No positive-SAP surface patch was found; use random placement")
+            raise ValueError("Targeted packing needs a protein structure (source_job_id or pdb_text)")
+        if target == "sap_patch":
+            from workbench.sap import sap_scan, write_sap_outputs
+            sap = write_sap_outputs(sap_scan(imported, float(config.get("sap_radius_angstrom", 5.0))), imported, output)
+            if not sap["patch"]:
+                raise ValueError("No positive-SAP surface patch was found; use random placement")
+            patch, targeting = sap["patch"], {"mode": "sap_patch", "patch_residues": sap["patch"]["residues"], "sap_file": "sap.json"}
+        else:
+            from rdkit import Chem
+            from workbench import protonation
+            ph, ionic = float(config.get("protein_ph", 7.0)), float(config.get("ionic_strength_molar", 0.15))
+            stored = protonation.write_outputs(protonation.analyze(imported, ph, ionic), imported, output)
+            sign = "negative" if target == "negative_patch" else "positive"
+            patch = stored["surface"]["patches"][sign]
+            if not patch:
+                raise ValueError(f"No {sign} surface-potential patch (|potential| >= 0.5 kT/e) at pH {ph:g}; use random placement")
+            chain_charge = Chem.GetFormalCharge(mol)
+            complementary = chain_charge * (1 if sign == "negative" else -1) > 0
+            targeting = {"mode": target, "patch_residues": patch["residues"][:30], "charged_groups": patch["charged_groups"],
+                         "peak_potential_kT_per_e": patch["peak_potential"], "protein_ph": ph, "ionic_strength_molar": ionic,
+                         "protein_net_charge": stored["net_charge"], "isoelectric_point": stored["isoelectric_point"],
+                         "polymer_formal_charge_per_chain": chain_charge, "charge_complementary": complementary,
+                         "protonation_file": "protonation.json", "potential_structure": "structure_potential.pdb"}
         # PACKMOL 'fixed' translates the input coordinates; the protein keeps its orientation at the box centre.
         shift = box / 2 - np.asarray(points).mean(axis=0)
-        center = np.asarray(sap["patch"]["center_angstrom"]) + shift
-        radius = sap["patch"]["radius_angstrom"] + float(np.ptp(coords, axis=0).max()) / 2 + 4.0
+        center = np.asarray(patch["center_angstrom"]) + shift
+        radius = patch["radius_angstrom"] + float(np.ptp(coords, axis=0).max()) / 2 + 4.0
         imported_block = f"structure imported_component.pdb\n number 1\n fixed {shift[0]:.6f} {shift[1]:.6f} {shift[2]:.6f} 0. 0. 0.\nend structure\n"
         chain_constraint += f" inside sphere {center[0]:.6f} {center[1]:.6f} {center[2]:.6f} {radius:.6f}\n"
-        targeting = {"mode": "sap_patch", "patch_residues": sap["patch"]["residues"], "protein_translation_angstrom": shift.round(6).tolist(),
-                     "sphere_center_angstrom": center.round(6).tolist(), "sphere_radius_angstrom": radius, "sap_file": "sap.json",
-                     "rule": "all chain atoms inside a sphere of patch radius + half the chain extent + 4 A around the patch centre"}
+        targeting.update({"protein_translation_angstrom": shift.round(6).tolist(), "sphere_center_angstrom": center.round(6).tolist(),
+                          "sphere_radius_angstrom": radius,
+                          "rule": "all chain atoms inside a sphere of patch radius + half the chain extent + 4 A around the patch centre"})
     text = f"tolerance 2.0\nfiletype pdb\noutput packed.pdb\nseed {config['seed']}\nstructure chain.pdb\n number {config['chains']}\n{chain_constraint}end structure\n"
     text += imported_block
     (output / "packmol.inp").write_text(text)
@@ -368,8 +387,12 @@ def packmol(config, output, emit):
     # Prepared single-chain trajectory no longer represents the packed system.
     (output / "trajectory.json").unlink(missing_ok=True)
     warnings = ["Geometric packing is not equilibrium or force-field assignment.", "Protein/polymer mixtures require a compatible joint topology and parameter validation before MD."]
-    if targeting:
+    if targeting and target == "sap_patch":
         warnings.append("Chains start near the highest-SAP surface patch by construction; this is a placement choice, not evidence of binding there.")
+    elif targeting:
+        warnings.append(f"Chains start near the most {'negative' if target == 'negative_patch' else 'positive'} screened-Coulomb surface patch at pH {targeting['protein_ph']:g}; this is a placement choice, not evidence of binding there.")
+        if not targeting["charge_complementary"]:
+            warnings.append(f"The polymer chain's formal charge from its SMILES is {targeting['polymer_formal_charge_per_chain']:+d}; it is not opposite to this patch, so no electrostatic attraction is implied.")
     return outcome(output, "packmol", "prepared", "PACKMOL packing completed; force-field assignment and dynamics remain separate stages.", engine="PACKMOL", metadata={"box_angstrom": [box]*3, "chains": config["chains"], "tolerance_angstrom": 2, "imported_components": int(bool(imported)), "packing_completed": True, "targeting": targeting}, warnings=warnings)
 
 
@@ -383,6 +406,30 @@ def attach_sap(output, pdb_text, config):
     return {"available": True, "summary": stored["summary"], "patch": stored["patch"], "radius_angstrom": stored["radius_angstrom"],
             "top_residues": sorted(({k: r[k] for k in ("chain", "resid", "resname", "sap")} for r in stored["residues"]), key=lambda r: -r["sap"])[:10],
             "files": ["sap.json", stored["structure_file"]]}
+
+
+def attach_protonation(output, pdb_text, config):
+    """PROPKA titration, surface charge patches and a PDB2PQR protonated structure; never changes the structure outcome."""
+    from workbench import protonation
+    ph, ionic = float(config.get("protein_ph", 7.0)), float(config.get("ionic_strength_molar", 0.15))
+    try:
+        stored = protonation.write_outputs(protonation.analyze(pdb_text, ph, ionic), pdb_text, output)
+    except (ImportError, ValueError, RuntimeError, KeyError) as exc:
+        return {"available": False, "reason": str(exc)}
+    summary = {"available": True, "ph": ph, "ionic_strength_molar": ionic, "net_charge": stored["net_charge"],
+               "isoelectric_point": stored["isoelectric_point"], "summary": stored["summary"],
+               "ambiguous_groups": [{k: g[k] for k in ("type", "chain", "resid", "pka")} for g in stored["groups"] if g["ambiguous"]][:20],
+               "shifted_groups": sorted(({k: g[k] for k in ("type", "chain", "resid", "pka", "shift")} for g in stored["groups"] if g["titratable"] and abs(g["shift"]) >= 1.5),
+                                        key=lambda g: -abs(g["shift"]))[:10],
+               "patches": {name: patch and {k: patch[k] for k in ("center_angstrom", "radius_angstrom", "peak_potential", "mean_potential")} | {"residues": patch["residues"][:12]}
+                           for name, patch in stored["surface"]["patches"].items()},
+               "files": ["protonation.json", "structure_potential.pdb"]}
+    try:
+        summary["protonated_structure"] = protonation.protonate(pdb_text, ph, output)
+        summary["files"] += summary["protonated_structure"]["files"]
+    except (ImportError, ValueError, RuntimeError) as exc:
+        summary["protonated_structure"] = {"available": False, "reason": str(exc)}
+    return summary
 
 
 def _checked_af_url(url):
@@ -447,7 +494,8 @@ def protein(config, output, emit):
         metrics = protein_metrics(pdb_text, plddt=True)
         write_json(output / "metrics.json", metrics)
         sap = attach_sap(output, pdb_text, config)
-        return outcome(output, "protein", "completed", "Imported an existing AlphaFold DB prediction; no new folding inference was run.", engine="AlphaFold Protein Structure Database", metrics=metrics, sap=sap,
+        titration = attach_protonation(output, pdb_text, config)
+        return outcome(output, "protein", "completed", "Imported an existing AlphaFold DB prediction; no new folding inference was run.", engine="AlphaFold Protein Structure Database", metrics=metrics, sap=sap, protonation=titration,
                        provenance={"accession": accession, "url": record["pdbUrl"], "entry_id": record.get("entryId"), "new_inference": False},
                        warnings=["pLDDT is local model confidence, not experimental validation or binding affinity.", "The selected database fragment may not cover the full protein."])
     if mode == "import":
@@ -459,7 +507,8 @@ def protein(config, output, emit):
         (output / "structure.pdb").write_text(text)
         write_json(output / "metrics.json", metrics)
         sap = attach_sap(output, text, config)
-        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import", metrics=metrics, sap=sap, warnings=["B factors are interpreted as pLDDT only when explicitly requested."])
+        titration = attach_protonation(output, text, config)
+        return outcome(output, "protein", "completed", "Protein structure imported and analyzed; no folding inference run.", engine="PDB import", metrics=metrics, sap=sap, protonation=titration, warnings=["B factors are interpreted as pLDDT only when explicitly requested."])
     sequence = "".join(str(config.get("sequence", "")).split()).upper()
     if not 4 <= len(sequence) <= 2000 or re.search(r"[^ACDEFGHIKLMNPQRSTVWY]", sequence):
         raise ValueError("Protein sequence must contain 4–2000 standard amino-acid one-letter codes")
@@ -498,7 +547,8 @@ def protein(config, output, emit):
     metrics = protein_metrics((output / "structure.pdb").read_text(), plddt=True)
     write_json(output / "metrics.json", metrics)
     sap = attach_sap(output, (output / "structure.pdb").read_text(), config)
-    return outcome(output, "protein", "completed", "ColabFold structure prediction completed.", engine="ColabFold / AlphaFold2", metrics=metrics, sap=sap,
+    titration = attach_protonation(output, (output / "structure.pdb").read_text(), config)
+    return outcome(output, "protein", "completed", "ColabFold structure prediction completed.", engine="ColabFold / AlphaFold2", metrics=metrics, sap=sap, protonation=titration,
                    warnings=["Single-sequence mode has no evolutionary MSA evidence and can substantially reduce accuracy.", "ColabFold predicts the protein; the optional AF3 ligand is only exported for separate AF3 inference."])
 
 

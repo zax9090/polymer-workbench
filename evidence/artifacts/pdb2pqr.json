@@ -1,0 +1,66 @@
+{
+  "id": "pdb2pqr",
+  "version": "3.7.1",
+  "license": "BSD-3-Clause",
+  "artifact": "pdb2pqr-3.7.1-py3-none-any.whl",
+  "sha256": "15f7422a41ea4c789e564e2ef00ac10b8f020b589b650f6225e627a5901305ea",
+  "purpose": "Protonated all-atom structure (hydrogens, AMBER residue names, PQR charges) at the chosen pH",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "pdb2pqr-3.7.1-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 54,
+    "integrity_contradictions": [],
+    "output": "pdb2pqr.inspect.json"
+  },
+  "files": [
+    {
+      "path": "pdb2pqr/main.py",
+      "artifact_sha256": "1f8cf295e3d141179a71133ee0eff057b3b823fa90e42a6d844b68f4e3f71c5c",
+      "installed_sha256": "1f8cf295e3d141179a71133ee0eff057b3b823fa90e42a6d844b68f4e3f71c5c",
+      "matches_installed": true
+    },
+    {
+      "path": "pdb2pqr/io.py",
+      "artifact_sha256": "57f48ba2bb9c48ddcc698ab1732dfbecd65523a9181493969cb693849de4a676",
+      "installed_sha256": "57f48ba2bb9c48ddcc698ab1732dfbecd65523a9181493969cb693849de4a676",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "pdb2pqr/main.py",
+      "needle": "def run_pdb2pqr(",
+      "line": 845,
+      "purpose": "Run with an argument list"
+    },
+    {
+      "path": "pdb2pqr/main.py",
+      "needle": "def run_propka(",
+      "line": 512,
+      "purpose": "PROPKA titration inside PDB2PQR"
+    },
+    {
+      "path": "pdb2pqr/io.py",
+      "needle": "def get_molecule(",
+      "line": 449,
+      "purpose": "Input reader (falls back to an RCSB download when the path is not a file)"
+    }
+  ],
+  "audited_at": "2026-10-22T12:04:05.781804+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}

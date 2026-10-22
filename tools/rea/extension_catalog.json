@@ -556,5 +556,148 @@
     "commit": "b2cd91aa2030b3b9f94ebc2e09bf09aaf4d5b373",
     "resolved_at": "2026-10-22T11:12:00+00:00",
     "note": "db.csv here is byte-identical to the PyPI 1.1.8 wheel (sha256 42cb4179...). The sphere fit in workbench/compatibility.py is an independent implementation checked against HSPiPy."
+  },
+  {
+    "id": "propka",
+    "repository": "jensengroup/propka",
+    "url": "https://github.com/jensengroup/propka",
+    "license": "LGPL-2.1",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/README.md",
+        "sha256": "45d66fd4cae854b02dedbf94af01d8ca575fadbc5d39e0c434305fb3e82576c9",
+        "bytes": 4526,
+        "github_blob_sha": "b8f2dcb66229d9acc23144aa5ee3fe68b6f1ee3b"
+      },
+      {
+        "path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/LICENSE",
+        "sha256": "fe3149e579d94d0b05d2d9f6acdeece462bbdbc39681ecfb38e3e97bcdb891bd",
+        "bytes": 24487,
+        "github_blob_sha": "d8bfbc7c421017497f7b747ca84bcb2ce49e94e6"
+      },
+      {
+        "path": "propka/run.py",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/propka/run.py",
+        "sha256": "f4ad9d007319a6fa7b31671f28b1955b19a7ec787d065b919f1856dde9279a73",
+        "bytes": 5196,
+        "github_blob_sha": "5e4bf6537c18e116f652c1215e93311f3a2ae625"
+      },
+      {
+        "path": "propka/molecular_container.py",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/propka/molecular_container.py",
+        "sha256": "872b58af31035f68e31acfb8791d042c9811e9ce57d793a8568106810aa6d8df",
+        "bytes": 9841,
+        "github_blob_sha": "394ae6fc91b0f2e7ccec8a66bcaba04aaa27109c"
+      },
+      {
+        "path": "propka/group.py",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/propka/group.py",
+        "sha256": "ab949fe4efaa1a0199b14f1103d736d5a253604442b9955b07e4dcd9ab479a29",
+        "bytes": 49182,
+        "github_blob_sha": "4ff702c6f574337b336f69f1ef7aa048287c5ff7"
+      },
+      {
+        "path": "tests/test_basic_regression.py",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/tests/test_basic_regression.py",
+        "sha256": "8dfc934c82ab19390b3961bf17845c4a76a3f5b94b28ffbd3afdbc75441c9016",
+        "bytes": 5469,
+        "github_blob_sha": "11b9d61b3fc89f79eb6b4156d60a1d38112d21f9"
+      },
+      {
+        "path": "tests/pdb/1HPX.pdb",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/tests/pdb/1HPX.pdb",
+        "sha256": "4112a180c316eeae13ca17458b68b73aacbde7a7596401e7599bc33e70864b38",
+        "bytes": 165159,
+        "github_blob_sha": "499bfe0879decb2df81f9a26cd12c0689831f998"
+      },
+      {
+        "path": "tests/results/1HPX.json",
+        "source_url": "https://raw.githubusercontent.com/jensengroup/propka/94142ffc0433ed1095e8160b3531a43bca0340b0/tests/results/1HPX.json",
+        "sha256": "d78f9383d26f17f1d2a60e92de73633514d49cb6e7f75c3d50345c5972fd3341",
+        "bytes": 573,
+        "github_blob_sha": "90d3992ffcbd2ee88f7d898f2ef5bcb3c3ecb357"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "propka/run.py",
+        "needle": "def single(",
+        "purpose": "In-process PROPKA run on a PDB stream"
+      },
+      {
+        "path": "propka/molecular_container.py",
+        "needle": "def get_pi(",
+        "purpose": "Folded/unfolded isoelectric point by bisection on the charge curve"
+      },
+      {
+        "path": "propka/group.py",
+        "needle": "def calculate_charge(",
+        "purpose": "Henderson-Hasselbalch charge of a titratable group at pH"
+      },
+      {
+        "path": "tests/test_basic_regression.py",
+        "needle": "MAX_ERR_DECIMALS = 2",
+        "purpose": "Upstream regression tolerance (0.01 pKa units)"
+      },
+      {
+        "path": "tests/results/1HPX.json",
+        "needle": "\"pI_folded\": 9.54",
+        "purpose": "Reference result for the HIV-1 protease test structure"
+      }
+    ],
+    "commit": "94142ffc0433ed1095e8160b3531a43bca0340b0",
+    "resolved_at": "2026-10-22T12:05:00+00:00",
+    "note": "Tag v3.5.1, the same release as the installed PyPI wheel. Polymer Lab calls the public API in-process; its 1HPX regression reproduces tests/results/1HPX.json."
+  },
+  {
+    "id": "pdb2pqr",
+    "repository": "Electrostatics/pdb2pqr",
+    "url": "https://github.com/Electrostatics/pdb2pqr",
+    "license": "BSD-3-Clause",
+    "source_files": [
+      {
+        "path": "README.md",
+        "source_url": "https://raw.githubusercontent.com/Electrostatics/pdb2pqr/c714997761cf10797c9f3bd9c84af54579337786/README.md",
+        "sha256": "f7eac842b44d74a2a03b4d53a12abcea79034603029c3bea46063c7970a05b4a",
+        "bytes": 576,
+        "github_blob_sha": "9d1294d52396d1a8716794d7f8db426af2a4a20f"
+      },
+      {
+        "path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/Electrostatics/pdb2pqr/c714997761cf10797c9f3bd9c84af54579337786/LICENSE.md",
+        "sha256": "4f13a9c735f43afb47e6b476f02d5a9722fce4a924177e5e8a50c00a1801d34a",
+        "bytes": 1875,
+        "github_blob_sha": "ecbc2b979e192b787ea3d874dae6fceea30f97e5"
+      },
+      {
+        "path": "pdb2pqr/main.py",
+        "source_url": "https://raw.githubusercontent.com/Electrostatics/pdb2pqr/c714997761cf10797c9f3bd9c84af54579337786/pdb2pqr/main.py",
+        "sha256": "1f8cf295e3d141179a71133ee0eff057b3b823fa90e42a6d844b68f4e3f71c5c",
+        "bytes": 30242,
+        "github_blob_sha": "f2fc72ea55ce032517609be0f35c136770a13fd7"
+      }
+    ],
+    "anchors": [
+      {
+        "path": "pdb2pqr/main.py",
+        "needle": "def run_pdb2pqr(",
+        "purpose": "Run PDB2PQR with an argument list"
+      },
+      {
+        "path": "pdb2pqr/main.py",
+        "needle": "\"--titration-state-method\"",
+        "purpose": "PROPKA-assigned titration states at --with-ph"
+      },
+      {
+        "path": "pdb2pqr/main.py",
+        "needle": "\"--pdb-output\"",
+        "purpose": "Protonated PDB alongside the PQR"
+      }
+    ],
+    "commit": "c714997761cf10797c9f3bd9c84af54579337786",
+    "resolved_at": "2026-10-22T12:05:00+00:00",
+    "note": "Tag v3.7.1, the installed release. The input path must be a local file; PDB2PQR otherwise treats it as an RCSB ID to download."
   }
 ]
