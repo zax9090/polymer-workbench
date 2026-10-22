@@ -27,22 +27,37 @@ jobs:
             requirements.lock.txt
             requirements.desktop.lock.txt
 
-      # Cached .deb files are tied to the runner image so dependencies match the installed base system.
+      # Cached .deb files are keyed by runner image. A cache from an older image is restored too: the
+      # install script re-verifies every file against the current index and downloads only what changed.
       - name: Runner image identity
         id: image
-        run: echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "os=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "id=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
-      - name: Cache GROMACS packages
-        uses: actions/cache@v4
+      - name: Restore GROMACS packages
+        id: gromacs-debs
+        uses: actions/cache/restore@v4
         with:
           path: ~/gromacs-debs
           key: gromacs-debs-${{ steps.image.outputs.id }}-v1
+          restore-keys: gromacs-debs-${{ steps.image.outputs.os }}-
 
       # GROMACS runs the Martini 3 mixture tests; Ubuntu 24.04 ships 2023.3, the version they were validated with.
-      # Two runs stalled in a silent apt-get update, so the script refreshes only the Ubuntu archive with retries.
+      # Runs timed out while azure.archive.ubuntu.com served uncached packages at ~60 KB/s, so the script
+      # downloads each package itself and moves on to the next mirror when one is that slow.
       - name: Install GROMACS
         timeout-minutes: 20
         run: scripts/ci_install_gromacs.sh "$HOME/gromacs-debs"
+
+      # Saved right after the install, so a later test failure does not throw the downloads away.
+      - name: Save GROMACS packages
+        if: steps.gromacs-debs.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ~/gromacs-debs
+          key: gromacs-debs-${{ steps.image.outputs.id }}-v1
 
       - name: Install pinned research environment
         run: |
@@ -62,16 +77,26 @@ jobs:
 
       # EMC 9.4.4 (PCFF cells, epoxy cure) and xtb 6.7.1 (CM5 charges) are pinned by SHA-256 in
       # workbench/engines.py; without them the end-to-end tests of those routes skip.
-      - name: Cache pinned engines
-        uses: actions/cache@v4
+      - name: Restore pinned engines
+        id: engines
+        uses: actions/cache/restore@v4
         with:
           path: data/engines
           key: engines-emc-9.4.4-xtb-6.7.1-v1
 
       - name: Fetch pinned engines
+        id: fetch-engines
         timeout-minutes: 10
         continue-on-error: true
         run: .venv/bin/python -c "from workbench import engines; [print(name, engines.ensure(name)[1]['source']) for name in engines.ENGINES]"
+
+      - name: Save pinned engines
+        if: steps.engines.outputs.cache-hit != 'true' && steps.fetch-engines.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: data/engines
+          key: engines-emc-9.4.4-xtb-6.7.1-v1
 
       - name: Run pytest
         timeout-minutes: 30
