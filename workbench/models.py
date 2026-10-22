@@ -34,9 +34,13 @@ class JobConfig(BaseModel):
     a3m_text: str = Field(default="", max_length=5000000)
     engine_input: str = Field(default="", max_length=500000)
     bridge_track: Literal["martini3", "amber", "openff"] = "martini3"
-    bridge_mode: Literal["prepare", "protein_cg"] = "prepare"
+    bridge_mode: Literal["prepare", "protein_cg", "simulate"] = "prepare"
     secondary_structure: str = Field(default="", max_length=10000, pattern=r"^[HEC]*$")
     polymer_net_charge: int = Field(default=0, ge=-100, le=100)
+    equilibration_steps: int = Field(default=50000, ge=100, le=500000)
+    salt_molar: float = Field(default=0.15, ge=0, le=1)
+    contact_cutoff_nm: float = Field(default=0.6, ge=0.3, le=1.5)
+    elastic_network: bool = False
 
     @model_validator(mode="after")
     def bounds(self):
@@ -59,8 +63,10 @@ class JobConfig(BaseModel):
         if self.route == "mixture":
             if not 250 <= self.temperature_kelvin <= 400:
                 raise ValueError("현재 혼합계 준비 템플릿의 온도 범위는 250~400 K입니다.")
-            if self.bridge_mode == "protein_cg" and self.bridge_track != "martini3":
-                raise ValueError("단백질 CG 생성은 Martini 3 경로에서 지원합니다.")
+            if self.bridge_mode in {"protein_cg", "simulate"} and self.bridge_track != "martini3":
+                raise ValueError("단백질 CG 생성과 혼합계 MD는 Martini 3 경로에서 지원합니다.")
+            if self.bridge_mode == "simulate" and 8.36 * self.box_nm ** 3 > 70000:
+                raise ValueError("이 데스크톱 혼합계 MD는 약 7만 입자까지 지원합니다. 박스 한 변을 20 nm 이하로 줄이세요.")
             if self.bridge_track == "martini3" and self.polyply_library != "martini3":
                 raise ValueError("Martini 3 브릿지에는 동일 버전의 martini3 라이브러리를 사용하세요.")
         return self

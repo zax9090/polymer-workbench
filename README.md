@@ -38,7 +38,7 @@ flowchart LR
 - **실험·문헌:** 단일 측정값과 CSV를 검토 후 저장합니다. DSC는 선택한 두 기준선의 중간점, 인장은 지정한 선형 구간의 기울기, TGA는 기준 온도 대비 지정 질량 감소 온도(Td), GPC는 표준 보정식과 기준선·적분 구간으로 Mn·Mw·분산도를 초안으로 계산합니다. GPC 값은 보정 표준 환산 상대값입니다. PDF는 페이지별 텍스트와 원본 해시를 보존합니다. LLM/OCR 추출은 구현되어 있지 않습니다.
 - **물성 모델:** 검토된 실험·문헌 데이터의 서로 다른 반복단위 최소 8종으로 GP 기준 모델을 학습합니다. 구조 그룹을 분리해 교차 검증하고 적용 범위와 미보정 불확실성을 표시합니다. 짧은 MD의 피처를 결합할 수 있지만 진정한 다중 충실도 모델이나 고정밀 예측을 보장하지 않습니다.
 - **캠페인:** 사용자가 지정한 유한 후보에서 초기 다양성 추천 후 관측값이 5개 이상이면 GP/BayBE의 결과 기반 추천을 수행합니다. 최대 50개 계산 예산과 배치 크기를 지정하고 명시적으로 시작합니다. 앱 재시작 시 자동 계산은 일시 정지합니다.
-- **혼합계 브릿지:** 검토한 단백질 PDB·2차 구조와 설치된 Martini 3 고분자 블록을 martinize2/polyply에 연결해 구성요소 토폴로지를 생성합니다. AMBER는 준비·평형화 입력 템플릿, OpenFF는 연동 명세를 제공합니다. 전체 용매화 혼합계 MD는 아직 실행하지 않습니다.
+- **혼합계 브릿지:** 검토한 단백질 PDB·2차 구조와 설치된 Martini 3 고분자 블록을 martinize2/polyply에 연결해 구성요소 토폴로지를 생성합니다. **MD 실행 모드**는 고정 커밋·해시를 확인한 Martini 3.0.0 힘장으로 단백질·고분자·물·Na⁺/Cl⁻를 하나의 토폴로지로 조립하고(전하 0, 지정 염 농도), GROMACS로 최소화 → 위치 구속 NVT → 위치 구속 NPT → 짧은 생산 계산을 실행합니다. 단백질 RMSD·고분자 접촉 수·회전반경·밀도와 PyMBAR 정상성 후보를 자동 분석해 연구 DB 피처로 색인하며, 이 피처를 목표로 고분자 블록·사슬 길이를 탐색하는 캠페인도 만들 수 있습니다. 짧은 파일럿 결과는 결합 자유에너지나 평형 도달을 뜻하지 않습니다. AMBER는 준비·평형화 입력 템플릿, OpenFF는 연동 명세를 제공합니다. GROMACS는 별도 설치가 필요합니다.
 
 실행 데이터는 `~/.local/share/polymer-lab/research/`에 보관합니다. Google Drive/rclone 등으로 이미 동기화 중인 폴더를 지정하면 **불변 Parquet 스냅샷**을 복사할 수 있습니다. 계정 연결·클라우드 업로드 확인은 하지 않으며 실행 중인 DuckDB 파일은 동기화하지 않습니다. [데이터 구조](docs/RESEARCH_DATA.md), [모델·캠페인](docs/LEARNING_CAMPAIGNS.md), [혼합계 브릿지](docs/BRIDGES.md)를 참고하세요.
 
@@ -66,6 +66,7 @@ cd /home/kali/Projects/polymer-workbench
 | 내 PDB 분석 | PDB → 구조 확인·기하 분석 | B-factor는 사용자가 지정할 때만 pLDDT로 해석 |
 | PACKMOL | RDKit 사슬 + 선택한 이전 구조 → 분자 배치 | MD용 초기 배치. 공통 힘장/토폴로지 설정이 추가로 필요 |
 | polyply | 라이브러리 잔기·길이 → 분자 ITP | 기본 설정은 Martini 3 PEO 토폴로지 준비 |
+| Martini 3 혼합계 MD | 단백질 PDB·2차 구조 + polyply 블록 → martinize2 → 물·이온 배치 → GROMACS 4단계 → MDAnalysis | 용매화 CG 파일럿. RMSD·접촉·밀도는 짧은 계산의 관측값이며 평형·결합력 보증 아님 |
 | pysimm | RDKit → GAFF2/Gasteiger → LAMMPS 에너지 최소화 | 고립 사슬 최소화, 평형 MD 아님 |
 
 조대화 기본 모델은 **코사인 soft 반발 + harmonic 결합**, 비주기 희박 사슬입니다. 비드가 서로 통과할 수 있어 얽힘 동역학을 재현하는 모델로 해석하면 안 됩니다. NumPy 대체 엔진은 동일한 포텐셜의 overdamped Langevin 적분을 수행하지만 LAMMPS 관성 동역학과 시간 척도가 다릅니다. `repeat_smiles`를 입력해도 조대화 힘장이 그 화학종에 맞춰 자동 보정되지는 않습니다.
@@ -111,6 +112,8 @@ export COLABFOLD_EXEC=/absolute/path/to/colabfold_batch
 | `PACKMOL_EXEC` | 별도 PACKMOL 실행 파일 |
 | `POLYPLY_EXEC` | 별도 polyply 실행 파일 |
 | `GROMACS_EXEC` | `gmx` 실행 파일 |
+| `MARTINI3_FF_DIR` | 검토한 Martini 3.0.0 파일 폴더. 고정 해시와 같아야 함 |
+| `POLYMER_MD_THREADS` | Martini 혼합계 GROMACS OpenMP 스레드 수(기본 최대 4) |
 | `RADONPY_PYTHON` | 별도 RadonPy Python 환경 |
 | `PYSIMM_PYTHON` | 별도 pysimm Python 환경 |
 | `HOOMD_PYTHON` | 별도 HOOMD-blue Python 환경 |

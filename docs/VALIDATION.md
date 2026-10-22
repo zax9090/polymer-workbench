@@ -1,5 +1,16 @@
 # 실행 검증 기록
 
+## 0.3 이후: Martini 3 용매화 단백질–고분자 MD
+
+2026-10-22, Claude Code 클라우드 컨테이너(Ubuntu 24.04, Python 3.13.16, GROMACS 2023.3 `apt` 패키지, martinize2/polyply는 `requirements.lock.txt`). Martini 3.0.0 힘장은 고정 커밋 `784591eb`에서 받아 SHA-256 4개를 확인했습니다.
+
+- **실제 실행:** RDKit으로 만든 6잔기 알라닌 소프트웨어 테스트 구조(명시적 `CCCCCC` 가정) + PEO 12-mer 2사슬, 6 nm 박스. W 1,732개, Na⁺/Cl⁻ 각 19개(추정 0.152 M), 계 전하 0. 최소화는 Fmax < 100에 수렴했고 NVT·NPT·생산 단계 모두 `grompp` 경고 0개로 통과했습니다(NVT·NPT에는 위치 구속과 COM 제거에 관한 GROMACS NOTE 1개). 생산 20 ps 평균 밀도 1005 kg/m³, 온도 303 K, 전체 17초. 101 프레임에서 RMSD·회전반경·접촉 수·최소 거리를 계산했습니다.
+- **자동 테스트:** 위 경로의 축소판(5.5 nm 박스), API → 작업 프로세스 → 결과 → 연구 DB 색인(`contact_count`, `protein_rmsd` 피처, Martini 3.0.0 호환 조건), 전하 합산과 중화 이온 개수, 고분자 전하 확인 요구, 박스 여유 부족·예상 입자 수 초과·AMBER simulate 거부, 수정된 로컬 힘장 파일 거부, 혼합계 캠페인 후보의 원-핫 블록 벡터와 단백질 입력 고정을 검사합니다. 전체 소스 테스트 **68개 통과, 2개 건너뜀**(BayBE 미설치)입니다. GROMACS·martinize2·polyply가 없으면 실제 실행 테스트 2개는 건너뜁니다.
+- **화면:** headless Chromium 1360px에서 혼합계 화면 MD 실행 → 작업 완료 → 결과 지표와 최종 프레임(단백질 파랑·고분자 주황) 표시, 워크플로 단계 표기, 혼합계 설정으로 PEO·PS·PMMA × 2길이 캠페인 후보 6개 생성·저장. 390px 가로 넘침 0px, console 오류 0개.
+- **REA:** `scripts/audit_extensions.py --fetch-pinned --run-rea --only martini-forcefields`로 Martini 저장소 원본 5개를 고정 커밋에서 받고 REA 6.7.0 `import-reference-source`를 실행했습니다. 기존 8개 저장소의 고정 원본도 다시 받아 바이트 단위로 확인했으며, 9개 저장소·31개 파일이 모두 `verified_inventory`입니다.
+
+이 검증은 소프트웨어 경로가 끝까지 실행되고 단위·전하·개수가 일관됨을 확인한 것입니다. 20 ps 파일럿의 접촉 수·RMSD는 실제 단백질–고분자 결합이나 평형 도달의 근거가 아닙니다. 데스크톱 번들은 다시 빌드하지 않았습니다.
+
 ## 0.3 이후: TGA·GPC 곡선 분석
 
 2026-10-22, Claude Code 클라우드 컨테이너(Linux x86_64, Python 3.13.16, `requirements.lock.txt`). 소스 자동 테스트 **62개 통과, 2개 건너뜀**. 건너뛴 2개는 BayBE 테스트로, BayBE·PyTorch가 `requirements.desktop.lock.txt`에만 있어 이 환경에 설치하지 않았기 때문입니다. 0.3 기록의 59개와 비교하면 이번 변경의 테스트 5개가 추가되었습니다.

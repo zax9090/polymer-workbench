@@ -16,6 +16,9 @@ python3 scripts/audit_repos.py
 # 보관된 커밋의 정확한 원본 소스를 복원하고 분석 재실행
 python3 scripts/audit_repos.py --refresh-sources --run-rea
 
+# 확장 감사(BayBE·DuckDB·Martini 힘장 등): 고정 커밋 원본을 받아 검증하고 지정 저장소만 REA 재실행
+python3 scripts/audit_extensions.py --fetch-pinned --run-rea --only martini-forcefields
+
 # 개별 REA 명령
 node tools/rea/node_modules/rea-agents/scripts/rea.mjs import-reference-source evidence/sources/radonpy --detail summary --format json
 node tools/rea/node_modules/rea-agents/scripts/rea.mjs analyze-javascript-application evidence/sources/3dmol --format json

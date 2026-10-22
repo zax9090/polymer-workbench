@@ -20,10 +20,11 @@ FEATURE_OBJECTIVES = {
     "adjacent_tangent_correlation": {"dimensionless"}, "backbone_dihedral_entropy": {"nats"},
     "dipole_fluctuation": {"e*angstrom"}, "potential_energy_mean": {"epsilon", "kcal/mol", "kJ/mol"},
     "contact_count": {"count"}, "hbond_count": {"count"}, "protein_rmsd": {"angstrom"},
+    "polymer_rg_mean": {"angstrom"}, "protein_rg_mean": {"angstrom"},
 }
 COARSE = {"polymer_cg", "hoomd"}
 ACTIVE = {"queued", "running", "cancelling"}
-VARIABLES = {"monomers", "chains", "temperature", "temperature_kelvin", "box_nm", "repeat_smiles", "name"}
+VARIABLES = {"monomers", "chains", "temperature", "temperature_kelvin", "box_nm", "repeat_smiles", "name", "polyply_residue", "salt_molar", "polymer_net_charge"}
 
 
 def backend_capabilities():
@@ -50,6 +51,9 @@ def _vector(config):
     if route in COARSE:
         # Repeat SMILES has no physical mapping in the generic bead model.
         return [float(config[key]) for key in ("monomers", "chains", "temperature")]
+    if route == "mixture":
+        # The Martini block, not a SMILES, is the chemistry; it is one-hot encoded per campaign.
+        return [float(config[key]) for key in ("monomers", "chains", "temperature_kelvin", "box_nm", "salt_molar")]
     _, molecular = molecular_features(config["repeat_smiles"])
     return molecular + [float(config[key]) for key in ("monomers", "chains", "temperature_kelvin", "box_nm")]
 
@@ -140,14 +144,16 @@ class CampaignManager:
         rows, hashes, protocols = [], set(), set()
         for raw in candidates:
             config = JobConfig.model_validate(raw).model_dump()
-            if config["route"] not in {"polymer_cg", "polymer_atomistic", "pysimm", "packmol", "hoomd"}:
-                raise ValueError("캠페인은 고분자 CG·전원자·pysimm·PACKMOL·HOOMD 후보를 지원합니다.")
+            if config["route"] not in {"polymer_cg", "polymer_atomistic", "pysimm", "packmol", "hoomd", "mixture"}:
+                raise ValueError("캠페인은 고분자 CG·전원자·pysimm·PACKMOL·HOOMD·Martini 혼합계 MD 후보를 지원합니다.")
+            if config["route"] == "mixture" and config["bridge_mode"] != "simulate":
+                raise ValueError("혼합계 캠페인은 결과를 관측하는 Martini 3 simulate 모드만 지원합니다.")
             if config.get("engine_input"):
                 raise ValueError("캠페인은 비교 가능한 검증 내장 입력만 사용합니다. 임의 engine_input은 단일 작업에서 실행하세요.")
             if config.get("source_job_id"):
                 source_job = self.jobs.get(config["source_job_id"])
-                if config["route"] != "packmol" or source_job["status"] not in {"completed", "prepared"} or source_job["config"]["route"] in COARSE:
-                    raise ValueError("완료된 원자 구조만 PACKMOL에 연결할 수 있습니다.")
+                if config["route"] not in {"packmol", "mixture"} or source_job["status"] not in {"completed", "prepared"} or source_job["config"]["route"] in COARSE:
+                    raise ValueError("완료된 원자 구조만 PACKMOL 또는 혼합계에 연결할 수 있습니다.")
                 path = self.jobs.directory(config["source_job_id"]) / config["source_artifact"]
                 if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5000000:
                     raise ValueError("후보 구조는 5 MB 이하 PDB 파일이어야 합니다.")
@@ -168,6 +174,10 @@ class CampaignManager:
                          "objective": None, "objective_status": "not_run"})
         if len(protocols) != 1:
             raise ValueError("하나의 캠페인에서는 경로·힘장·엔진·스텝·시드·타임스텝·단백질 입력을 고정하세요. 화학구조·사슬 길이·온도·박스 크기를 탐색할 수 있습니다.")
+        if rows[0]["config"]["route"] == "mixture":
+            residues = sorted({row["config"]["polyply_residue"] for row in rows})
+            for row in rows:
+                row["vector"] += [float(row["config"]["polyply_residue"] == residue) for residue in residues]
         record = {"schema_version": 1, "id": uuid.uuid4().hex, "name": str(payload.get("name", "새 연구 캠페인"))[:160],
                   "created_at": utcnow(), "status": "ready", "automatic": False, "backend": backend,
                   "objective": objective, "budget": min(budget, len(rows)), "batch_size": batch_size, "seed": seed,

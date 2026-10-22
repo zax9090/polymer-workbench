@@ -2,6 +2,7 @@
 """Pin and inspect selected extension interfaces with the installed REA toolkit.
 
 --resolve explicitly selects today's upstream HEAD and downloads only listed files.
+--fetch-pinned restores missing pinned files from their recorded commit URLs.
 Subsequent runs verify pinned bytes; --run-rea performs source inventory, not
 Python/native decompilation, dependency review or scientific validation.
 """
@@ -51,6 +52,17 @@ def resolve(repo):
     return {**repo,'commit':commit,'resolved_at':datetime.now(timezone.utc).isoformat(),'source_files':sources}
 
 
+def fetch_pinned(repo):
+    for source in repo['source_files']:
+        path = BASE / 'sources' / repo['id'] / source['path']
+        if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == source['sha256']:
+            continue
+        data = urlopen(Request(source['source_url'], headers={'User-Agent':'PolymerLab-REA-audit/0.3'}), timeout=120).read()
+        if hashlib.sha256(data).hexdigest() != source['sha256']:
+            raise ValueError(f"Pinned download mismatch: {source['source_url']}")
+        path.parent.mkdir(parents=True, exist_ok=True);path.write_bytes(data)
+
+
 def verify(repo):
     for source in repo['source_files']:
         path = BASE / 'sources' / repo['id'] / source['path']
@@ -82,15 +94,20 @@ def rea(repo):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--resolve',action='store_true');parser.add_argument('--run-rea',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--resolve',action='store_true');parser.add_argument('--run-rea',action='store_true')
+    parser.add_argument('--fetch-pinned',action='store_true');parser.add_argument('--only',action='append',default=[],help='repository id to re-run with --run-rea')
+    args=parser.parse_args()
     repos=read_json(CATALOG)
     if args.resolve:
         with ThreadPoolExecutor(max_workers=3) as pool: repos=list(pool.map(resolve,repos))
         write(CATALOG,repos)
+    if args.fetch_pinned:
+        for repo in repos: fetch_pinned(repo)
     for repo in repos: verify(repo)
     if args.run_rea:
         if not REA.exists():raise RuntimeError('Local REA unavailable; see tools/rea/README.md')
-        with ThreadPoolExecutor(max_workers=3) as pool: list(pool.map(rea,repos))
+        selected=[repo for repo in repos if not args.only or repo['id'] in args.only]
+        with ThreadPoolExecutor(max_workers=3) as pool: list(pool.map(rea,selected))
     results=[]
     for repo in repos:
         output=read_json(BASE/'rea'/f"{repo['id']}.json");command=read_json(BASE/'rea'/f"{repo['id']}.command.json")

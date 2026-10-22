@@ -15,6 +15,12 @@ fi
 .venv/bin/python -m pip install --quiet --disable-pip-version-check -r requirements.lock.txt
 .venv/bin/python -m pip install --quiet --disable-pip-version-check --no-deps -e .
 
+# GROMACS runs the Martini 3 mixture tests; without it those tests skip.
+if ! command -v gmx >/dev/null 2>&1; then
+  { apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gromacs; } >/dev/null 2>&1 \
+    || echo "GROMACS could not be installed; Martini mixture MD tests will be skipped" >&2
+fi
+
 if [ ! -f tools/rea/node_modules/rea-agents/scripts/rea.mjs ]; then
   python3 tools/rea/bootstrap.py
 fi

@@ -162,7 +162,7 @@ class JobManager:
             except PackageNotFoundError:
                 packages[package] = None
         files = {}
-        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
+        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
             path = ROOT / name
             if path.is_file():
                 files[name] = hashlib.sha256(path.read_bytes()).hexdigest()
