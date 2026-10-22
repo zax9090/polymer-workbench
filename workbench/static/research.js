@@ -11,12 +11,13 @@ const researchProperties = {
   mw: { label: '중량평균 분자량 Mw', unit: 'g/mol', units: ['g/mol','kg/mol','Da'], domain: 'polymer' },
   dispersity: { label: '분산도 Đ (Mw/Mn)', unit: 'dimensionless', units: ['dimensionless'], domain: 'polymer' },
   decomposition_temperature: { label: '열분해 온도 Td', unit: 'K', units: ['K','C'], domain: 'polymer' },
+  density: { label: '밀도', unit: 'g/cm^3', units: ['g/cm^3','kg/m^3'], domain: 'polymer' },
   binding_affinity: { label: '결합 친화도 Kd', unit: 'nM', units: ['nM','µM','mM','M'], domain: 'protein_polymer' },
   contact_count: { label: '접촉 수', unit: 'count', units: ['count'], domain: 'protein_polymer' },
   hbond_count: { label: '수소결합 수', unit: 'count', units: ['count'], domain: 'protein_polymer' },
   protein_rmsd: { label: '단백질 RMSD', unit: 'angstrom', units: ['angstrom','nm'], domain: 'protein_polymer' }
 };
-const featureNames = { rg_mean:'평균 회전반경', rg_std:'회전반경 표준편차', rg_final:'최종 회전반경', end_to_end_mean:'평균 말단 간 거리', end_to_end_std:'말단 간 거리 표준편차', backbone_dihedral_entropy:'주사슬 이면각 엔트로피', adjacent_tangent_correlation:'인접 사슬 방향 상관', dipole_fluctuation:'쌍극자 요동', potential_energy_mean:'평균 위치 에너지', density_mean:'평균 밀도', contact_count:'접촉 수', hbond_count:'수소결합 수', protein_rmsd:'단백질 RMSD' };
+const featureNames = { rg_mean:'평균 회전반경', rg_std:'회전반경 표준편차', rg_final:'최종 회전반경', end_to_end_mean:'평균 말단 간 거리', end_to_end_std:'말단 간 거리 표준편차', backbone_dihedral_entropy:'주사슬 이면각 엔트로피', adjacent_tangent_correlation:'인접 사슬 방향 상관', dipole_fluctuation:'쌍극자 요동', potential_energy_mean:'평균 위치 에너지', density_mean:'평균 밀도', bulk_density:'벌크 셀 밀도', bulk_modulus:'체적탄성률', heat_capacity_cp:'정압 비열 Cp', isothermal_compressibility:'등온 압축률', volume_expansion:'부피 팽창계수', polymer_rg_mean:'고분자 회전반경', protein_rg_mean:'단백질 회전반경', contact_count:'접촉 수', hbond_count:'수소결합 수', protein_rmsd:'단백질 RMSD' };
 const campaignStatuses = {ready:'시작 대기', running:'계산 진행', paused:'일시 중지', completed:'탐색 완료', exhausted:'후보 소진', waiting:'결과 대기', stopped:'중지', waiting_measurements:'측정값 대기', waiting_observations:'관측값 대기'};
 const researchJSON = value => `<pre>${escape(JSON.stringify(value, null, 2))}</pre>`;
 const researchError = (id, error) => { $(id).innerHTML = `<div class="error-message">${escape(error?.message || error)}</div>`; };

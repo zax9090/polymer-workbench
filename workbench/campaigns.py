@@ -21,6 +21,7 @@ FEATURE_OBJECTIVES = {
     "dipole_fluctuation": {"e*angstrom"}, "potential_energy_mean": {"epsilon", "kcal/mol", "kJ/mol"},
     "contact_count": {"count"}, "hbond_count": {"count"}, "protein_rmsd": {"angstrom"},
     "polymer_rg_mean": {"angstrom"}, "protein_rg_mean": {"angstrom"},
+    "bulk_density": {"g/cm^3"}, "bulk_modulus": {"GPa"}, "heat_capacity_cp": {"J/(kg K)"},
 }
 COARSE = {"polymer_cg", "hoomd"}
 ACTIVE = {"queued", "running", "cancelling"}

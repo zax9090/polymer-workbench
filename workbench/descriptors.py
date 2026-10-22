@@ -156,6 +156,28 @@ def _mixture_features(report, analysis, add):
     report["warnings"] += analysis.get("warnings", [])
 
 
+def _bulk_features(report, complete, add):
+    """RadonPy periodic-cell properties; units and scaled-protocol provenance travel with each value."""
+    scale = complete.get("protocol_scale")
+    prefix = f"RadonPy NPT sampling after Larsen 21-step equilibration (stage length x{scale:g}, GAFF2_mod/Gasteiger); "
+    for name, key, method in (("bulk_density", "density", "mean thermo density"),
+                              ("bulk_modulus", "bulk_modulus", "isothermal bulk modulus from volume fluctuations"),
+                              ("heat_capacity_cp", "heat_capacity_cp", "Cp from enthalpy fluctuations"),
+                              ("isothermal_compressibility", "isothermal_compressibility", "compressibility from volume fluctuations"),
+                              ("volume_expansion", "volume_expansion", "volume expansion from enthalpy-volume cross fluctuations"),
+                              ("rg_mean", "chain_rg", "RadonPy gyration/chunk mean chain Rg")):
+        item = (complete.get("properties") or {}).get(key) or {}
+        if isinstance(item.get("value"), (int, float)):
+            add(name, item["value"], item.get("unit"), prefix + method, radonpy_criteria_met=complete.get("radonpy_criteria_met"))
+    report["unavailable"].pop("density", None)
+    series = complete.get("density_series") or []
+    report["equilibration"] = {"bulk_density": _equilibration(series, "g/cm^3")}
+    report.update(frame_count=len(series), chain_count=complete.get("chains"), length_unit="angstrom", actual_dynamics=len(series) >= 2,
+                  trajectory_source="bulk_complete.json (RadonPy analysis of the sampling log)")
+    if not complete.get("radonpy_criteria_met"):
+        report["warnings"].append("RadonPy convergence criteria were not met for this cell.")
+
+
 def extract_job_features(job_dir: Path, job=None) -> dict:
     directory = Path(job_dir)
     job = job or _read(directory / "job.json")
@@ -181,6 +203,11 @@ def extract_job_features(job_dir: Path, job=None) -> dict:
     def add(name, value, unit, method, **extra):
         if np.isfinite(value):
             report["values"][name] = {"value": float(value), "unit": unit, "method": method, **extra}
+    if config.get("route") == "polymer_atomistic" and config.get("atomistic_mode") == "bulk" and (directory / "bulk_complete.json").is_file():
+        _bulk_features(report, _read(directory / "bulk_complete.json"), add)
+        report["source_files"].append("bulk_complete.json")
+        report["source_sha256"] = {"bulk_complete.json": hashlib.sha256((directory / "bulk_complete.json").read_bytes()).hexdigest()}
+        return report
     if config.get("route") == "mixture" and (directory / "mixture_analysis.json").is_file():
         _mixture_features(report, _read(directory / "mixture_analysis.json"), add)
         report["source_files"].append("mixture_analysis.json")

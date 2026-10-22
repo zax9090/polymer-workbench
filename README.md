@@ -62,6 +62,7 @@ cd /home/kali/Projects/polymer-workbench
 | 조대화 고분자 | 사슬 생성 → LAMMPS Langevin MD → MDAnalysis 교차 확인 → 궤적/그래프 | 환산 단위의 미보정 비드-스프링 모델 |
 | 전원자 구조 | 반복단위 SMILES → RDKit 연결·3D 배치·MMFF 최적화 | 준비된 한 사슬 구조, MD 수행 아님 |
 | RadonPy MD | RDKit → GAFF2_mod/Gasteiger → LAMMPS 최소화·짧은 NVT | 고립된 한 사슬 계산, 벌크 물성 아님 |
+| RadonPy 벌크 셀 | N개 사슬 → RadonPy amorphous cell → 패킹 → Larsen 21단계 압축·감압 → NPT 샘플링 → RadonPy 물성 분석 | 주기 셀의 밀도·체적탄성률·Cp·압축률. 길이 배율 1 미만은 탐색용 단축 계산이며 RadonPy 수렴 기준 충족 여부를 표시. Tg는 계산하지 않음 |
 | AlphaFold DB | UniProt ID → 공식 DB 예측 파일 → 원자 구조·pLDDT 분석 | 이미 존재하는 예측 가져오기, 새 추론 아님 |
 | 내 PDB 분석 | PDB → 구조 확인·기하 분석 | B-factor는 사용자가 지정할 때만 pLDDT로 해석 |
 | PACKMOL | RDKit 사슬 + 선택한 이전 구조 → 분자 배치 | MD용 초기 배치. 공통 힘장/토폴로지 설정이 추가로 필요 |

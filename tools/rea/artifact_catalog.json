@@ -1,0 +1,32 @@
+[
+  {
+    "id": "radonpy-pypi",
+    "version": "0.2.11",
+    "license": "BSD-3-Clause",
+    "artifact": "radonpy_pypi-0.2.11-py3-none-any.whl",
+    "sha256": "bad3de860b07f7c740e40ca2d9ca24e3683dcc713fceea6a84cfd3d17c2572d7",
+    "purpose": "Installed RadonPy executed by the bulk amorphous-cell route; the GitHub snapshot in evidence/rea differs from this release",
+    "files": ["radonpy/core/poly.py", "radonpy/sim/preset/eq.py", "radonpy/sim/lammps.py", "radonpy/sim/md.py", "radonpy/ff/gaff2_mod.py"],
+    "anchors": [
+      ["radonpy/core/poly.py", "def amorphous_cell(", "Low-density periodic cell of N chains"],
+      ["radonpy/sim/preset/eq.py", "    def packing(", "Soft-pair relaxation, heating and deformation to the packing density"],
+      ["radonpy/sim/preset/eq.py", "    def eq21step(", "Larsen 21-step compression/decompression stage list and pressure ratios"],
+      ["radonpy/sim/preset/eq.py", "    def sampling(", "NPT sampling with Rg profile and MSD"],
+      ["radonpy/sim/lammps.py", "    def get_all_prop(", "Density, Cp/Cv, compressibility, bulk modulus, thermal expansion from thermo fluctuations"],
+      ["radonpy/sim/lammps.py", "    def check_eq(", "RadonPy SMA standard-deviation convergence criteria"]
+    ]
+  },
+  {
+    "id": "mdtraj",
+    "version": "1.11.2",
+    "license": "LGPL-2.1-or-later",
+    "artifact": "mdtraj-1.11.2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "41ad7ee1bfbe6f6f0b8a7b9475bb242387f393edebbf3901d2d0824f63a9cdf8",
+    "purpose": "Shrake-Rupley solvent accessible surface area used by the SAP aggregation scan",
+    "files": ["mdtraj/geometry/sasa.py"],
+    "anchors": [
+      ["mdtraj/geometry/sasa.py", "_ATOMIC_RADII = {", "Element radii (nm) used for SASA"],
+      ["mdtraj/geometry/sasa.py", "def shrake_rupley(", "Per-atom or per-residue SASA"]
+    ]
+  }
+]

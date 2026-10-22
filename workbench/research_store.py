@@ -21,6 +21,7 @@ PROPERTY_UNITS = {
     "binding_affinity": "nM", "contact_count": "count", "hbond_count": "count",
     "protein_rmsd": "angstrom", "molecular_weight": "g/mol",
     "mn": "g/mol", "mw": "g/mol", "dispersity": "dimensionless", "decomposition_temperature": "K",
+    "density": "g/cm^3",
 }
 
 
@@ -113,12 +114,13 @@ def validate_measurement(record: dict) -> dict:
         "mw": {"g/mol": (1, 0), "kg/mol": (1e3, 0), "Da": (1, 0)},
         "dispersity": {"dimensionless": (1, 0)},
         "decomposition_temperature": {"K": (1, 0), "C": (1, 273.15), "°C": (1, 273.15)},
+        "density": {"g/cm^3": (1, 0), "kg/m^3": (1e-3, 0)},
     }
     if unit not in units[prop]:
         raise ValueError(f"Unit {unit!r} is incompatible with {prop}")
     factor, offset = units[prop][unit]
     converted = value * factor + offset
-    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature"} and converted == 0):
+    if not math.isfinite(converted) or converted < 0 or (prop in {"tg", "binding_affinity", "molecular_weight", "mn", "mw", "decomposition_temperature", "density"} and converted == 0):
         raise ValueError(f"Invalid physical value for {prop}")
     if prop == "dispersity" and converted < 1:
         raise ValueError("Dispersity Mw/Mn cannot be below 1")

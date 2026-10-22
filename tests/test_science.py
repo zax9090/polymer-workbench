@@ -123,6 +123,39 @@ class ScientificChecks(unittest.TestCase):
             lammps_input = (Path(one)/"radon_lmp.in").read_text()
             self.assertIn("nvt temp 350.000000 350.000000", lammps_input)
 
+    def test_radonpy_bulk_cell_runs_scaled_21_step_protocol(self):
+        if not available("radonpy") or not executable("lmp", "LAMMPS_EXEC"):
+            self.skipTest("Optional native RadonPy/LAMMPS route unavailable")
+        from workbench.models import JobConfig
+        with self.assertRaises(ValueError):
+            JobConfig.model_validate({"route": "polymer_atomistic", "atomistic_mode": "bulk", "chains": 1})
+        with self.assertRaises(ValueError):
+            JobConfig.model_validate({"route": "polymer_atomistic", "atomistic_mode": "bulk", "chains": 3, "temperature_kelvin": 550})
+        # 0.003 x RadonPy stage lengths: a software check of the protocol path, not an equilibrated material.
+        config = JobConfig.model_validate({"route": "polymer_atomistic", "atomistic_mode": "bulk", "repeat_smiles": "[*]CC[*]",
+                                           "monomers": 10, "chains": 4, "protocol_scale": 0.003, "seed": 11}).model_dump()
+        with tempfile.TemporaryDirectory() as folder:
+            result = run_workflow(config, folder)
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["metadata"]["chains"], 4)
+            complete = json.loads(Path(folder, "bulk_complete.json").read_text())
+            # RadonPy's MSD fix averages over the thermo interval, so sampling must be a whole number of intervals.
+            self.assertEqual(complete["stage_steps"]["sampling"] % complete["sampling_thermo_freq"], 0)
+            self.assertTrue(result["warnings"][0].startswith("Stage lengths were multiplied by 0.003"))
+            density = result["metrics"]["summary"]["density_g_cm3"]
+            self.assertTrue(0.3 < density < 1.5, density)
+            eq21 = Path(folder, "eq2.in").read_text()
+            # Larsen's peak pressure (50000 atm x 1.00) and final 1 atm stage survive the scaling.
+            self.assertIn("iso 50000.000000 50000.000000", eq21)
+            self.assertIn("iso 1.000000 1.000000", eq21)
+            features = json.loads(Path(folder, "features.json").read_text())
+            self.assertEqual(features["values"]["bulk_density"]["unit"], "g/cm^3")
+            self.assertNotIn("density", features["unavailable"])
+            self.assertFalse(Path(folder, "trajectory.json").exists())
+        small = {**config, "monomers": 6, "chains": 3}
+        with tempfile.TemporaryDirectory() as folder, self.assertRaisesRegex(RuntimeError, "too small for periodic bulk"):
+            run_workflow(small, folder)
+
 
 if __name__ == "__main__":
     unittest.main()

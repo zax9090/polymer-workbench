@@ -73,6 +73,22 @@ flowchart TD
 
 AlphaFold 계열의 소스 코드와 모델 가중치·데이터베이스·출력 이용 조건은 별개입니다. 특히 AlphaFold 3의 보관된 `WEIGHTS_TERMS_OF_USE.md`는 별도 사용 조건을 명시합니다. 감사 스냅샷은 가중치를 포함하지 않습니다. ColabFold의 MSA 서버 사용 여부 또한 실행 설정에 명시해야 하며 감사 작업은 서열을 서버로 보내지 않았습니다.
 
+## 설치된 배포본(artifact) 감사
+
+위 저장소 스냅샷은 upstream 최신 커밋 기준입니다. 실제로 실행하는 패키지는 pip 배포본이므로 다를 수 있습니다. 예를 들어 설치된 `radonpy-pypi 0.2.11`의 `eq.py`·`lammps.py`·`poly.py`는 GitHub 스냅샷과 내용이 다릅니다. `scripts/audit_artifacts.py`는 `tools/rea/artifact_catalog.json`에 고정한 PyPI 파일을 내려받아 SHA-256을 확인하고 REA `inspect-artifact`로 배포본 내부 목록과 파일 해시를 얻습니다. 그다음 실행하는 소스 파일이 설치된 파일과 바이트 단위로 같은지 비교하고, 사용하는 함수의 행 번호를 `evidence/artifacts/<id>.json`에 기록합니다.
+
+| 배포본 | 사용 기능 | 확인한 연결점 |
+|---|---|---|
+| radonpy-pypi 0.2.11 (BSD-3-Clause) | 비정질 벌크 셀 | `amorphous_cell`, `packing`, `eq21step`, `sampling`, `get_all_prop`, `check_eq` |
+| mdtraj 1.11.2 (LGPL-2.1+) | SAP 응집 취약 부위 탐색 | `_ATOMIC_RADII`, `shrake_rupley` |
+
+```sh
+python3 tools/rea/bootstrap.py
+.venv/bin/python scripts/audit_artifacts.py
+```
+
+벌크 셀 경로는 RadonPy의 단계 정의(패킹 2단계 가열·변형, 21단계 압력 비율 0.02/0.60/1.00/0.50/0.10/0.01 × 50,000 atm, NPT 샘플링)를 그대로 쓰고 단계 길이에만 배율을 곱합니다. 상용 프로그램의 독점 파라미터·작업 파일은 수집하거나 포함하지 않습니다.
+
 ## 재실행
 
 ```sh

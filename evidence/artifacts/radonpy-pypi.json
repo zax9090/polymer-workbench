@@ -1,0 +1,102 @@
+{
+  "id": "radonpy-pypi",
+  "version": "0.2.11",
+  "license": "BSD-3-Clause",
+  "artifact": "radonpy_pypi-0.2.11-py3-none-any.whl",
+  "sha256": "bad3de860b07f7c740e40ca2d9ca24e3683dcc713fceea6a84cfd3d17c2572d7",
+  "purpose": "Installed RadonPy executed by the bulk amorphous-cell route; the GitHub snapshot in evidence/rea differs from this release",
+  "rea": {
+    "argv": [
+      "node",
+      "/home/user/polymer-workbench/tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+      "inspect-artifact",
+      "radonpy_pypi-0.2.11-py3-none-any.whl",
+      "--format",
+      "json"
+    ],
+    "returncode": 0,
+    "coverage": {
+      "scope": "container-entries",
+      "status": "complete"
+    },
+    "entries": 32,
+    "integrity_contradictions": [],
+    "output": "radonpy-pypi.inspect.json"
+  },
+  "files": [
+    {
+      "path": "radonpy/core/poly.py",
+      "artifact_sha256": "8495d8693b8eaf64b1e5a1bb4ece3566bc54c6c6d18c0cef8dd812a26b2ea724",
+      "installed_sha256": "8495d8693b8eaf64b1e5a1bb4ece3566bc54c6c6d18c0cef8dd812a26b2ea724",
+      "matches_installed": true
+    },
+    {
+      "path": "radonpy/sim/preset/eq.py",
+      "artifact_sha256": "1963f21875d64898ae68f2ad16476206bf4982b2c7450246b6dd26a05e872b80",
+      "installed_sha256": "1963f21875d64898ae68f2ad16476206bf4982b2c7450246b6dd26a05e872b80",
+      "matches_installed": true
+    },
+    {
+      "path": "radonpy/sim/lammps.py",
+      "artifact_sha256": "5d919e700748296d4bc6da6ec3667d8c730f45a9b109301de512c1d6a2a84591",
+      "installed_sha256": "5d919e700748296d4bc6da6ec3667d8c730f45a9b109301de512c1d6a2a84591",
+      "matches_installed": true
+    },
+    {
+      "path": "radonpy/sim/md.py",
+      "artifact_sha256": "5ba49d86c2def99e9b0422f003b7a12c7c3f25a8bbdfa65da414fa419fe85dc8",
+      "installed_sha256": "5ba49d86c2def99e9b0422f003b7a12c7c3f25a8bbdfa65da414fa419fe85dc8",
+      "matches_installed": true
+    },
+    {
+      "path": "radonpy/ff/gaff2_mod.py",
+      "artifact_sha256": "5fff398d48af91f916dce20a89f3386729e57f985c7a7d1f08b02ea977147710",
+      "installed_sha256": "5fff398d48af91f916dce20a89f3386729e57f985c7a7d1f08b02ea977147710",
+      "matches_installed": true
+    }
+  ],
+  "anchors": [
+    {
+      "path": "radonpy/core/poly.py",
+      "needle": "def amorphous_cell(",
+      "line": 1123,
+      "purpose": "Low-density periodic cell of N chains"
+    },
+    {
+      "path": "radonpy/sim/preset/eq.py",
+      "needle": "    def packing(",
+      "line": 64,
+      "purpose": "Soft-pair relaxation, heating and deformation to the packing density"
+    },
+    {
+      "path": "radonpy/sim/preset/eq.py",
+      "needle": "    def eq21step(",
+      "line": 136,
+      "purpose": "Larsen 21-step compression/decompression stage list and pressure ratios"
+    },
+    {
+      "path": "radonpy/sim/preset/eq.py",
+      "needle": "    def sampling(",
+      "line": 189,
+      "purpose": "NPT sampling with Rg profile and MSD"
+    },
+    {
+      "path": "radonpy/sim/lammps.py",
+      "needle": "    def get_all_prop(",
+      "line": 2232,
+      "purpose": "Density, Cp/Cv, compressibility, bulk modulus, thermal expansion from thermo fluctuations"
+    },
+    {
+      "path": "radonpy/sim/lammps.py",
+      "needle": "    def check_eq(",
+      "line": 2454,
+      "purpose": "RadonPy SMA standard-deviation convergence criteria"
+    }
+  ],
+  "audited_at": "2026-10-22T09:49:17.050620+00:00",
+  "status": "verified_installed_artifact",
+  "limitations": [
+    "REA inventories and hashes the release archive; it does not execute or decompile it.",
+    "A matching file hash shows the executed code is the released code, not that its science is correct."
+  ]
+}
