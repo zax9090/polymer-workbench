@@ -79,6 +79,13 @@ class Retry(BaseModel):
     rule_id: str = Field(max_length=100)
 
 
+class ProcessAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["dictionary", "control_chart", "capability", "variance_components", "stratified_rates"]
+    text: str = Field(min_length=1, max_length=5_000_000)
+    options: dict = Field(default_factory=dict)
+
+
 class DoeFactor(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
     name: str = Field(min_length=1, max_length=80)
@@ -308,6 +315,13 @@ def download_doe_csv(identifier: str, request: Request):
     record = get_doe_record(identifier, request)
     filename = "design.csv" if record.get("record_type") == "doe_design" else "input.csv"
     return FileResponse(doe_record_file(identifier, request, filename), media_type="text/csv; charset=utf-8", filename=f"PolymerLab-DOE-{identifier}.csv")
+
+
+@router.post("/process")
+def process_analysis(payload: ProcessAnalysis, request: Request):
+    """Read-only fab-style table analysis; nothing is stored and no measurement is created."""
+    execution = request.app.state.execution
+    return execution.compute("process", payload.model_dump(), wait=execution.request_wait)
 
 
 @router.post("/documents", status_code=201)

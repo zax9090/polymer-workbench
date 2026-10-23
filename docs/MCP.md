@@ -78,6 +78,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `diagnose_job` · `retry_job_with_fix` | 로그 규칙 진단과 제안된 설정 수정 재실행 |
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
 | `analyze_instrument_curve` | DSC·인장·TGA·GPC·IR·UV-vis·탁도 곡선(IR·UV-vis는 JCAMP-DX도)에서 저장하지 않는 측정값 초안 계산 |
+| `analyze_process_data` | 공정 CSV 하나를 저장 없이 분석: 데이터 사전(키·중복·균형), 관리도(I-MR·X̄-S, 신호 규칙), 공정 능력(Cp·Cpk·Pp·Ppk), 분산 성분(균형 내포 ANOVA), 층별 불량률(Mantel–Haenszel). 통계 계산 줄에서 실행 |
 | `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
 | `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
 | `add_measurement` | 측정값 저장. 항상 검토 전 상태로 저장 |

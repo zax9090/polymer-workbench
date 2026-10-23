@@ -42,6 +42,9 @@ def run(operation, payload):
         result["provenance"] = {"kernel_version": doe.native.__version__, "kernel_sha256": digest(Path(kernel.__file__)),
                                 "analysis_code_sha256": digest(resource_root() / "workbench" / "doe.py")}
         return result
+    if operation == "process":
+        from .process import analyze
+        return analyze(**payload)
     if operation == "blend_contacts":
         from .blends import blend_chi
         payload = dict(payload)
