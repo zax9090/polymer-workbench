@@ -75,7 +75,7 @@ function hiplotDatapoints(scope) {
   return (data.experiments || []).filter(row => scope === 'all' || (!row.is_demo && !['protein'].includes(row.route))).map(row => {
     const id = row.job_id || row.id, config = row.config || {}, values = { 이름: row.name || id, 경로: routes[row.route]?.name || row.route, 상태: row.status };
     if (config.atomistic_mode) values['전원자 방식'] = config.atomistic_mode;
-    if (config.atomistic_mode === 'bulk' || config.atomistic_mode === 'crosslink') { values['힘장'] = config.atomistic_mode === 'crosslink' || config.atomistic_forcefield === 'pcff' ? 'PCFF' : 'GAFF2'; values['전하'] = config.atomistic_mode === 'crosslink' || config.atomistic_forcefield === 'pcff' ? '결합 증분' : (config.charge_method === 'xtb_cm5' ? 'xtb CM5' : 'Gasteiger'); values['단계 길이 배율'] = config.protocol_scale; }
+    if (config.atomistic_mode === 'bulk' || config.atomistic_mode === 'crosslink') { values['힘장'] = config.atomistic_mode === 'crosslink' || config.atomistic_forcefield === 'pcff' ? 'PCFF' : 'GAFF2'; values['전하'] = config.atomistic_mode === 'crosslink' || config.atomistic_forcefield === 'pcff' ? '결합 증분' : (config.charge_method === 'xtb_cm5' ? 'xtb CM5' : 'Gasteiger'); values['단계 길이 배율'] = config.protocol_scale; if (config.cell_builder === 'native') values['셀 빌더'] = `자체 성장 ${config.build_density} g/cm³`; }
     if (config.temperature_kelvin !== undefined) values['온도 (K)'] = config.temperature_kelvin;
     if (config.atomistic_mode === 'crosslink') { values['수지'] = config.resin_smiles; values['경화제'] = config.hardener_smiles; }
     else if (row.material?.repeat_smiles) values['반복단위'] = row.material.repeat_smiles;

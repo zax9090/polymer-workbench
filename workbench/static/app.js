@@ -34,6 +34,8 @@ function updateRoute() {
   const crosslink = atomistic && $('#atomistic-mode').value === 'crosslink';
   $('#forcefield-field').classList.toggle('hidden', !bulk);
   $('#charge-method-field').classList.toggle('hidden', !(bulk && $('#atomistic-forcefield').value === 'gaff2'));
+  $('#cell-builder-field').classList.toggle('hidden', !(bulk && $('#atomistic-forcefield').value === 'gaff2'));
+  if (!(bulk && $('#atomistic-forcefield').value === 'gaff2')) $('#cell-builder').value = 'radonpy';
   if (!(bulk && $('#atomistic-forcefield').value === 'gaff2')) $('#charge-method').value = 'gasteiger';
   $('#crosslink-fields').classList.toggle('hidden', !crosslink);
   $('#protocol-scale-field').classList.toggle('hidden', !(bulk || crosslink));

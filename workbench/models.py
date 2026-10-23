@@ -20,6 +20,8 @@ class JobConfig(BaseModel):
     atomistic_mode: Literal["build", "simulate", "bulk", "crosslink"] = "build"
     atomistic_forcefield: Literal["gaff2", "pcff"] = "gaff2"
     charge_method: Literal["gasteiger", "xtb_cm5"] = "gasteiger"
+    cell_builder: Literal["radonpy", "native"] = "radonpy"
+    build_density: float = Field(default=0.8, ge=0.3, le=1.2)
     resin_smiles: str = Field(default="CC(C)(c1ccc(OCC2CO2)cc1)c1ccc(OCC2CO2)cc1", max_length=1000)
     hardener_smiles: str = Field(default="NCCN", max_length=1000)
     resin_count: int = Field(default=16, ge=2, le=400)
@@ -72,6 +74,8 @@ class JobConfig(BaseModel):
                 raise ValueError("비정질 벌크 셀에는 사슬 2개 이상이 필요합니다.")
             if not 100 <= self.temperature_kelvin <= 500:
                 raise ValueError("RadonPy 21단계 평형화의 최고 온도가 600 K이므로 최종 온도는 100~500 K로 설정하세요.")
+        if self.cell_builder == "native" and not (bulk and self.atomistic_forcefield == "gaff2"):
+            raise ValueError("자체 셀 빌더(native)는 GAFF2 비정질 벌크 셀에서만 사용합니다.")
         if self.charge_method == "xtb_cm5" and not (bulk and self.atomistic_forcefield == "gaff2"):
             raise ValueError("xtb CM5 전하는 GAFF2 비정질 벌크 셀에서만 사용합니다. PCFF는 결합 증분 전하를 씁니다.")
         if cure and not 100 <= self.temperature_kelvin <= 500:

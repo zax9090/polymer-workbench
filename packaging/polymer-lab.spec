@@ -32,6 +32,7 @@ hiddenimports = [
     "workbench.ingestion", "workbench.learning", "workbench.campaigns",
     "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.protonation", "workbench.screening", "workbench.compatibility",
     "workbench.class2", "workbench.pcff", "workbench.crosslink", "workbench.engines", "workbench.repair",
+    "workbench.mcp_http", "workbench.amorphous",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
