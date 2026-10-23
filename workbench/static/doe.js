@@ -193,10 +193,27 @@
       <svg class="curve-chart doe-chart" viewBox="0 0 520 430" style="aspect-ratio:520/430;max-width:560px" role="img" aria-label="두 인자 반응표면 색 지도"><g shape-rendering="crispEdges">${rects}</g>${mark}${rampLegend('doe-surface-ramp', 448, 20, bottom, low, high)}${axes}</svg>
       <p class="research-footnote">모델 예측값입니다.${others ? ` 나머지 인자는 추천 조건 값(${others})에 고정했습니다.` : ''}</p></section>`;
   }
+  // One panel per factor on a shared y-scale; the other factors stay at the recommended coded setting.
+  function profileHTML(result) {
+    const factors = result.factors || [], beta = (result.coefficients || []).map(c => c.estimate), held = result.recommendation?.coded;
+    if (!factors.length || !beta.length || !held) return '';
+    const n = 40, at = (k, coded) => codedModel(factors.map((f, m) => m === k ? coded : held[f.name] ?? 0), beta, result.model);
+    const curves = factors.map((f, k) => Array.from({ length: n + 1 }, (_, i) => at(k, -1 + 2 * i / n)));
+    const all = curves.flat(), low = Math.min(...all), high = Math.max(...all), span = high - low || 1;
+    const real = (f, coded) => f.low + (coded + 1) / 2 * (f.high - f.low);
+    const x = i => 60 + i / n * 340, y = v => 170 - (v - low) / span * 136;
+    const panels = factors.map((f, k) => {
+      const line = curves[k].map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const hits = curves[k].filter((_, i) => i % 4 === 0).map((v, s) => `<circle cx="${x(s * 4).toFixed(1)}" cy="${y(v).toFixed(1)}" r="8" style="opacity:0"><title>${escape(f.name)} ${formatNumber(real(f, -1 + 2 * s * 4 / n))} → ${formatNumber(v)}</title></circle>`).join('');
+      const best = held[f.name], bx = 60 + (best + 1) / 2 * 340, by = y(at(k, best));
+      return `<svg class="curve-chart doe-chart" viewBox="0 0 420 200" style="aspect-ratio:420/200" role="img" aria-label="${escape(f.name)} 예측 프로파일"><text x="60" y="18">${escape(f.name)}</text><line x1="60" y1="170" x2="400" y2="170"/><line x1="60" y1="34" x2="60" y2="170"/><line x1="${bx.toFixed(1)}" y1="34" x2="${bx.toFixed(1)}" y2="170" style="stroke:#d7b98c;stroke-dasharray:3 3"/><polyline points="${line}"/>${hits}<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="4" style="fill:#fff;stroke:#0b161c;stroke-width:2;opacity:1"><title>추천 ${formatNumber(real(f, best))} → ${formatNumber(at(k, best))}</title></circle><text x="54" y="38" text-anchor="end">${fmt(high)}</text><text x="54" y="170" text-anchor="end">${fmt(low)}</text><text x="60" y="188">${formatNumber(f.low)}</text><text x="400" y="188" text-anchor="end">${formatNumber(f.high)}</text></svg>`;
+    }).join('');
+    return `<section class="doe-assessment-section"><h3>인자별 예측 프로파일 <small>세로축 공통 · 점선 = 추천 조건 · 다른 인자는 추천 조건 값에 고정</small></h3><div class="doe-chart-grid">${panels}</div><p class="research-footnote">모델 예측값입니다. 곡선의 기울기가 다른 인자의 고정값에 따라 바뀌면(상호작용) 반응표면 색 지도와 함께 보세요.</p></section>`;
+  }
   function analysisHTML(result) {
     const fit = result.fit || {}, recommendation = result.recommendation;
     let html = `${resultHeader(result, false)}<div class="research-features doe-fit-summary"><div class="research-feature"><span>R²</span><strong>${fmt(fit.r_squared)}</strong></div><div class="research-feature"><span>조정 R²</span><strong>${fmt(fit.adjusted_r_squared)}</strong></div><div class="research-feature"><span>예측 R² · PRESS</span><strong>${fmt(fit.predicted_r_squared)}</strong></div><div class="research-feature"><span>RMSE</span><strong>${fmt(fit.rmse)}</strong></div></div>`;
-    html += researchSteps(result) + modelComparison(result) + anovaHTML(result) + paretoHTML(result) + surfaceHTML(result) + diagnosticsHTML(result);
+    html += researchSteps(result) + modelComparison(result) + anovaHTML(result) + paretoHTML(result) + surfaceHTML(result) + profileHTML(result) + diagnosticsHTML(result);
     html += `<details class="doe-assessment-section"><summary>모델 계수 · 인자 범위 −1~1로 환산</summary><div class="table-scroll"><table class="research-table"><thead><tr><th>항</th><th>계수</th><th>표준 오차</th><th>t</th><th>p</th><th>95% 신뢰구간</th></tr></thead><tbody>${(result.coefficients || []).map(coefficient => `<tr><td>${escape(coefficient.term)}</td><td>${fmt(coefficient.estimate)}</td><td>${fmt(coefficient.standard_error)}</td><td>${fmt(coefficient.t_statistic)}</td><td>${fmt(coefficient.p_value)}</td><td>${interval(coefficient.confidence_interval)}</td></tr>`).join('')}</tbody></table></div></details>`;
     if (recommendation) html += `<section class="doe-recommendation"><h3>추천 조건 <span class="research-tag amber">확인 실험 필요</span></h3>${Object.entries(recommendation.settings || {}).map(([name,value]) => `<div class="research-kv"><span>${escape(name)}</span><strong>${fmt(value)}</strong></div>`).join('')}<div class="research-kv"><span>${escape(result.response)} 예측값</span><strong>${fmt(recommendation.predicted_response)}</strong></div>${recommendation.mean_confidence_interval ? `<div class="research-kv"><span>평균의 95% 신뢰구간</span><strong>${interval(recommendation.mean_confidence_interval)}</strong></div><div class="research-kv"><span>개별 결과의 95% 예측구간</span><strong>${interval(recommendation.prediction_interval)}</strong></div>` : ''}${result.confirmation_csv ? '<button type="button" class="secondary-button" id="doe-confirmation-download">추천 조건의 확인 실험표 CSV ↓</button>' : ''}</section>`;
     return html + predictionsHTML(result) + warnings(result) + downloads(result);
