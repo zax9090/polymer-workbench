@@ -82,6 +82,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `analyze_process_data` | 공정 CSV 하나를 저장 없이 분석: 데이터 사전(키·중복·균형), 관리도(I-MR·X̄-S, 신호 규칙), 공정 능력(Cp·Cpk·Pp·Ppk), 분산 성분(균형 내포 ANOVA), 층별 불량률(Mantel–Haenszel), 불량 판정 평가(기준별 놓침·오탐·비용, 모두 정상 판정 기준선), 가상계측 오차(규격 경계 구간), 검증 분할 비교(무작위·로트·시간). 통계 계산 줄에서 실행 |
 | `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
 | `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
+| `create_mixture_design` | 성분 비율 합이 1인 심플렉스 격자·심플렉스 중심·꼭짓점 설계(축 점검 배합·중심점 선택)를 만들고 저장. 하한은 L-유사성분 |
+| `analyze_mixture_response` | Scheffé 1차·2차·특수 3차 적합(유사성분 기준), ANOVA·모델 비교, 성분 범위 안 추천 배합과 예측구간. 1차 혼합 계수는 검정하지 않음 |
+| `optimize_desirability` | 공정 인자 또는 혼합물 성분의 여러 반응을 각각 맞춘 뒤 Derringer–Suich 종합 만족도 D가 가장 큰 후보, 개별 d·예측구간·관측 최고 D 행 |
 | `add_measurement` | 측정값 저장. 항상 검토 전 상태로 저장 |
 | `train_property_model` · `predict_property` | 검토 완료 데이터로 GP 기준 모델 학습, 예측 |
 | `create_campaign` · `control_campaign` | 유한 후보 캠페인 생성, 한 배치 실행·자동 실행·중지·상태 확인 |
@@ -114,6 +117,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 |---|---|---|
 | `create_experiment_design` | `POST /api/research/doe/design` | `factors: [{name, low, high}]`, `kind: factorial 또는 central_composite`, `center_points`, `replicates`, `seed` |
 | `analyze_response_surface` | `POST /api/research/doe/analyze` | `text: 측정 CSV`, `factors`, `response: 반응값 열`, `model: linear·interaction·quadratic`, `objective: maximize·minimize·target`, 선택적 `target`, `prediction_points: [{인자명: 실제값}]`(최대 50개) |
+| `create_mixture_design` | `POST /api/research/doe/mixture-design` | `components: [{name, low, high}]`(비율 0~1), `kind: simplex_lattice·simplex_centroid·extreme_vertices`, `degree`, `axial`, `centroid`, `replicates`, `seed` |
+| `analyze_mixture_response` | `POST /api/research/doe/mixture-analyze` | `text`, `components`, `response`, `model: scheffe_linear·scheffe_quadratic·scheffe_special_cubic`, `objective`, 선택적 `target`, `prediction_points` |
+| `optimize_desirability` | `POST /api/research/doe/desirability` | `text`, `responses: [{name, model, goal, lower, target, upper, lower_shape, upper_shape, importance}]`, `factors` 또는 `components` 중 하나 |
 
 두 도구는 `research/doe/{id}`에 불변 JSON과 설계 또는 측정 CSV를 저장하므로 `readOnlyHint=false`입니다. 결과의 `download_url`은 JSON, `csv_download_url`은 CSV입니다. 기록 목록은 `GET /api/research/doe`, 상세는 `GET /api/research/doe/{id}`로 읽습니다. CSV는 UTF-8 기준 1 MB 이하이며 누락된 행을 자동 제거하지 않습니다. 저장해도 검토 완료 측정값이 되지 않습니다.
 

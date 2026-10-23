@@ -33,6 +33,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Status meanings: completed = the route finished; prepared = structures/topologies/inputs only; blocked = an engine or input is missing. None certifies scientific validity.
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
+- create_mixture_design, analyze_mixture_response and optimize_desirability cover mixture experiments (proportions summing to one, Scheffé models in L-pseudocomponents) and multi-response Derringer-Suich desirability. Desirability bounds and importances come from the user; never invent them. Present D with every individual d and the predicted values with intervals, and treat the optimum as a candidate for confirmation runs.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
 - Call validate_job before submit_job: it reports chemistry errors, repeat-unit candidates for monomer SMILES, atom counts and missing engines without creating anything. analyze_job_structure and analyze_process_data return summaries (counts and ranges instead of long arrays) unless detail is full; full results stay downloadable.
@@ -283,6 +284,11 @@ def _schema(properties, required=()):
 
 
 JOB_ID = {"type": "string", "pattern": "^[a-f0-9]{32}$", "description": "32-character Polymer Lab job id"}
+MIXTURE_COMPONENTS = {"type": "array", "minItems": 2, "maxItems": 6,
+                      "items": _schema({"name": {"type": "string", "minLength": 1, "maxLength": 80},
+                                        "low": {"type": "number", "minimum": 0, "maximum": 1}, "high": {"type": "number", "minimum": 0, "maximum": 1}},
+                                       ["name", "low", "high"]),
+                      "description": "Component proportion bounds (fractions of the whole, 0 <= low < high <= 1); lower bounds must sum below 1 and upper bounds above 1. Names must match CSV headers."}
 DOE_FACTORS = {"type": "array", "minItems": 2, "maxItems": 6,
                "items": _schema({"name": {"type": "string", "minLength": 1, "maxLength": 80},
                                   "low": {"type": "number"}, "high": {"type": "number"}}, ["name", "low", "high"]),
@@ -441,6 +447,35 @@ class PolymerLabTools:
                        "items": {"type": "object", "additionalProperties": {"type": "number"}},
                        "description": "Optional conditions to predict, each mapping every factor name to a real value within its declared bounds. Returns mean confidence and individual prediction intervals."}},
                   ["text", "factors", "response"]), self.analyze_response_surface)
+        t("create_mixture_design", "Create mixture design",
+          "Generate and save a randomized mixture design in proportions summing to one: simplex_lattice {q, degree}, simplex_centroid, or extreme_vertices (degree 2 adds edge midpoints) "
+          "for upper-bounded regions; axial adds check blends, centroid adds the overall centroid. Lower bounds use L-pseudocomponents. Creates an immutable local DOE record; executes nothing.",
+          _schema({"components": MIXTURE_COMPONENTS, "kind": {"type": "string", "enum": ["simplex_lattice", "simplex_centroid", "extreme_vertices"], "default": "simplex_lattice"},
+                   "degree": {"type": "integer", "minimum": 1, "maximum": 4, "default": 2}, "axial": {"type": "boolean", "default": False},
+                   "centroid": {"type": "boolean", "default": True}, "replicates": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1},
+                   "seed": {"type": "integer", "minimum": 0, "maximum": 2**63 - 1, "default": 1}}, ["components"]), self.create_mixture_design)
+        t("analyze_mixture_response", "Fit and optimize a mixture response",
+          "Fit a Scheffé linear, quadratic or special-cubic model in L-pseudocomponents to mixture CSV data (rows must sum to one within bounds), with ANOVA, lack-of-fit, model comparison "
+          "and a bounded, unvalidated blend recommendation with 95% prediction interval. Linear blending terms get no t-tests (they are pure-component responses, not effects). Saves an immutable record.",
+          _schema({"text": {"type": "string", "maxLength": 1000000}, "components": MIXTURE_COMPONENTS, "response": {"type": "string", "minLength": 1, "maxLength": 80},
+                   "model": {"type": "string", "enum": ["scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"], "default": "scheffe_quadratic"},
+                   "objective": {"type": "string", "enum": ["maximize", "minimize", "target"], "default": "maximize"},
+                   "target": {"type": "number"},
+                   "prediction_points": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": {"type": "number"}}}},
+                  ["text", "components", "response"]), self.analyze_mixture_response)
+        t("optimize_desirability", "Multi-response desirability optimum",
+          "Fit each response column on the same runs (process factors or mixture components, exactly one) and maximize the Derringer-Suich composite desirability D: per response goal "
+          "maximize (lower, target), minimize (target, upper) or target (lower, target, upper), shape exponents and importance 0.1-10. Returns the candidate settings, predicted values with "
+          "intervals, individual d and D, and the best observed run. Bounds and importances are the user's choices; the optimum is unvalidated.",
+          _schema({"text": {"type": "string", "maxLength": 1000000},
+                   "responses": {"type": "array", "minItems": 1, "maxItems": 10, "items": _schema({
+                       "name": {"type": "string", "minLength": 1, "maxLength": 80},
+                       "model": {"type": "string", "enum": ["linear", "interaction", "quadratic", "scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"]},
+                       "goal": {"type": "string", "enum": ["maximize", "minimize", "target"]},
+                       "lower": {"type": "number"}, "target": {"type": "number"}, "upper": {"type": "number"},
+                       "lower_shape": {"type": "number", "minimum": 0.1, "maximum": 10}, "upper_shape": {"type": "number", "minimum": 0.1, "maximum": 10},
+                       "importance": {"type": "number", "minimum": 0.1, "maximum": 10}}, ["name", "model", "goal", "target"])},
+                   "factors": DOE_FACTORS, "components": MIXTURE_COMPONENTS}, ["text", "responses"]), self.optimize_desirability)
         t("add_measurement", "Add measurement (unreviewed)",
           "Store one measurement with property, value, unit, method, conditions, source, origin and a material or indexed job_id. It is always saved unreviewed; a person must review it in Polymer Lab before models use it.",
           _schema({"measurement": {"type": "object"}}, ["measurement"]), self.add_measurement)
@@ -635,6 +670,15 @@ class PolymerLabTools:
 
     def analyze_response_surface(self, args):
         return self.client.request("POST", "/api/research/doe/analyze", args, timeout=300)
+
+    def create_mixture_design(self, args):
+        return self.client.request("POST", "/api/research/doe/mixture-design", args, timeout=300)
+
+    def analyze_mixture_response(self, args):
+        return self.client.request("POST", "/api/research/doe/mixture-analyze", args, timeout=300)
+
+    def optimize_desirability(self, args):
+        return self.client.request("POST", "/api/research/doe/desirability", args, timeout=300)
 
     def add_measurement(self, args):
         record = dict(args["measurement"])

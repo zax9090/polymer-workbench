@@ -13,6 +13,7 @@
   <script defer src="/static/screening.js"></script>
   <script defer src="/static/structure.js"></script>
   <script defer src="/static/doe.js"></script>
+  <script defer src="/static/doe_mixture.js"></script>
   <script defer src="/static/process.js"></script>
   <script defer src="/static/workflows.js"></script>
   <script defer src="/static/drive.js"></script>
@@ -243,6 +244,31 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
         </form></section>
       </div>
       <section class="panel research-bottom" id="doe-assessment"><div class="panel-title"><h2>3. 모델 판단 · 4. 확인 실험</h2><span class="research-tag">Rust 통계</span></div><div id="doe-analysis-result" class="research-body research-result" aria-live="polite"><p class="research-footnote">측정값을 분석하면 모델 비교·잔차 진단·추천 조건을 함께 확인할 수 있습니다.</p></div></section>
+      <div class="doe-grid" id="mixture-section">
+        <section class="panel"><div class="panel-title"><h2>혼합물 설계</h2><span class="research-tag">배합 비율 합 = 1</span></div><form id="mix-design-form" class="research-body">
+          <div class="table-scroll"><table class="research-table doe-factors"><thead><tr><th>성분 이름</th><th>하한 <small>비율</small></th><th>상한 <small>비율</small></th><th aria-label="삭제"></th></tr></thead><tbody id="mix-components"></tbody></table></div>
+          <button class="text-button" type="button" id="mix-add-component">+ 성분 추가</button>
+          <div class="field-row"><label class="field"><span>설계 방법</span><select id="mix-kind"><option value="simplex_lattice">심플렉스 격자 {q, m}</option><option value="simplex_centroid">심플렉스 중심</option><option value="extreme_vertices">꼭짓점 설계 · 상한이 있는 영역</option></select></label><label class="field"><span>차수 <small>격자 m · 꼭짓점 1~2</small></span><input id="mix-degree" type="number" min="1" max="4" value="2"></label></div>
+          <label class="checkbox-field"><input type="checkbox" id="mix-centroid" checked><span>전체 중심점 추가</span></label><label class="checkbox-field"><input type="checkbox" id="mix-axial"><span>축 점검 배합 추가 <small>중심과 꼭짓점의 중간</small></span></label>
+          <div class="field-row"><label class="field"><span>반복 수</span><input id="mix-replicates" type="number" min="1" max="10" value="1"></label><label class="field"><span>난수 시드</span><input id="mix-seed" type="number" min="0" value="42"></label></div>
+          <p class="field-help">하한이 있으면 L-유사성분 (x − L)/(1 − ΣL)으로 설계·적합합니다. 상한이 영역을 자르면 꼭짓점 설계를 쓰세요.</p>
+          <button class="primary-button" type="submit"><span>혼합물 설계 생성</span><span>↗</span></button><div id="mix-design-result" class="research-result" aria-live="polite"></div>
+        </form></section>
+        <section class="panel"><div class="panel-title"><h2>혼합물 측정값 분석</h2><span class="research-tag amber">검증 실험 필요</span></div><form id="mix-analysis-form" class="research-body">
+          <label class="field"><span>실험 결과 CSV <small>성분 비율 열 + 반응 열</small></span><textarea id="mix-csv" rows="7" class="mono" required placeholder="혼합물 설계 CSV의 response 열을 채워 넣으세요."></textarea></label>
+          <div class="field-row"><label class="field"><span>반응값 열</span><select id="mix-response"><option value="response">response</option></select></label><label class="field"><span>Scheffé 모델</span><select id="mix-model"><option value="scheffe_quadratic">2차</option><option value="scheffe_linear">1차</option><option value="scheffe_special_cubic">특수 3차</option></select></label></div>
+          <div class="field-row"><label class="field"><span>최적화 목표</span><select id="mix-objective"><option value="maximize">최대화</option><option value="minimize">최소화</option><option value="target">목표값에 맞추기</option></select></label><label class="field hidden" id="mix-target-field"><span>목표값</span><input id="mix-target" type="number" step="any"></label></div>
+          <button class="primary-button" type="submit"><span>분석·배합 추천</span><span>↗</span></button><div id="mix-analysis-result" class="research-result" aria-live="polite"></div>
+        </form></section>
+      </div>
+      <section class="panel research-bottom" id="desirability-panel"><div class="panel-title"><h2>다중 반응 만족도 최적화</h2><span class="research-tag amber">Derringer–Suich D</span></div><form id="desire-form" class="research-body">
+        <div class="field-row"><label class="field"><span>설계 변수</span><select id="desire-domain"><option value="components">위 혼합물 성분</option><option value="factors">위 공정 인자 (실험 설계 1번)</option></select></label></div>
+        <label class="field"><span>실험 결과 CSV <small>변수 열 + 반응 열 여러 개</small></span><textarea id="desire-csv" rows="6" class="mono" required></textarea></label>
+        <div class="table-scroll"><table class="research-table"><thead><tr><th>반응 열</th><th>모델</th><th>목표</th><th>하한</th><th>목표값</th><th>상한</th><th>중요도</th><th aria-label="삭제"></th></tr></thead><tbody id="desire-goals"></tbody></table></div>
+        <button class="text-button" type="button" id="desire-add-goal">+ 반응 추가</button>
+        <p class="field-help">최대화는 하한·목표값, 최소화는 목표값·상한, 목표값 맞추기는 셋 다 필요합니다. 범위와 중요도는 연구자가 정하는 기준이며 D 값 자체에 물리적 의미는 없습니다.</p>
+        <button class="primary-button" type="submit"><span>만족도 최적점 찾기</span><span>↗</span></button><div id="desire-result" class="research-result" aria-live="polite"></div>
+      </form></section>
       <section class="panel research-bottom" id="bulk-flow-panel">
         <div class="panel-title"><h2>벌크 계산 연결</h2><a href="/manual#연결된-벌크-연구-흐름" target="_blank" rel="noopener">설명서 ↗</a></div>
         <div class="research-body">

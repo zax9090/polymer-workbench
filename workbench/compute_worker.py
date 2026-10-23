@@ -26,12 +26,16 @@ def structure_result(directory, analysis, parameters, job_id):
     return result
 
 
+DOE_OPERATIONS = {"doe_design": "design", "doe_analyze": "analyze", "doe_mixture_design": "mixture_design",
+                  "doe_mixture_analyze": "analyze_mixture", "doe_desirability": "optimize_desirability"}
+
+
 def run(operation, payload):
     if operation == "structure":
         return structure_result(**payload)
-    if operation in {"doe_design", "doe_analyze"}:
+    if operation in DOE_OPERATIONS:
         from . import doe
-        result = (doe.design if operation == "doe_design" else doe.analyze)(**payload)
+        result = getattr(doe, DOE_OPERATIONS[operation])(**payload)
         from .paths import resource_root
         kernel = sys.modules.get(doe.native.doe_fit.__module__, doe.native)
         def digest(path):

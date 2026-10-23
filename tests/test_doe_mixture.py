@@ -155,3 +155,45 @@ def test_desirability_on_coded_factors_reaches_both_targets():
     assert result["optimum"]["settings"]["t"] == pytest.approx(3.0, abs=1e-3)
     assert result["optimum"]["composite_desirability"] == pytest.approx(1.0, abs=1e-6)
     assert result["responses"][1]["importance"] == 2.0 and result["optimum"]["validated"] is False
+
+
+def test_mixture_and_desirability_endpoints_and_mcp_tools(tmp_path):
+    from fastapi.testclient import TestClient
+    from workbench import mcp_server
+    from workbench.server import create_app
+    with TestClient(create_app(tmp_path / "jobs")) as client:
+        created = client.post("/api/research/doe/mixture-design", json={"components": THREE, "kind": "simplex_lattice", "degree": 3,
+                                                                         "axial": True, "seed": 7})
+        assert created.status_code == 201, created.text
+        record = created.json()
+        assert record["record_type"] == "doe_mixture_design" and client.get(record["csv_download_url"]).text == record["csv"]
+        rows = list(csv.DictReader(io.StringIO(record["csv"])))
+        for row in rows:
+            x = [float(row[n]) for n in "ABC"]
+            row["response"] = scheffe(x, TRUTH)
+            row["cost"] = 5 * x[0] + 3 * x[1] + x[2]
+        text = table([[r["A"], r["B"], r["C"], r["response"], r["cost"]] for r in rows], list("ABC"), ["response", "cost"])
+        fitted = client.post("/api/research/doe/mixture-analyze", json={"text": text, "components": THREE, "response": "response"})
+        assert fitted.status_code == 201, fitted.text
+        assert fitted.json()["record_type"] == "doe_mixture_analysis" and fitted.json()["recommendation"]["validated"] is False
+        goals = [{"name": "response", "model": "scheffe_quadratic", "goal": "maximize", "lower": 6.0, "target": 12.0},
+                 {"name": "cost", "model": "scheffe_linear", "goal": "minimize", "target": 2.0, "upper": 5.0}]
+        best = client.post("/api/research/doe/desirability", json={"text": text, "responses": goals, "components": THREE})
+        assert best.status_code == 201, best.text
+        assert 0 < best.json()["optimum"]["composite_desirability"] <= 1
+        bad = client.post("/api/research/doe/desirability", json={"text": text, "responses": goals})
+        assert bad.status_code == 422 and "하나만" in bad.json()["detail"]
+        listed = client.get("/api/research/doe").json()["records"]
+        assert {r["record_type"] for r in listed} >= {"doe_mixture_design", "doe_mixture_analysis", "doe_desirability"}
+
+        class AppClient:
+            client = "test"
+            def request(self, method, path, payload=None, timeout=30):
+                response = client.request(method, path, json=payload)
+                if response.is_error:
+                    raise mcp_server.ToolError(f"HTTP {response.status_code}: {response.text}")
+                return response.json()
+        tools = mcp_server.PolymerLabTools(AppClient()).tools
+        assert {"create_mixture_design", "analyze_mixture_response", "optimize_desirability"} <= set(tools)
+        mcp = tools["optimize_desirability"]["handler"]({"text": text, "responses": goals, "components": THREE})
+        assert mcp["optimum"]["composite_desirability"] == pytest.approx(best.json()["optimum"]["composite_desirability"])

@@ -10,6 +10,7 @@ Materials Studio의 기능 몇 가지를 공개 문헌의 정의대로 Rust로 �
 | `trajectory` | Forcite Analysis: RDF g(r), MSD·확산 계수 | 작업 화면·API·MCP 연결. 정상 확산 구간을 확인하지 못하면 D는 `null` |
 | `volume` | Atom Volumes & Surfaces: 점유·접근 가능·탐침 점유 부피, Bondi FFV | 작업 화면·API·MCP 연결. 거리장 가속과 h·2h 차이 보고. 탐침 점유 부피의 수렴은 여전히 별도 확인 필요 |
 | `widom` | Sorption(헨리 영역): Widom 삽입 μ_ex·용해도 계수 | 작업 화면·API·MCP 연결. 단일 점 LJ 근사이며 실험값 예측의 한계 유지 |
+| `mixture` | Minitab: 혼합물 설계·Scheffé 적합·반응 최적화(만족도) | 완료. API·MCP·화면 연결([혼합물·만족도](DOE_MIXTURE.md)), statsmodels 대조 |
 | `topology` | Synthia: 반복단위의 연결성 지수(χ⁰·χ¹·χ⁰ᵛ·χ¹ᵛ)와 주쇄·곁사슬 구분 | 지수 계산 완료(`workbench/correlations.py`, [물성 상관식](PROPERTY_CORRELATIONS.md)). 물성 상관식 계수는 출처 확인 전이라 미구현 |
 | (계획) | Amorphous Cell | 파이썬 자체 빌더(`workbench/amorphous.py`)를 Rust로 옮기고 trans/gauche 통계를 넣을 예정 |
 

@@ -318,7 +318,23 @@ pub fn optimize_region(region: &Region, score: &dyn Fn(&[f64]) -> f64) -> Optimu
         }
         if value > best.1 { best = (x, value); }
     }
-    Optimum { point: best.0, score: best.1, starts: starts.len() }
+    let point = snap(region, best.0);
+    let value = score(&point);
+    Optimum { point, score: value, starts: starts.len() }
+}
+
+/// Puts proportions within 1e-10 of a bound on it and returns the rounding to the freest component.
+fn snap(region: &Region, mut x: Vec<f64>) -> Vec<f64> {
+    for i in 0..x.len() {
+        if (x[i] - region.lower[i]).abs() < 1e-10 { x[i] = region.lower[i]; }
+        if (region.upper[i] - x[i]).abs() < 1e-10 { x[i] = region.upper[i]; }
+    }
+    let free = (0..x.len()).max_by(|&a, &b| {
+        let room = |i: usize| (x[i] - region.lower[i]).min(region.upper[i] - x[i]);
+        room(a).total_cmp(&room(b))
+    }).unwrap();
+    x[free] += 1.0 - x.iter().sum::<f64>();
+    x
 }
 
 /// Maximize score over the coded cube [−1, 1]^k by coordinate line searches.
@@ -502,7 +518,8 @@ mod tests {
         let response = Response { coefficients: fitted.coefficients.clone(), model: "scheffe_quadratic".into() };
         let best = domain.optimize(&|x: &[f64]| domain.predict(&response, x));
         // On the x1-x2 edge f = 10 x1 + 8 x2 + 12 x1 x2 peaks at x1 = 7/12 (value 12.0833...), above every interior point.
-        assert!((best.point[0] - 7.0 / 12.0).abs() < 1e-6 && best.point[2].abs() < 1e-9);
+        assert!((best.point[0] - 7.0 / 12.0).abs() < 1e-6 && best.point[2] == 0.0);
+        assert!((best.point.iter().sum::<f64>() - 1.0).abs() < 1e-15);
         assert!((best.score - (10.0 * 7.0 / 12.0 + 8.0 * 5.0 / 12.0 + 12.0 * 35.0 / 144.0)).abs() < 1e-9);
     }
 
