@@ -33,6 +33,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
+- analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings.
 - Generic CG bead jobs (polymer_cg, hoomd) are reduced-unit models with no chemical mapping; do not present them as material predictions.
 - Measurements you add are always stored unreviewed (verified=false). Only a person can mark data reviewed in the Polymer Lab window, and only reviewed experimental/literature data trains models.
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
@@ -359,6 +360,15 @@ class PolymerLabTools:
           "uvvis (absorption maximum, Beer-Lambert concentration, optical gap) and turbidity (cloud point). csv_text may hold a JCAMP-DX spectrum for ir and uvvis. Options follow the Polymer Lab curve form.",
           _schema({"kind": {"type": "string", "enum": ["dsc", "tensile", "tga", "gpc", "ir", "uvvis", "turbidity"]}, "csv_text": {"type": "string", "maxLength": 2000000},
                    "options": {"type": "object"}}, ["kind", "csv_text"]), self.analyze_instrument_curve, read_only=True, idempotent=True)
+        t("analyze_process_data", "Analyze process data table",
+          "Read-only analysis of one process/fab CSV with explicitly named columns; rows are never dropped silently and nothing is stored. "
+          "kind dictionary (options keys [top..bottom], value, unit, order), control_chart (value, optional subgroup for Xbar-S, order, baseline, unit), "
+          "capability (value, lsl and/or usl, optional subgroup, order, unit), variance_components (value, factors [top..bottom]; balanced nested design, "
+          "the residual is replication within the lowest factor) or stratified_rates (group, stratum, and defects+inspected counts or a 0/1 outcome column, optional reference).",
+          _schema({"kind": {"type": "string", "enum": ["dictionary", "control_chart", "capability", "variance_components", "stratified_rates"]},
+                   "csv_text": {"type": "string", "maxLength": 5000000},
+                   "options": {"type": "object", "description": "Column names and settings for the chosen kind; unknown keys are rejected"}},
+                  ["kind", "csv_text", "options"]), self.analyze_process_data, read_only=True, idempotent=True)
         t("get_research_workflow", "Read connected bulk workflow",
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
@@ -563,6 +573,9 @@ class PolymerLabTools:
         draft = self.client.request("POST", "/api/research/curves", {"kind": args["kind"], "text": args["csv_text"], "options": args.get("options", {})})
         draft["preview"] = f"{len((draft.get('preview') or {}).get('x', []))} downsampled points omitted"
         return draft
+
+    def analyze_process_data(self, args):
+        return self.client.request("POST", "/api/research/process", {"kind": args["kind"], "text": args["csv_text"], "options": args["options"]}, timeout=120)
 
     def get_research_workflow(self, args):
         suffix = "/" + args["workflow_id"] if args.get("workflow_id") else ""

@@ -19,6 +19,7 @@
 | `workbench/execution.py`, `native/src/execution.rs`, `compute_worker.py` | 실행 큐(MD·분석·통계 세 줄)와 별도 계산 프로세스. 새 계산은 이 경로로 연결하고 `LANES`에서 줄을 정함. HTTP 요청은 `request_wait`로 대기 시간 제한 |
 | `workbench/workflows.py`, `workflow_api.py` | 단계별 DOE→GAFF2 벌크→자유 부피→추천·확인. 입력 일치·예산·중복·출처 검증 |
 | `workbench/doe.py`, `native/src/doe.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색 |
+| `workbench/process.py` | 공정 데이터 분석: 데이터 사전, I-MR·X̄-S 관리도와 신호 규칙, Cp·Cpk·Pp·Ppk, 균형 내포 분산 성분, 층별 불량률(Mantel–Haenszel). 검증 기록 `docs/PROCESS.md` |
 | `workbench/drive_backup.py`, `manual.py` | 소스·설명서·연구 결과 ZIP과 검증된 Drive 업로드, 단일 설명서 표시 |
 | `workbench/spectra.py`, `ingestion.py` | IR·UV-vis·탁도, DSC·TGA·GPC·인장 곡선 분석 |
 | `workbench/research_store.py`, `research_api.py`, `learning.py`, `campaigns.py` | DuckDB 연구 데이터, 검토 단계, GP 모델, BayBE 캠페인 |
@@ -97,6 +98,10 @@ cargo test --release --locked --no-default-features --manifest-path native/Cargo
    - 쌍 하나의 볼츠만 평균은 방향족 고리 포개짐과 극성 쌍의 비중을 과대평가합니다. 지방족 용매에서 부호가 틀립니다.
    - 보완 후보는 여러 이웃을 채운 클러스터 몬테카를로입니다.
 5. **셀 빌더**: `workbench/amorphous.py`를 Rust로 옮기고 trans/gauche 비틀림 통계를 넣습니다.
+6. **공정 데이터 분석(`workbench/process.py`)**
+   - statsmodels 대조와 시뮬레이션은 끝났습니다(`docs/PROCESS.md`).
+   - NIST Furnace 실데이터 대조는 NIST에 접속할 수 있는 PC에서 `scripts/validate_process_furnace.py`를 실행해야 합니다. 데이터 파일은 커밋하지 않습니다.
+   - 다음 할 일은 불균형 분류 지표·비용 기준 판정(SECOM)과 로트·시간 분할 검증입니다.
 
 ## 연결된 환경
 
