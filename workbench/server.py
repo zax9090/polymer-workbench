@@ -243,7 +243,22 @@ def create_app(data_root=None):
             if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5000000:
                 raise HTTPException(422, "5 MB 이하의 PDB 구조 파일이 필요합니다.")
             config.pdb_text = path.read_text()
+        from .preflight import check
+        # Chemistry that would only fail inside the worker is rejected before a job exists.
+        report = check(config.model_dump())
+        if report["errors"]:
+            message = " ".join(error["message"] for error in report["errors"])
+            candidates = ((report.get("estimate") or {}).get("repeat_unit") or {}).get("candidates")
+            if candidates:
+                message += " 반복단위 후보(화학 구조를 확인한 뒤 사용): " + ", ".join(candidates)
+            raise HTTPException(422, message)
         return manager.create(config.model_dump(), submitted_via=client_label(request))
+
+    @app.post("/api/jobs/preflight")
+    def preflight_job(config: dict):
+        """Dry run: validation, chemistry, size estimates and engines; nothing is created."""
+        from .preflight import check
+        return check(config)
 
     @app.get("/api/jobs/{job_id}")
     def job(job_id: str, request: Request):

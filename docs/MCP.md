@@ -74,6 +74,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `list_jobs` · `get_job` · `wait_for_job` | 작업 목록, 상태·단계·결과 요약, 완료 대기(최대 600초, 연구 DB 색인까지 확인) |
 | `read_artifact` | JSON·로그·PDB/GRO·토폴로지·CSV·XVG 등 텍스트 결과 파일 읽기(바이너리 궤적 제외) |
 | `analyze_job_structure` | 완료된 벌크·가교 작업의 RDF·MSD·자유 부피·Widom 분석. 원본 작업을 유지하고 별도 불변 결과 저장·다운로드 링크 반환 |
+| `validate_job` | 제출 전 검사(작업을 만들지 않음): JobConfig 검증, 반복단위 연결점 `*` 2개 규칙, 단량체 SMILES(예: `C=Cc1ccccc1`)의 반복단위 후보, 가교 수지·경화제 검사, 경로별 원자 수 제한(벌크 200개 이상), 필요한 엔진 |
 | `submit_job` · `cancel_job` · `rerun_job` | 검증된 JobConfig로 계산 실행, 중단, 같은 설정으로 다시 실행 |
 | `diagnose_job` · `retry_job_with_fix` | 로그 규칙 진단과 제안된 설정 수정 재실행 |
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
@@ -90,7 +91,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 
-각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다.
+각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다. `analyze_job_structure`와 `analyze_process_data`는 기본으로 요약(`detail: "summary"`)을 돌려줍니다. 20개를 넘는 숫자 배열은 개수·최솟값·최댓값으로, 긴 기록 목록은 처음 몇 개로 줄입니다. 관리도는 3σ 밖 점을 먼저 최대 20개까지 남깁니다. 전체 배열은 `detail: "full"`이나 저장된 결과의 다운로드 링크로 받습니다.
+
+`submit_job`은 작업자 안에서만 실패하던 화학 오류(연결점 수, 수지 에폭시 수, 원자 수 부족)를 작업을 만들기 전에 HTTP 422로 거절합니다. 같은 검사는 `POST /api/jobs/preflight`와 `validate_job`으로 미리 할 수 있습니다.
 
 ### 완료된 셀의 구조·궤적 분석
 

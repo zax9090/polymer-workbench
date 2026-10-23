@@ -34,7 +34,7 @@ hiddenimports = [
     "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.protonation", "workbench.screening", "workbench.compatibility",
     "workbench.class2", "workbench.pcff", "workbench.crosslink", "workbench.engines", "workbench.repair",
     "workbench.mcp_http", "workbench.amorphous", "workbench.blends", "workbench.structure_analysis", "workbench.manual",
-    "workbench.doe", "workbench.drive_backup", "workbench.process", "workbench.evaluation",
+    "workbench.doe", "workbench.drive_backup", "workbench.process", "workbench.evaluation", "workbench.preflight",
     "workbench.execution", "workbench.compute_worker", "workbench.analysis_service", "workbench.workflows", "workbench.workflow_api",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",

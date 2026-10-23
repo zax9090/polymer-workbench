@@ -10,7 +10,7 @@
 
 | 위치 | 내용 |
 |---|---|
-| `workbench/server.py`, `jobs.py`, `models.py` | FastAPI 로컬 서버(127.0.0.1 전용), 작업 관리자, JobConfig 검증 |
+| `workbench/server.py`, `jobs.py`, `models.py`, `preflight.py` | FastAPI 로컬 서버(127.0.0.1 전용), 작업 관리자, JobConfig 검증, 제출 전 화학·크기·엔진 검사(`POST /api/jobs/preflight`, MCP `validate_job`) |
 | `workbench/science.py`, `external.py`, `engines.py` | 계산 경로(route) 실행. 외부 엔진(LAMMPS, RadonPy, GROMACS, EMC, xtb 등) 호출 |
 | `workbench/pcff.py`, `class2.py`, `crosslink.py` | PCFF 벌크 셀(EMC), msi2lmp 규칙 대조, 에폭시–아민 가교(fix bond/react) |
 | `workbench/amorphous.py` | 자체 비정질 셀 빌더(배위 편향 성장). `cell_builder: "native"` |

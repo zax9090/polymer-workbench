@@ -11,6 +11,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -34,6 +35,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
+- Call validate_job before submit_job: it reports chemistry errors, repeat-unit candidates for monomer SMILES, atom counts and missing engines without creating anything. analyze_job_structure and analyze_process_data return summaries (counts and ranges instead of long arrays) unless detail is full; full results stay downloadable.
 - Generic CG bead jobs (polymer_cg, hoomd) are reduced-unit models with no chemical mapping; do not present them as material predictions.
 - Measurements you add are always stored unreviewed (verified=false). Only a person can mark data reviewed in the Polymer Lab window, and only reviewed experimental/literature data trains models.
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
@@ -199,6 +201,28 @@ class LabClient:
 
 # ---------------------------------------------------------------- compact views
 
+def summarize(value, limit=20):
+    """Long numeric arrays become a count and range and long record lists keep their first items, so a
+    tool result stays small; control-chart points keep the signalled ones. Full values stay on the server."""
+    if isinstance(value, dict):
+        if value.get("analysis") == "control_chart" and isinstance(value.get("points"), list):
+            signalled = [point for point in value["points"] if point.get("signals")]
+            # Points beyond 3 sigma first, then the earliest other signals, reported in chart order.
+            kept = sorted(sorted(signalled, key=lambda p: "beyond_3_sigma" not in p["signals"])[:20], key=lambda p: p["position"])
+            value = {**value, "points": {"omitted_items": len(value["points"])}, "signalled_points": kept,
+                     "signalled_count": len(signalled)}
+        return {key: summarize(item, limit) for key, item in value.items()}
+    if isinstance(value, list):
+        numbers = [v for v in value if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if len(value) > limit and len(numbers) + value.count(None) == len(value):
+            finite = [v for v in numbers if math.isfinite(v)]
+            return {"omitted_values": len(value), "min": min(finite) if finite else None, "max": max(finite) if finite else None}
+        if len(value) > 5 * limit:
+            return {"omitted_items": len(value), "first": [summarize(item, limit) for item in value[:3]]}
+        return [summarize(item, limit) for item in value]
+    return value
+
+
 def _compact_job(job, log_tail=0):
     result = job.get("result") or {}
     if isinstance(result.get("metrics"), dict):
@@ -334,11 +358,17 @@ class PolymerLabTools:
                        "insertions": {"type": "integer", "minimum": 1, "maximum": 200000, "description": "widom: insertions per frame"},
                        "cutoff": {"type": "number", "exclusiveMinimum": 0, "description": "widom: LJ cutoff in angstrom, at most half the shortest box edge"},
                        "seed": {"type": "integer", "minimum": 0, "maximum": 2**63 - 1, "description": "widom: deterministic random seed"},
-                   })}, ["job_id", "analysis"]), self.analyze_job_structure, read_only=False, idempotent=False)
+                   }), "detail": {"type": "string", "enum": ["summary", "full"], "default": "summary", "description": "summary replaces long numeric arrays with counts and ranges; full returns every value"}}, ["job_id", "analysis"]), self.analyze_job_structure, read_only=False, idempotent=False)
+        t("validate_job", "Check a job before submitting",
+          "Dry run of submit_job: the same JobConfig validation, the repeat-unit attachment check (exactly two '*' joined by single bonds; "
+          "a monomer such as C=Cc1ccccc1 returns repeat-unit candidates to confirm), resin/hardener checks for crosslink, atom counts against route "
+          "limits (bulk cells need 200 atoms) and required engines. Nothing is created. Call it before submit_job and show errors and candidates to the user.",
+          _schema({"config": _job_config_schema()}, ["config"]), self.validate_job, read_only=True, idempotent=True)
         t("submit_job", "Submit calculation job",
           "Queue one calculation with a validated JobConfig. Routes: polymer_cg (reduced-unit CG), polymer_atomistic (RDKit build or RadonPy MD), protein (AlphaFold DB, PDB import, AF3 export, ColabFold), "
           "packmol (packmol_target sap_patch / negative_patch / positive_patch places chains near the protein's SAP or PROPKA surface-charge patch), polyply, pysimm, hoomd, mixture (protein-polymer bridges; bridge_mode simulate runs Martini 3 GROMACS MD). "
-          "polymer_atomistic atomistic_mode bulk builds a periodic cell and runs RadonPy's 21-step equilibration (protocol_scale scales stage lengths). source_job_id hands a finished PDB to packmol/mixture.",
+          "polymer_atomistic atomistic_mode bulk builds a periodic cell and runs RadonPy's 21-step equilibration (protocol_scale scales stage lengths). source_job_id hands a finished PDB to packmol/mixture. "
+          "Run validate_job first; chemistry errors are rejected before a job is created.",
           _schema({"config": _job_config_schema()}, ["config"]), self.submit_job)
         t("cancel_job", "Cancel job", "Stop a queued or running job; partial files are kept.", _schema({"job_id": JOB_ID}, ["job_id"]), self.cancel_job, destructive=True)
         t("rerun_job", "Rerun job", "Queue a new job with the same configuration (calculation restarts from the beginning).", _schema({"job_id": JOB_ID}, ["job_id"]), self.rerun_job)
@@ -371,7 +401,8 @@ class PolymerLabTools:
           _schema({"kind": {"type": "string", "enum": ["dictionary", "control_chart", "capability", "variance_components", "stratified_rates",
                                                     "classification_metrics", "regression_metrics", "split_validation"]},
                    "csv_text": {"type": "string", "maxLength": 20000000},
-                   "options": {"type": "object", "description": "Column names and settings for the chosen kind; unknown keys are rejected"}},
+                   "options": {"type": "object", "description": "Column names and settings for the chosen kind; unknown keys are rejected"},
+                   "detail": {"type": "string", "enum": ["summary", "full"], "default": "summary", "description": "summary replaces long numeric arrays with counts and ranges; full returns every value"}},
                   ["kind", "csv_text", "options"]), self.analyze_process_data, read_only=True, idempotent=True)
         t("get_research_workflow", "Read connected bulk workflow",
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
@@ -539,9 +570,13 @@ class PolymerLabTools:
     def submit_job(self, args):
         return _compact_job(self.client.request("POST", "/api/jobs", args["config"]))
 
+    def validate_job(self, args):
+        return self.client.request("POST", "/api/jobs/preflight", args["config"])
+
     def analyze_job_structure(self, args):
-        return self.client.request("POST", f"/api/jobs/{args['job_id']}/analysis",
-                                   {"analysis": args["analysis"], "parameters": args.get("parameters", {})}, timeout=600)
+        result = self.client.request("POST", f"/api/jobs/{args['job_id']}/analysis",
+                                     {"analysis": args["analysis"], "parameters": args.get("parameters", {})}, timeout=600)
+        return result if args.get("detail") == "full" else summarize(result)
 
     def cancel_job(self, args):
         return _compact_job(self.client.request("POST", f"/api/jobs/{args['job_id']}/cancel", {}))
@@ -579,7 +614,8 @@ class PolymerLabTools:
         return draft
 
     def analyze_process_data(self, args):
-        return self.client.request("POST", "/api/research/process", {"kind": args["kind"], "text": args["csv_text"], "options": args["options"]}, timeout=120)
+        result = self.client.request("POST", "/api/research/process", {"kind": args["kind"], "text": args["csv_text"], "options": args["options"]}, timeout=120)
+        return result if args.get("detail") == "full" else summarize(result)
 
     def get_research_workflow(self, args):
         suffix = "/" + args["workflow_id"] if args.get("workflow_id") else ""
