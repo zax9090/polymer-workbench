@@ -15,7 +15,7 @@ BUILDER_HEAVY_ATOMS = 1000
 
 def _uses_repeat_unit(cfg):
     if cfg.route == "polymer_atomistic":
-        return cfg.atomistic_mode != "crosslink"
+        return cfg.atomistic_mode not in {"crosslink", "tg_scan"}
     return cfg.route in REPEAT_ROUTES and not cfg.source_job_id
 
 
@@ -76,8 +76,9 @@ def _engines(cfg):
     from . import engines
     needs = []
     if cfg.route == "polymer_atomistic":
-        needs.append(("RDKit", available("rdkit")))
-        if cfg.atomistic_mode in {"bulk", "crosslink"}:
+        if cfg.atomistic_mode != "tg_scan":
+            needs.append(("RDKit", available("rdkit")))
+        if cfg.atomistic_mode in {"bulk", "crosslink", "tg_scan"}:
             needs.append(("LAMMPS", bool(executable("lmp", "LAMMPS_EXEC"))))
         if cfg.atomistic_mode == "bulk" and cfg.atomistic_forcefield == "gaff2":
             needs.append(("RadonPy", available("radonpy")))
@@ -132,6 +133,13 @@ def check(config):
                 errors.append({"field": "resin_count", "message": f"가교 셀은 {BULK_MINIMUM_ATOMS}개 이상의 원자가 필요합니다(현재 {atoms}개)."})
         except ValueError as exc:
             errors.append({"field": "resin_smiles", "message": str(exc)})
+    if cfg.route == "polymer_atomistic" and cfg.atomistic_mode == "tg_scan":
+        from .glass_transition import temperatures
+        temps = temperatures(cfg.tg_high_kelvin, cfg.tg_low_kelvin, cfg.tg_step_kelvin)
+        estimate = {"temperatures_kelvin": temps, "steps_per_temperature": cfg.tg_stage_steps,
+                    "total_steps": cfg.tg_stage_steps * (len(temps) + 1), "simulated_ps": cfg.tg_stage_steps * (len(temps) + 1) / 1000,
+                    "cooling_rate_k_per_ns": round(cfg.tg_step_kelvin / (cfg.tg_stage_steps * 1e-6), 6)}
+        warnings.append("MD cooling is many decades faster than DSC; the scan's Tg is expected above a calorimetric value and is not rate-converted.")
     if cfg.route == "polymer_atomistic" and cfg.atomistic_mode in {"bulk", "crosslink"}:
         estimate["protocol_scale"] = cfg.protocol_scale
         if cfg.protocol_scale == 1:

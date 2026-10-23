@@ -74,6 +74,9 @@ def material_identity(material: dict) -> dict:
 def material_from_job(job):
     config = job.get("config") or {}
     route = config.get("route") or job.get("route")
+    if route == "polymer_atomistic" and config.get("atomistic_mode") == "tg_scan" and job.get("source_config"):
+        # A Tg scan reruns its source cell, so it describes the source material.
+        return material_from_job({"config": job["source_config"]})
     fields = ("repeat_smiles", "monomers", "chains", "sequence", "tacticity", "end_caps",
               "composition", "accession", "source_job_id", "source_artifact", "polyply_library",
               "polyply_residue", "ligand_smiles", "protein_sequence", "material_label")
@@ -222,8 +225,11 @@ class ResearchStore:
         if job.get("status") not in TERMINAL:
             raise ValueError("Only terminal jobs can be indexed consistently")
         job_id = str(job["id"])
-        material = material_from_job(job)
         config = job.get("config") or _read(job_dir / "config.json")
+        if config.get("atomistic_mode") == "tg_scan":
+            source = _read(job_dir / "tg_source.json").get("config") or _read(job_dir.parent / str(config.get("source_job_id")) / "config.json")
+            job = {**job, "source_config": source or None}
+        material = material_from_job(job)
         route = config.get("route", "unknown")
         record = {"id": job_id, "job_id": job_id, **{k: v for k, v in job.items() if k in ("name", "status", "created_at", "finished_at", "error")},
                   "material_id": material["material_id"], "material": material["identity"],

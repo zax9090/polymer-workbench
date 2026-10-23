@@ -98,7 +98,8 @@ def _validated(config):
               "polyply_residue": "PEO", "monomers": 24, "chains": 2, "temperature_kelvin": 300.0,
               "box_nm": 15.0, "seed": 42, "secondary_structure": "", "pdb_text": "",
               "polymer_net_charge": 0, "steps": 10000, "equilibration_steps": 50000, "salt_molar": 0.15,
-              "contact_cutoff_nm": 0.6, "elastic_network": False, "protein_protonation": "as_input", "protein_ph": 7.0, **config}
+              "contact_cutoff_nm": 0.6, "elastic_network": False, "protein_protonation": "as_input", "protein_ph": 7.0,
+              "protein_polymer_lambda": 1.0, "elastic_plddt_min": 0.0, "bfactor_is_plddt": False, **config}
     if values["bridge_track"] not in {"martini3", "amber", "openff"}:
         raise ValueError("bridge_track must be martini3, amber or openff")
     if values["bridge_mode"] not in {"prepare", "protein_cg", "simulate"}:
@@ -124,6 +125,13 @@ def _validated(config):
         raise ValueError("Martini 2/beta and Martini 3 libraries must not be mixed; select martini3")
     if not isinstance(values["elastic_network"], bool):
         raise ValueError("elastic_network must be true or false")
+    for key, low, high in (("protein_polymer_lambda", 0.5, 1.0), ("elastic_plddt_min", 0.0, 95.0)):
+        v = float(values[key])
+        if not math.isfinite(v) or not low <= v <= high:
+            raise ValueError(f"{key} must be in [{low}, {high}]")
+        values[key] = v
+    if values["elastic_plddt_min"] and not (values["elastic_network"] and values["bfactor_is_plddt"]):
+        raise ValueError("elastic_plddt_min needs elastic_network and B-factors that hold pLDDT (bfactor_is_plddt)")
     if values["bridge_mode"] == "simulate" and WATER_BEADS_PER_NM3 * values["box_nm"] ** 3 > MAX_SIMULATION_PARTICLES:
         raise ValueError(f"A {values['box_nm']:g} nm box needs more than {MAX_SIMULATION_PARTICLES} particles; use a smaller box for this desktop pilot")
     return values
@@ -257,6 +265,116 @@ def _martinize_topology(path):
     return includes, molecules
 
 
+def plddt_regions(pdb_text, minimum, shortest=3):
+    """Runs of consecutive residues whose CA pLDDT (B-factor) is at least minimum, as martinize2 -eunit ranges."""
+    residues = {}
+    for line in pdb_text.splitlines():
+        if line.startswith("ATOM  ") and line[12:16].strip() == "CA":
+            residues[(line[21], int(line[22:26]))] = float(line[60:66])
+    if len({chain for chain, _ in residues}) != 1:
+        raise ValueError("pLDDT-limited elastic networks support single-chain proteins only")
+    runs, current = [], []
+    for (_, resid), plddt in sorted(residues.items(), key=lambda item: item[0][1]):
+        if plddt >= minimum and current and resid == current[-1] + 1:
+            current.append(resid)
+        else:
+            if len(current) >= shortest:
+                runs.append([current[0], current[-1]])
+            current = [resid] if plddt >= minimum else []
+    if len(current) >= shortest:
+        runs.append([current[0], current[-1]])
+    if not runs:
+        raise ValueError(f"No run of {shortest}+ residues has pLDDT >= {minimum:g}; disable the elastic network or lower elastic_plddt_min")
+    kept = sum(b - a + 1 for a, b in runs)
+    return {"minimum_plddt": minimum, "regions": runs, "residues": len(residues), "residues_in_regions": kept,
+            "eunit": ",".join(f"{a}:{b}" for a, b in runs),
+            "rule": f"elastic bonds only within runs of at least {shortest} consecutive residues with CA pLDDT >= {minimum:g} (martinize2 -eunit)"}
+
+
+def _sections(path):
+    """(section, raw line) for every line of a GROMACS include file."""
+    section = None
+    for raw in Path(path).read_text(errors="replace").splitlines():
+        header = re.fullmatch(r"\s*\[\s*(\w+)\s*\]\s*(;.*)?", raw)
+        if header:
+            section = header.group(1).lower()
+        yield section, raw
+
+
+def _bead_types(path):
+    return {raw.split(";", 1)[0].split()[1] for section, raw in _sections(path)
+            if section == "atoms" and len(raw.split(";", 1)[0].split()) > 1 and not raw.lstrip().startswith(("#", "["))}
+
+
+def _retype(source, target, rename):
+    lines = []
+    for section, raw in _sections(source):
+        body, _, comment = raw.partition(";")
+        fields = body.split()
+        if section == "atoms" and len(fields) > 1 and not body.lstrip().startswith(("#", "[")):
+            fields[1] = rename[fields[1]]
+            raw = " " + " ".join(fields) + (f" ;{comment}" if comment else "")
+        lines.append(raw)
+    Path(target).write_text("\n".join(lines) + "\n")
+
+
+def scale_protein_polymer(output, protein_includes, polymer_include, scale, forcefield="martini_v3.0.0.itp"):
+    """Copy every protein and polymer bead type so that only protein-polymer Lennard-Jones epsilon is multiplied by scale.
+
+    Protein-protein, polymer-polymer and solute-solvent pairs keep their Martini 3 values; sigma is unchanged.
+    """
+    atomtypes, pairs, rule = {}, {}, None
+    for section, raw in _sections(output / forcefield):
+        fields = raw.split(";", 1)[0].split()
+        if section == "defaults" and len(fields) >= 2:
+            rule = fields[:2]
+        elif section == "atomtypes" and len(fields) >= 6:
+            atomtypes[fields[0]] = fields[1:]
+        elif section == "nonbond_params" and len(fields) >= 5:
+            pairs[frozenset(fields[:2])] = (float(fields[3]), float(fields[4]))
+    if rule != ["1", "2"]:
+        raise RuntimeError("Expected Martini [ defaults ] nbfunc 1, comb-rule 2")
+
+    def pair(a, b):
+        # Pairs absent from nonbond_params (the non-interacting U type) fall back to comb-rule 2, as in grompp.
+        if frozenset((a, b)) in pairs:
+            return pairs[frozenset((a, b))]
+        (sa, ea), (sb, eb) = (map(float, atomtypes[t][-2:]) for t in (a, b))
+        return (sa + sb) / 2, (ea * eb) ** 0.5
+
+    protein = set().union(*(_bead_types(output / name) for name in protein_includes))
+    polymer = _bead_types(output / polymer_include)
+    copies = {**{f"{t}_pr": (t, "protein") for t in sorted(protein)}, **{f"{t}_pl": (t, "polymer") for t in sorted(polymer)}}
+    if set(copies) & set(atomtypes) or not (protein | polymer) <= set(atomtypes):
+        raise RuntimeError("Bead types of the protein or polymer are missing from, or collide with, the Martini 3 atom types")
+    lines = [f"; Polymer Lab: protein-polymer epsilon x {scale:g}; generated from {forcefield}", "[ atomtypes ]"]
+    lines += [f"{name} {' '.join(atomtypes[base])}" for name, (base, _) in copies.items()]
+    lines += ["", "[ nonbond_params ]"]
+    written = 0
+    names = list(copies)
+    for i, name in enumerate(names):
+        base, owner = copies[name]
+        partners = [(other, other, None) for other in atomtypes] + [(other, *copies[other]) for other in names[i:]]
+        for label, other_base, other_owner in partners:
+            sigma, epsilon = pair(base, other_base)
+            if {owner, other_owner} == {"protein", "polymer"}:
+                epsilon *= scale
+            lines.append(f"{name} {label} 1 {sigma:.6e} {epsilon:.6e}")
+            written += 1
+    (output / "martini_lambda.itp").write_text("\n".join(lines) + "\n")
+    renamed = []
+    for name in protein_includes:
+        _retype(output / name, output / f"lambda_{name}", {t: f"{t}_pr" for t in protein})
+        renamed.append(f"lambda_{name}")
+    _retype(output / polymer_include, output / f"lambda_{polymer_include}", {t: f"{t}_pl" for t in polymer})
+    record = {"protein_polymer_lambda": scale, "protein_bead_types": sorted(protein), "polymer_bead_types": sorted(polymer),
+              "pairs_written": written, "file": "martini_lambda.itp",
+              "sha256": hashlib.sha256((output / "martini_lambda.itp").read_bytes()).hexdigest(),
+              "meaning": "Lennard-Jones epsilon of every protein-bead/polymer-bead pair multiplied by the factor; an assumed correction "
+                         "for Martini 3 over-aggregation, not a parameter fitted to data for this system"}
+    return renamed, f"lambda_{polymer_include}", record
+
+
 def _assemble_solvated(cfg, output):
     """Combined Martini 3 topology with neutralizing ions and an explicit salt estimate."""
     import numpy as np
@@ -298,8 +416,13 @@ def _assemble_solvated(cfg, output):
     if water < 100:
         raise ValueError("The box leaves fewer than 100 water beads; increase box_nm")
     molecules = [*proteins, ("Polymer", cfg["chains"]), ("W", water), ("NA", sodium), ("CL", chloride)]
-    lines = ['#include "martini_v3.0.0.itp"', '#include "martini_v3.0.0_solvents_v1.itp"', '#include "martini_v3.0.0_ions_v1.itp"',
-             *[f'#include "{name}"' for name in includes], '#include "polymer.itp"', "", "[ system ]",
+    scaling, extra, polymer_include = None, [], "polymer.itp"
+    if cfg["protein_polymer_lambda"] != 1:
+        includes, polymer_include, scaling = scale_protein_polymer(output, includes, "polymer.itp", cfg["protein_polymer_lambda"])
+        _json(output / "lambda_scaling.json", scaling)
+        extra = ['#include "martini_lambda.itp"']
+    lines = ['#include "martini_v3.0.0.itp"', *extra, '#include "martini_v3.0.0_solvents_v1.itp"', '#include "martini_v3.0.0_ions_v1.itp"',
+             *[f'#include "{name}"' for name in includes], f'#include "{polymer_include}"', "", "[ system ]",
              f"Polymer Lab Martini 3 protein + {cfg['chains']} x {cfg['polyply_residue']}{cfg['monomers']} in W/NaCl", "", "[ molecules ]",
              *[f"{name} {count}" for name, count in molecules if count]]
     (output / "system.top").write_text("\n".join(lines) + "\n")
@@ -312,6 +435,7 @@ def _assemble_solvated(cfg, output):
                  "solute_charge_e": net, "system_charge_e": net + sodium - chloride, "protein_beads": protein_atoms,
                  "polymer_beads_per_chain": polymer["atoms"], "polymer_charge_per_chain_e": polymer["charge"],
                  "water_bead_density_per_nm3": WATER_BEADS_PER_NM3, "molecules": [[name, count] for name, count in molecules],
+                 "protein_polymer_lambda": scaling,
                  "method": "W count from bulk density minus solute beads; Na+/Cl- pairs from target molarity in the water volume plus counter-ions"}
     _json(output / "solvation.json", solvation)
     return layout, solvation
@@ -422,8 +546,14 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
         if cfg["secondary_structure"]:
             martinize += ["-ss", cfg["secondary_structure"]]
         # An elastic network is never assumed; the folded/IDR model is an explicit choice.
+        elastic_regions = None
         if cfg["elastic_network"]:
             martinize += ["-elastic", "-ef", "700", "-el", "0.5", "-eu", "0.9"]
+            if cfg["elastic_plddt_min"] and cfg["pdb_text"]:
+                # Low-confidence (often disordered) residues get no elastic bonds, and confident regions are not tied together.
+                elastic_regions = plddt_regions(cfg["pdb_text"], cfg["elastic_plddt_min"])
+                _json(output / "elastic_regions.json", elastic_regions)
+                martinize += ["-eunit", elastic_regions["eunit"]]
         polyply = [caps["executables"]["polyply"] or "polyply", "gen_params", "-lib", "martini3", "-name", "Polymer", "-seq", f"{cfg['polyply_residue']}:{cfg['monomers']}", "-o", "polymer.itp"]
         commands += [{"stage":"protein_component", "argv":martinize, "requires":["protein_input.pdb", "secondary structure"]},
                      {"stage":"polymer_component", "argv":polyply, "requires":["known Martini 3 polymer block"]}]
@@ -473,6 +603,12 @@ def run_bridge(config: dict, output: Path, emit=lambda *args: None):
                             stage["state"] = "executed"
         if not cfg["elastic_network"] and cfg["bridge_mode"] == "simulate":
             notes.append("No elastic network: folded proteins can lose tertiary structure in Martini 3; inspect the protein RMSD.")
+        if elastic_regions:
+            notes.append(f"Elastic bonds only within residues {elastic_regions['eunit']} (CA pLDDT >= {elastic_regions['minimum_plddt']:g}); "
+                         "other residues and the links between regions move without elastic restraint.")
+        if cfg["protein_polymer_lambda"] != 1 and cfg["bridge_mode"] == "simulate":
+            notes.append(f"Protein-polymer Lennard-Jones epsilon scaled by {cfg['protein_polymer_lambda']:g} (experimental): an assumed correction "
+                         "for Martini 3 over-aggregation, not fitted for this system; compare with an unscaled run before interpreting contacts.")
         notes += ["SMILES is not converted into a Martini mapping; the explicitly selected library block is the chemical model.",
                   "Protein elastic networks, IDR handling, protonation and cofactors require system-specific choices.",
                   "CG timescale is model-dependent; no microsecond performance or physical-time equivalence is promised."]
@@ -560,12 +696,13 @@ quit
                                 "ensemble": "NPT production after restrained NVT/NPT", "time_step_fs": 10.0,
                                 "temperature_kelvin": cfg["temperature_kelvin"], "production_steps": cfg["steps"],
                                 "equilibration_steps": cfg["equilibration_steps"], "contact_cutoff_nm": cfg["contact_cutoff_nm"],
-                                "elastic_network": cfg["elastic_network"], "salt_molar": cfg["salt_molar"]},
+                                "elastic_network": cfg["elastic_network"], "salt_molar": cfg["salt_molar"],
+                                "elastic_plddt_min": cfg["elastic_plddt_min"] or None, "protein_polymer_lambda": cfg["protein_polymer_lambda"]},
                       metrics={"summary": {"protein_rmsd_mean": summary["protein_rmsd_mean"], "contact_count_mean": summary["contact_count_mean"],
                                            "protein_rg_mean": summary["protein_rg_mean"], "polymer_rg_mean": summary["polymer_rg_mean"],
                                            **({"density_mean": summary["density_mean"]} if "density_mean" in summary else {}),
                                            "production_ps": summary["production_ps"], "frames": summary["frames"],
                                            "particles": simulation["layout"]["particles"]},
                                "units": simulation["analysis"]["units"], "equilibrated": False},
-                      warnings=simulation["analysis"]["warnings"] + [note for note in notes if note.startswith("No elastic network")])
+                      warnings=simulation["analysis"]["warnings"] + [note for note in notes if note.startswith(("No elastic network", "Elastic bonds only", "Protein-polymer Lennard-Jones"))])
     return result

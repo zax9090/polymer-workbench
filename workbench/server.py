@@ -232,7 +232,18 @@ def create_app(data_root=None):
     @app.post("/api/jobs", status_code=201)
     def new_job(config: JobConfig, request: Request):
         manager = request.app.state.manager
-        if config.source_job_id:
+        if config.route == "polymer_atomistic" and config.atomistic_mode == "tg_scan":
+            from .glass_transition import required_files
+            source = manager.get(config.source_job_id)
+            try:
+                files = required_files(source["config"])
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+            directory = manager.directory(config.source_job_id)
+            if source["status"] != "completed" or any((directory / n).is_symlink() or not (directory / n).is_file() for n in files):
+                raise HTTPException(422, "완료된 벌크 셀 또는 가교 작업의 최종 구조 파일(" + ", ".join(files) + ")이 필요합니다.")
+            config.source_artifact = files[0]
+        elif config.source_job_id:
             source = manager.get(config.source_job_id)
             if config.route not in {"packmol", "mixture"} or source["status"] not in {"completed", "prepared"}:
                 raise HTTPException(422, "완료된 원자 구조 작업을 PACKMOL 또는 혼합계 브릿지로 이어갈 수 있습니다.")

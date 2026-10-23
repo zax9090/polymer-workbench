@@ -191,15 +191,17 @@ class JobManager:
             except PackageNotFoundError:
                 packages[package] = None
         files = {}
-        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/sap.py", "workbench/protonation.py", "workbench/class2.py", "workbench/pcff.py", "workbench/crosslink.py", "workbench/engines.py", "workbench/repair.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
+        for name in ("workbench/science.py", "workbench/external.py", "workbench/bridges.py", "workbench/forcefields.py", "workbench/mixture_analysis.py", "workbench/sap.py", "workbench/protonation.py", "workbench/class2.py", "workbench/pcff.py", "workbench/crosslink.py", "workbench/glass_transition.py", "workbench/engines.py", "workbench/repair.py", "workbench/descriptors.py", "workbench/campaigns.py", "scripts/engine_worker.py", "requirements.lock.txt", "requirements.desktop.lock.txt"):
             path = ROOT / name
             if path.is_file():
                 files[name] = hashlib.sha256(path.read_bytes()).hexdigest()
         config = json.loads((directory / "config.json").read_text())
         handoff = None
         if config.get("source_job_id"):
-            handoff = {"job_id": config["source_job_id"], "artifact": config.get("source_artifact"),
-                       "sha256": hashlib.sha256(config.get("pdb_text", "").encode()).hexdigest()}
+            artifact = self.root / config["source_job_id"] / config.get("source_artifact", "")
+            # A Tg scan copies its source files itself; others carry the structure text in the config.
+            data = config.get("pdb_text", "").encode() if config.get("pdb_text") or not artifact.is_file() else artifact.read_bytes()
+            handoff = {"job_id": config["source_job_id"], "artifact": config.get("source_artifact"), "sha256": hashlib.sha256(data).hexdigest()}
         atomic_json(directory / "runtime.json", {"captured_at": now(), "python": sys.version,
                     "platform": platform.platform(), "packages": packages, "source_sha256": files,
                     "source_handoff": handoff, "note": "Installed package versions; external environment versions are recorded by each engine when available."})
