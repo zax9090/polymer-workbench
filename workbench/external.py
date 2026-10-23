@@ -180,7 +180,22 @@ if mol.GetNumAtoms() * chains > 30000:
 # Smaller periodic cells let bonded terms span half the box and corrupt the sampling.
 if mol.GetNumAtoms() * chains < 200:
     raise ValueError(f"A {mol.GetNumAtoms() * chains}-atom cell is too small for periodic bulk sampling; use at least 200 atoms (more chains or longer chains)")
-cell = poly.amorphous_cell(mol, chains, density=0.05)
+native = config.get("cell_builder", "radonpy") == "native"
+if native:
+    # Polymer Lab's own builder (native_amorphous.py, copied into this job): chains grown at the target density.
+    from rdkit import Geometry
+    import native_amorphous
+    positions, edge, builder_report = native_amorphous.build_cell(mol, chains, float(config.get("build_density", 0.8)), seed=seed)
+    cell = Chem.Mol()
+    for _ in range(chains):
+        cell = poly.combine_mols(cell, mol)
+    conformer = cell.GetConformer(0)
+    for i, (x, y, z) in enumerate(positions):
+        conformer.SetAtomPosition(i, Geometry.Point3D(float(x), float(y), float(z)))
+    setattr(cell, "cell", utils.Cell(edge, 0.0, edge, 0.0, edge, 0.0))
+else:
+    builder_report = {"builder": "RadonPy amorphous_cell (rigid copies at 0.05 g/cm^3)"}
+    cell = poly.amorphous_cell(mol, chains, density=0.05)
 solver_path = os.environ.get("LAMMPS_EXEC")
 solver_path = shlex.quote(solver_path) if solver_path and os.name == "posix" else solver_path
 work = str(Path.cwd())
@@ -199,6 +214,11 @@ def scaled(md):
     md.dump_freq = max(10, min(1000, total // 50))
     return total
 md1 = pre.packing(f_density=0.8)
+if native:
+    # The cell is already dense: keep RadonPy's minimisation and 0.1 fs NVT, then one 1 fs NVT at the
+    # sampling temperature in place of its heating to 700 K and compression from 0.05 g/cm^3.
+    md1.wf = md1.wf[:3]
+    md1.wf[2].step, md1.wf[2].t_start, md1.wf[2].t_stop, md1.wf[2].deform = 100000, temp, temp, None
 packing_steps = scaled(md1)
 pre.mol = lmp.run(md1, mol=pre.mol, input_file=pre.in_file1, last_str=pre.last_str1, last_data=pre.last_data1, omp=threads, mpi=0, gpu=0)
 step_list = [[max(100, int(round(n * scale))) for n in row] for row in
@@ -244,7 +264,8 @@ for name in (pre.in_file1, pre.in_file2, pre.in_file):
         if len(tokens) > 4 and tokens[0] == "velocity" and tokens[2] == "create":
             seeds.append({"input": name, "seed": int(tokens[4])})
 complete = {"force_field": "GAFF2_mod", "charge_method": "CM5 (GFN1-xTB single point)" if xtb else "Gasteiger", "xtb": xtb, "ensemble": "NPT sampling after Larsen 21-step compression/decompression",
-            "protocol": "RadonPy EQ21step stages (packing, 21-step, sampling)", "protocol_scale": scale,
+            "protocol": ("Polymer Lab native cell, minimisation + NVT, then RadonPy EQ21step 21-step and sampling" if native
+                         else "RadonPy EQ21step stages (packing, 21-step, sampling)"), "protocol_scale": scale, "builder": builder_report,
             "stage_steps": {"packing": packing_steps, "eq21": sum(map(sum, step_list)), "sampling": sampling_steps},
             "sampling_thermo_freq": thermo, "time_step_fs": 1.0, "temperature_kelvin": temp, "pressure_atm": 1.0, "max_temp_kelvin": 600.0, "max_press_atm": 50000,
             "chains": chains, "atoms": pre.mol.GetNumAtoms(), "threads": threads, "properties": properties,
@@ -388,6 +409,8 @@ def bulk_cell(config, output, emit, metadata):
         # A separate file keeps machine-specific paths out of the job's stored config.json.
         write_json(output / "xtb_engine.json", {**record, "executable": str(binary), "parameters": str(binary.parent.parent / "share" / "xtb")})
     (output / "run_radonpy_bulk.py").write_text(RADONPY_BULK_SCRIPT)
+    if config.get("cell_builder", "radonpy") == "native":
+        shutil.copyfile(Path(__file__).with_name("amorphous.py"), output / "native_amorphous.py")
     python = os.environ.get("RADONPY_PYTHON", sys.executable)
     missing = []
     if python == sys.executable and not available("radonpy"):
@@ -423,7 +446,7 @@ def bulk_cell(config, output, emit, metadata):
                "chain_rg_angstrom": values["chain_rg"], "atoms": complete["atoms"], "chains": complete["chains"],
                "sampling_ps": complete["stage_steps"]["sampling"] * complete["time_step_fs"] / 1000}
     return outcome(output, "polymer_atomistic", "completed", "RadonPy bulk amorphous cell equilibrated by the Larsen 21-step protocol and sampled under NPT.",
-                   engine="RadonPy / LAMMPS", metadata={key: complete[key] for key in ("force_field", "charge_method", "ensemble", "protocol", "protocol_scale", "stage_steps", "time_step_fs", "temperature_kelvin", "pressure_atm", "chains", "atoms", "radonpy_criteria_met")},
+                   engine="RadonPy / LAMMPS", metadata={**{key: complete[key] for key in ("force_field", "charge_method", "ensemble", "protocol", "protocol_scale", "stage_steps", "time_step_fs", "temperature_kelvin", "pressure_atm", "chains", "atoms", "radonpy_criteria_met")}, "builder": complete.get("builder")},
                    metrics={"summary": {k: v for k, v in summary.items() if v is not None}, "properties": complete["properties"], "equilibrated": False},
                    warnings=warnings)
 

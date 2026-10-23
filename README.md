@@ -149,6 +149,8 @@ polyply에서 **완전한 forcefield ITP**를 제공하면 좌표 생성을 이�
 
 LAMMPS msi2lmp·bond/react, EMC, pysimm, xtb, pybaselines, PDBFixer, HiPlot, jcamp를 내려받아 REA로 분석한 뒤 필요한 기능만 연결했습니다. PCFF 벌크 셀, 에폭시–아민 가교, xtb CM5 전하, DSC 용융 엔탈피·결정화도와 GPC 자동 기준선(pybaselines), 단백질 구조 보정(PDBFixer), 연구 데이터 다변수 비교(HiPlot)입니다. pysimm은 REA 확인 결과 방향족 PCFF 타입이 맞지 않아 쓰지 않았습니다. [PCFF · 가교 문서](docs/CLASS2_CROSSLINK.md)를 참고하세요.
 
+GAFF2 벌크 셀은 `cell_builder: "native"`로 Polymer Lab 자체 빌더를 쓸 수 있습니다. RadonPy와 EMC가 셀을 만드는 방식을 REA로 확인한 뒤, 모든 사슬을 목표 밀도에서 서로 다른 형태로 직접 키우도록 새로 만들었습니다. 회전 결합마다 후보 여러 개를 주기 경계 겹침 에너지로 고르고, 막히면 되돌아가 다시 키웁니다. [자체 비정질 셀 빌더](docs/AMORPHOUS_BUILDER.md)를 참고하세요.
+
 ## AI 에이전트 연동 (MCP)
 
 Polymer Lab은 MCP stdio 서버(`python -m workbench --mcp`, 데스크톱 `polymer-lab --mcp`)를 제공합니다. Claude Code·Claude Desktop·Codex 같은 에이전트가 계산 작업 실행·대기·결과 읽기, 곡선 분석, 측정값 초안 입력, 모델 학습·예측, 캠페인 제어를 할 수 있습니다. 실행 중인 데스크톱 앱이나 `./start.sh` 서버에 붙고, 없으면 요청 시 세션 소유 서버를 띄웁니다. 에이전트가 입력한 측정값은 항상 검토 전 상태로 저장되며 MCP로 만든 작업에는 요청자가 기록됩니다. 이 저장소의 `.mcp.json`에 등록되어 있습니다. [MCP 연동 안내](docs/MCP.md)를 참고하세요.
