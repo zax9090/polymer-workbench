@@ -43,9 +43,17 @@ def runner(client, fail=lambda config, attempt: None, hold=False):
                 "Masses\n\n1 12.011\n\nAtoms # full\n\n")
         text += "\n".join(f"{i} {i} 1 0 {edge*x:.17g} {edge*y:.17g} {edge*z:.17g} 0 0 0" for i, (x, y, z) in enumerate([(.2, .2, .2), (.7, .2, .2), (.2, .7, .2), (.2, .2, .7)], 1)) + "\n"
         (directory / "eq3_last.data").write_text(text)
+        atomic_json(directory / "bulk_complete.json", {"equilibrated": False, "properties": {
+            "density": {"value": density, "unit": "g/cm^3"}, "bulk_modulus": {"value": modulus(u, v), "unit": "GPa"},
+            "volume_expansion": {"value": 4e-4 + 1e-5 * u, "unit": "1/K"}}})
         manager._update(job_id, status="completed", finished_at=now())
     client.app.state.manager.pool.submit = submit
     return attempts
+
+
+def modulus(u, v):
+    # Exact interaction polynomial in coded units with its own optimum, unlike the density surface.
+    return 2.0 + 0.4 * u - 0.3 * v + 0.1 * u * v
 
 
 def wait(client, identifier, timeout=60):

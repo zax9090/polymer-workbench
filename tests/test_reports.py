@@ -188,7 +188,7 @@ def test_workflow_report_keeps_simulation_values_unverified(client):
     stored = {row["run_order"]: row for row in client.app.state.workflows._read(workflow["id"])["rows"]}
     for line in runs[1:]:
         row = stored[int(line[0])]
-        assert float(line[header.index("반응값")]) == row["observation"]["value"]
+        assert float(line[header.index("final_frame_density (g/cm^3)")]) == row["observation"]["value"]
         assert line[header.index("검토")] == "FALSE"
     assert (content / "figures" / "surface.svg").is_file()
     assert any("No confirmation run has been analyzed" in w for w in record["warnings"])

@@ -12,11 +12,14 @@ router = APIRouter(prefix="/api/research/workflows", route_class=ResearchRoute)
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
+Metric = Literal["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion"]
+
 class Create(Strict):
     design_id: str = Field(pattern=r"^[0-9a-f]{32}$")
     template: JobConfig
     bindings: dict[str, str]
-    metric: Literal["final_frame_density", "probe_accessible_fraction"] = "probe_accessible_fraction"
+    metric: Metric = "probe_accessible_fraction"
+    responses: list[Metric] = Field(default_factory=list, max_length=5)
     probe: float = Field(default=1.0, ge=0, le=5)
     spacing: float = Field(default=0.25, ge=0.05, le=1)
     budget: int = Field(default=50, ge=1, le=50)
@@ -35,6 +38,22 @@ class Optimize(Strict):
     model: Literal["linear", "interaction", "quadratic"] = "quadratic"
     objective: Literal["maximize", "minimize", "target"] = "maximize"
     target: float | None = None
+    exclusions: dict[str, str] = Field(default_factory=dict, max_length=50)
+    response: Metric | None = None
+
+class Goal(Strict):
+    name: Metric
+    model: Literal["linear", "interaction", "quadratic"] = "quadratic"
+    goal: Literal["maximize", "minimize", "target"]
+    lower: float | None = None
+    target: float
+    upper: float | None = None
+    lower_shape: float = Field(default=1.0, ge=0.1, le=10)
+    upper_shape: float = Field(default=1.0, ge=0.1, le=10)
+    importance: float = Field(default=1.0, ge=0.1, le=10)
+
+class DesirabilityOptimize(Strict):
+    goals: list[Goal] = Field(min_length=1, max_length=5)
     exclusions: dict[str, str] = Field(default_factory=dict, max_length=50)
 
 class Confirm(Strict):
@@ -55,6 +74,8 @@ class Plan(Strict):
     confirm: bool = True
     report: bool = True
     upload_report: bool = False
+    response: Metric | None = None
+    goals: list[Goal] | None = Field(default=None, min_length=1, max_length=5)
 
 class Approval(Strict):
     plan: Plan
@@ -98,6 +119,11 @@ def analyze_workflow(identifier: str, payload: Rows, request: Request):
 @router.post("/{identifier}/optimize")
 def optimize_workflow(identifier: str, payload: Optimize, request: Request):
     return request.app.state.workflows.optimize(identifier, **payload.model_dump())
+
+@router.post("/{identifier}/optimize-desirability")
+def optimize_desirability(identifier: str, payload: DesirabilityOptimize, request: Request):
+    goals = [{key: value for key, value in goal.model_dump().items() if value is not None} for goal in payload.goals]
+    return request.app.state.workflows.optimize_desirability(identifier, goals, payload.exclusions)
 
 @router.post("/{identifier}/confirm")
 def confirm_workflow(identifier: str, payload: Confirm, request: Request):

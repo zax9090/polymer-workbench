@@ -148,4 +148,4 @@ MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없
 
 ### 단계별 벌크 연구 연결
 
-`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 GAFF2 자체 벌크 템플릿을 연결합니다. 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`, `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.
+`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 GAFF2 자체 벌크 템플릿을 연결합니다. `metric`(대표 반응값)과 `responses`(함께 수집할 값)는 `final_frame_density`·`probe_accessible_fraction`(자유 부피 분석)과 `npt_density`·`bulk_modulus`·`volume_expansion`(작업의 NPT 표본 평균, RadonPy 수렴 판정 포함) 중에서 고릅니다. 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`(선택 `response`), `optimize-desirability`(`goals`), `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 반응값의 출처와 검증은 `docs/WORKFLOWS.md`에 있습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.

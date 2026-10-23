@@ -607,21 +607,7 @@ def build_doe(b, record, text):
         b.facts([(c["name"], f"{_num(c['low'])} ~ {_num(c['high'])}") for c in record["components"]])
         _doe_analysis(b, record, points, text)
     elif kind == "doe_desirability":
-        opt = record["optimum"]
-        b.paragraph("각 반응을 따로 맞춘 모델의 예측값으로 Derringer–Suich 만족도 D를 최대화했습니다. 경계·모양·중요도는 사용자가 정한 값입니다.")
-        b.heading("최적점 (확인 실험 필요)")
-        b.facts([("종합 만족도 D", _num(opt["composite_desirability"])), *((n, _num(v)) for n, v in opt["settings"].items()),
-                 ("관측 실험 중 최고 D", f"{_num(record['best_observed_run']['composite_desirability'])} (CSV {record['best_observed_run']['row']}행)"),
-                 ("검증", "확인 실험 전 (validated=false)")])
-        b.figure("desirability", "반응별 만족도", figure_desirability(record))
-        b.table("responses", "반응별 목표와 예측", ["반응", "모델", "목표", "하한", "목표값", "상한", "하한 모양", "상한 모양", "중요도", "예측값", "d",
-                                              "예측구간 하한", "예측구간 상한", "R²", "예측 R²"],
-                [[r["name"], MODELS.get(r["model"], r["model"]), OBJECTIVES.get(r["goal"], r["goal"]), r["lower"], r["target"], r["upper"], r["lower_shape"],
-                  r["upper_shape"], r["importance"], r["predicted"], r["desirability"], *(r.get("prediction_interval") or [None, None]),
-                  r["fit"]["r_squared"], r["fit"]["predicted_r_squared"]] for r in record["responses"]])
-        b.table("optimum", "최적점 설정", ["변수", "값"], [[n, v] for n, v in opt["settings"].items()], preview=0)
-        b.table("observed_desirability", "관측 실험별 D", ["CSV 행", "D"],
-                [[i + 2, v] for i, v in enumerate(record["observed_composite_desirability"])], preview=0)
+        _desirability_section(b, record)
         _input_table(b, text)
     elif kind in {"doe_design", "doe_mixture_design"}:
         variables = record.get("factors") or record.get("components")
@@ -635,45 +621,76 @@ def build_doe(b, record, text):
     b.warnings += record.get("warnings", [])
 
 
+def _desirability_section(b, record):
+    opt = record["optimum"]
+    b.paragraph("각 반응을 따로 맞춘 모델의 예측값으로 Derringer–Suich 만족도 D를 최대화했습니다. 경계·모양·중요도는 사용자가 정한 값입니다.")
+    b.heading("최적점 (확인 실험 필요)")
+    b.facts([("종합 만족도 D", _num(opt["composite_desirability"])), *((n, _num(v)) for n, v in opt["settings"].items()),
+             ("관측 실험 중 최고 D", f"{_num(record['best_observed_run']['composite_desirability'])} (CSV {record['best_observed_run']['row']}행)"),
+             ("검증", "확인 실험 전 (validated=false)")])
+    b.figure("desirability", "반응별 만족도", figure_desirability(record))
+    b.table("responses", "반응별 목표와 예측", ["반응", "모델", "목표", "하한", "목표값", "상한", "하한 모양", "상한 모양", "중요도", "예측값", "d",
+                                          "예측구간 하한", "예측구간 상한", "R²", "예측 R²"],
+            [[r["name"], MODELS.get(r["model"], r["model"]), OBJECTIVES.get(r["goal"], r["goal"]), r["lower"], r["target"], r["upper"], r["lower_shape"],
+              r["upper_shape"], r["importance"], r["predicted"], r["desirability"], *(r.get("prediction_interval") or [None, None]),
+              r["fit"]["r_squared"], r["fit"]["predicted_r_squared"]] for r in record["responses"]])
+    b.table("optimum", "최적점 설정", ["변수", "값"], [[n, v] for n, v in opt["settings"].items()], preview=0)
+    b.table("observed_desirability", "관측 실험별 D", ["CSV 행", "D"],
+            [[i + 2, v] for i, v in enumerate(record["observed_composite_desirability"])], preview=0)
+
+
 def build_workflow(b, record, measurements):
     names = [f["name"] for f in record["factors"]]
     b.paragraph("시뮬레이션 단계별 흐름입니다. 반응값은 계산에서 얻은 기하 관측값이며 측정값이 아니고, 모두 검토 전(verified=false)입니다.")
     states = {}
     for row in record["rows"]:
         states[row["state"]] = states.get(row["state"], 0) + 1
-    b.facts([("상태", record["state"]), ("반응값", f"{record['metric']} ({record['unit']})"), ("계산 예산", f"{record['submitted']} / {record['budget']}"),
+    collected = record.get("responses") or [record["metric"]]
+    units = {name: (record.get("units") or {}).get(name, record["unit"] if name == record["metric"] else "") for name in collected}
+    b.facts([("상태", record["state"]), ("반응값", ", ".join(f"{name} ({units[name]})" for name in collected)), ("계산 예산", f"{record['submitted']} / {record['budget']}"),
              ("행 상태", ", ".join(f"{k} {v}" for k, v in sorted(states.items()))), ("설계 기록", record["design_id"]), ("기록 판", record.get("revision"))])
-    b.table("runs", "설계 행과 계산", ["순서", *names, "작업", "작업 상태", "행 상태", "시도 수", "반응값", "단위", "검토", "분석 기록", "오류"],
+    def value(observation, name):
+        return (observation.get("values") or {record["metric"]: observation.get("value")}).get(name) if observation else None
+    b.table("runs", "설계 행과 계산", ["순서", *names, "작업", "작업 상태", "행 상태", "시도 수", *(f"{n} ({units[n]})" for n in collected), "NPT 수렴 판정", "검토", "분석 기록", "오류"],
             [[r["run_order"], *(r["factors"][n] for n in names), r["job_id"], r.get("job_status"), r["state"], len(r["attempts"]),
-              (r.get("observation") or {}).get("value"), (r.get("observation") or {}).get("unit"), bool((r.get("observation") or {}).get("verified", False)),
-              (r.get("observation") or {}).get("analysis_id"), r.get("error")] for r in record["rows"]])
+              *(value(r.get("observation"), n) for n in collected), (r.get("observation") or {}).get("equilibrated"),
+              bool((r.get("observation") or {}).get("verified", False)), (r.get("observation") or {}).get("analysis_id"), r.get("error")] for r in record["rows"]])
     if record["optimizations"]:
         latest = record["optimizations"][-1]
         observed = {o["run_order"] for o in latest.get("observations", [])}
         coded = np.array([[2 * (r["factors"][f["name"]] - f["low"]) / (f["high"] - f["low"]) - 1 for f in record["factors"]]
                           for r in record["rows"] if r["run_order"] in observed]) if observed else None
-        b.heading(f"최근 반응표면 분석 ({len(record['optimizations'])}회 중 마지막)")
+        desirability = latest.get("analysis") == "doe_desirability"
+        b.heading(f"최근 {'다중 반응 만족도 최적화' if desirability else '반응표면 분석'} ({len(record['optimizations'])}회 중 마지막)")
         if latest.get("exclusions"):
             b.facts([(f"{k}행 제외", v) for k, v in latest["exclusions"].items()])
-        _doe_analysis(b, latest, coded)
+        if desirability:
+            _desirability_section(b, latest)
+        else:
+            _doe_analysis(b, latest, coded)
         b.warnings += latest.get("warnings", [])
     confirmations = [c for c in record["confirmations"] if c.get("observation")]
     if record["confirmations"]:
         b.heading("확인 계산")
-        rows, chart = [], []
+        rows, charts = [], {}
         for item in record["confirmations"]:
             optimization = next((o for o in record["optimizations"] if o["id"] == item["optimization_id"]), {})
-            rec = optimization.get("recommendation", {})
-            interval = rec.get("prediction_interval") or [None, None]
-            value = (item.get("observation") or {}).get("value")
-            inside = None if value is None or None in interval else interval[0] <= value <= interval[1]
-            rows.append([item["optimization_id"], item["job_id"], item.get("job_status"), value, rec.get("predicted_response"), *interval, inside,
-                         (item.get("observation") or {}).get("prediction_error"), bool((item.get("observation") or {}).get("verified", False))])
-            if value is not None and None not in interval:
-                chart.append({"label": item["job_id"][:8], "observed": value, "predicted": rec["predicted_response"], "prediction_interval": interval})
-        b.table("confirmations", "확인 계산과 예측", ["최적화", "작업", "작업 상태", "관측값", "예측값", "예측구간 하한", "예측구간 상한", "예측구간 안", "예측 오차", "검토"], rows)
-        if chart:
-            b.figure("confirmations", "확인 계산과 예측구간", figure_confirmations(chart))
+            rec, observation = optimization.get("recommendation", {}), item.get("observation") or {}
+            if optimization.get("analysis") == "doe_desirability":
+                targets = [(n, rec["predicted"][n], rec["prediction_intervals"][n]) for n in rec.get("predicted", {})]
+            else:
+                targets = [(optimization.get("metric", record["metric"]), rec.get("predicted_response"), rec.get("prediction_interval") or [None, None])]
+            for name, predicted, interval in targets:
+                observed_value = value(observation, name)
+                inside = None if observed_value is None or None in interval else interval[0] <= observed_value <= interval[1]
+                error = (observation.get("prediction_errors") or {name: observation.get("prediction_error")}).get(name)
+                rows.append([item["optimization_id"], item["job_id"], item.get("job_status"), name, observed_value, predicted, *interval, inside, error,
+                             bool(observation.get("verified", False))])
+                if observed_value is not None and None not in interval:
+                    charts.setdefault(name, []).append({"label": item["job_id"][:8], "observed": observed_value, "predicted": predicted, "prediction_interval": interval})
+        b.table("confirmations", "확인 계산과 예측", ["최적화", "작업", "작업 상태", "반응", "관측값", "예측값", "예측구간 하한", "예측구간 상한", "예측구간 안", "예측 오차", "검토"], rows)
+        for index, (name, chart) in enumerate(charts.items()):
+            b.figure("confirmations" if len(charts) == 1 else f"confirmations_{index + 1}", f"확인 계산과 예측구간 · {name} ({units.get(name, '')})", figure_confirmations(chart))
     _measurement_table(b, measurements, "연결된 측정값 기록")
     b.warnings += record.get("warnings", [])
     if not confirmations:

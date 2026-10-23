@@ -11,7 +11,7 @@ from __future__ import annotations
 import threading
 
 from .jobs import now
-from .workflows import autopilot_context, digest
+from .workflows import LABELS, autopilot_context, digest, responses
 
 RETRYABLE = {"failed", "interrupted"}
 FINAL = {"blocked", "cancelled", "missing"}
@@ -44,14 +44,25 @@ def normalize(record, plan):
         raise ValueError("모델과 목표를 확인하세요.")
     if (objective == "target") != (target is not None):
         raise ValueError("목표값은 목표값 맞추기에서만, 반드시 지정하세요.")
-    needed = model_terms(record["factors"], model) + 1
+    goals = [{key: value for key, value in goal.items() if value is not None} for goal in plan.get("goals") or []]
+    response = plan.get("response")
+    if goals:
+        from .doe import _goals
+        checked = _goals(goals, False)
+        if not set(goal["name"] for goal in checked) <= set(responses(record)):
+            raise ValueError("만족도 목표는 이 흐름에서 수집하는 반응값에만 지정하세요.")
+        needed = max(model_terms(record["factors"], goal["model"]) for goal in checked) + 1
+    else:
+        if response is not None and response not in responses(record):
+            raise ValueError("최적화할 반응값은 이 흐름에서 수집하는 반응값 중에서 고르세요.")
+        needed = model_terms(record["factors"], model) + 1
     if optimize and len(rows) - allowed < needed:
         raise ValueError(f"{model} 모델에는 관측 {needed}행 이상이 필요합니다. 허용 실패 행 수를 줄이거나 행을 늘리세요.")
     if bool(plan.get("upload_report")) and not plan.get("report", True):
         raise ValueError("Drive 업로드는 보고서를 함께 계획해야 합니다.")
     normalized = {"rows": rows, "max_attempts": attempts, "max_failed_rows": allowed, "optimize": optimize, "model": model,
-                  "objective": objective, "target": target, "confirm": confirm, "report": bool(plan.get("report", True)),
-                  "upload_report": bool(plan.get("upload_report", False))}
+                  "objective": objective, "target": target, "response": None if goals else response, "goals": goals or None,
+                  "confirm": confirm, "report": bool(plan.get("report", True)), "upload_report": bool(plan.get("upload_report", False))}
     selected = [row for row in record["rows"] if row["run_order"] in rows and row["state"] != "observed"]
     runs = sum(max(0, attempts - len(row["attempts"])) for row in selected) + (attempts if confirm else 0)
     outside = [row["run_order"] for row in record["rows"] if row["run_order"] not in rows and row["state"] != "observed"]
@@ -231,7 +242,8 @@ class Autopilot:
                 record = self.workflows.analyze_confirmation(identifier, job_id)
                 self._check(event)
                 observation = next(c for c in record["confirmations"] if c["job_id"] == job_id)["observation"]
-                self._log(identifier, "confirm", f"확인 계산 관측값 {observation['value']:.6g} · 예측과 차이 {observation['prediction_error']:.3g} (검토 전)")
+                errors = " · ".join(f"{LABELS.get(name, name)} 차이 {value:.3g}" for name, value in observation["prediction_errors"].items())
+                self._log(identifier, "confirm", f"확인 계산 관측값 {observation['value']:.6g} · 예측과 {errors} (검토 전)")
                 return
             if status not in RETRYABLE:
                 raise StopRun("stopped", f"확인 계산이 {STATUS.get(status, status)} 상태로 끝났습니다.")
@@ -266,10 +278,16 @@ class Autopilot:
                     for row in self.workflows._read(identifier)["rows"]:
                         if row["run_order"] not in plan["rows"] and row["state"] != "observed":
                             exclusions[str(row["run_order"])] = "자동 실행 계획에 포함하지 않은 행"
-                    record = self.workflows.optimize(identifier, plan["model"], plan["objective"], plan["target"], exclusions)
-                    self._check(event)
-                    best = record["optimizations"][-1]
-                    self._log(identifier, "optimize", f"반응표면 적합 · 제외 {len(exclusions)}행 · 추천 예측값 {best['recommendation']['predicted_response']:.6g} (확인 전)")
+                    if plan.get("goals"):
+                        record = self.workflows.optimize_desirability(identifier, plan["goals"], exclusions)
+                        self._check(event)
+                        best = record["optimizations"][-1]
+                        self._log(identifier, "optimize", f"반응 {len(plan['goals'])}개 만족도 최적화 · 제외 {len(exclusions)}행 · D {best['recommendation']['composite_desirability']:.3g} (확인 전)")
+                    else:
+                        record = self.workflows.optimize(identifier, plan["model"], plan["objective"], plan["target"], exclusions, plan.get("response"))
+                        self._check(event)
+                        best = record["optimizations"][-1]
+                        self._log(identifier, "optimize", f"{LABELS.get(best['metric'], best['metric'])} 반응표면 적합 · 제외 {len(exclusions)}행 · 추천 예측값 {best['recommendation']['predicted_response']:.6g} (확인 전)")
                     if plan["confirm"]:
                         self._confirm(identifier, event, plan, approved, best["id"])
                 if plan["report"]:

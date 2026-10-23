@@ -281,6 +281,9 @@ def _compact_campaign(record):
 
 # ---------------------------------------------------------------- tools
 
+WORKFLOW_METRICS = ["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion"]
+
+
 def _schema(properties, required=()):
     return {"type": "object", "properties": properties, "required": list(required), "additionalProperties": False}
 
@@ -419,15 +422,20 @@ class PolymerLabTools:
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
         t("create_research_workflow", "Connect DOE to bulk calculations",
-          "Save a reviewed two-factor DOE connection to GAFF2 native bulk jobs. Does not start calculations. Packing density is a preparation parameter. Templates, bindings and metrics follow /api/research/workflows/capabilities.",
+          "Save a reviewed two-factor DOE connection to GAFF2 native bulk jobs. Does not start calculations. Packing density is a preparation parameter. Templates, bindings and metrics follow /api/research/workflows/capabilities. "
+          "Responses: final_frame_density and probe_accessible_fraction from the free-volume analysis of the final frame; npt_density, bulk_modulus and volume_expansion from the job's NPT sampling, recorded with RadonPy's convergence verdict.",
           _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": ["temperature_kelvin", "build_density"]}},
-                   "metric": {"type": "string", "enum": ["final_frame_density", "probe_accessible_fraction"]},
+                   "metric": {"type": "string", "enum": WORKFLOW_METRICS},
+                   "responses": {"type": "array", "maxItems": 5, "items": {"type": "string", "enum": WORKFLOW_METRICS},
+                                 "description": "extra responses collected per row with the primary metric"},
                    "budget": {"type": "integer", "minimum": 1, "maximum": 50}, "probe": {"type": "number", "minimum": 0, "maximum": 5},
                    "spacing": {"type": "number", "minimum": 0.05, "maximum": 1}}, ["design_id", "template", "bindings"]), self.create_research_workflow)
         t("control_research_workflow", "Advance one reviewed research stage",
-          "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize reviewed observations with explicit exclusion reasons, confirm one recommendation, or cancel. Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
-          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "confirm", "analyze-confirmation", "cancel"]},
-                   "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+          "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize one collected response (optional response) "
+          "or several with Derringer-Suich desirability goals (optimize-desirability, user-supplied bounds), each with explicit exclusion reasons, confirm one recommendation, or cancel. "
+          "Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
+          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "optimize-desirability", "confirm", "analyze-confirmation", "cancel"]},
+                   "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, optimize-desirability requires goals [{name, model, goal, lower, target, upper}], confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
         t("run_research_workflow_plan", "Run an approved workflow plan",
           "preview: return the worst-case number of new calculations for a plan (rows, max_attempts 1-3 identical retries, max_failed_rows, optimize with model/objective/target, "
           "confirm, report, upload_report) and the rows the fit would exclude. start: run the plan to the end without per-stage approval: submit, retry failed or interrupted runs "
@@ -435,7 +443,7 @@ class PolymerLabTools:
           "worst case. Call start only after the user approved this exact plan and approved_budget in the conversation. stop: end it after the current step; running jobs continue. "
           "Every simulated value stays verified=false and the recommendation stays unconfirmed.",
           _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["preview", "start", "stop"]},
-                   "plan": {"type": "object", "description": "{rows?, max_attempts, max_failed_rows, optimize, model, objective, target?, confirm, report, upload_report}"},
+                   "plan": {"type": "object", "description": "{rows?, max_attempts, max_failed_rows, optimize, model, objective, target?, response? or goals? (desirability), confirm, report, upload_report}"},
                    "approved_budget": {"type": "integer", "minimum": 1, "maximum": 50}}, ["workflow_id", "action"]), self.run_research_workflow_plan)
         t("create_experiment_design", "Create experimental design",
           "Generate and save a randomized full factorial or face-centered central composite design. Returns the run table, a CSV with a blank response column, and download links. "
