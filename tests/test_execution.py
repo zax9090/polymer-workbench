@@ -70,11 +70,18 @@ def test_analysis_threads_leave_a_running_simulation_its_cores(monkeypatch):
     monkeypatch.setattr(os,'cpu_count',lambda:6)
     design={'factors':[{'name':'x','low':-1.,'high':1.},{'name':'y','low':-1.,'high':1.}]}
     manager.compute('doe_design',design)
+    monkeypatch.delenv('POLYMER_MD_THREADS',raising=False)
     with manager.slot('simulation'):
         manager.compute('doe_design',design)
         monkeypatch.setattr(os,'cpu_count',lambda:4)
         manager.compute('doe_design',design)
-    assert threads==['4','2','1']
+        # A user-set MD thread count is what the simulation keeps.
+        monkeypatch.setenv('POLYMER_MD_THREADS','6')
+        monkeypatch.setattr(os,'cpu_count',lambda:12)
+        manager.compute('doe_design',design)
+        monkeypatch.setattr(os,'cpu_count',lambda:8)
+        manager.compute('doe_design',design)
+    assert threads==['4','2','1','4','2']
 
 
 def test_native_worker_crash_releases_and_real_next_compute_succeeds(monkeypatch):

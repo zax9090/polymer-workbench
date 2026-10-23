@@ -131,8 +131,10 @@ class ExecutionManager:
         cores = os.cpu_count() or 1
         with self.condition:
             simulating = any(r["lane"] == "batch" and r["status"] == "running" for r in self.records.values())
-        # A running simulation keeps its threads (jobs.py uses up to 4); analyses still get one core.
-        return str(max(1, min(4, cores - (min(4, cores) if simulating else 0))))
+        # A running simulation keeps its POLYMER_MD_THREADS (default up to 4); analyses still get one core.
+        configured = os.environ.get("POLYMER_MD_THREADS", "")
+        reserved = (int(configured) if configured.isdigit() else min(4, cores)) if simulating else 0
+        return str(max(1, min(4, cores - reserved)))
 
     def close(self):
         with self.condition:
