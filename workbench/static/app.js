@@ -39,6 +39,7 @@ function updateRoute() {
   if (!(bulk && $('#atomistic-forcefield').value === 'gaff2')) $('#charge-method').value = 'gasteiger';
   $('#crosslink-fields').classList.toggle('hidden', !crosslink);
   $('#tg-fields').classList.toggle('hidden', !scan);
+  $('#job-form [name="temperature_kelvin"]').closest('.field').classList.toggle('hidden', scan);
   $('#tg-source').textContent = state.handoff?.kind === 'tg' ? `원본 셀: ${state.handoff.name} (${state.handoff.id.slice(0,8)})` : '완료된 벌크 셀·가교 작업을 열고 "이 셀로 Tg 냉각 스캔"을 누르세요.';
   $('#protocol-scale-field').classList.toggle('hidden', !(bulk || crosslink));
   $('#bulk-help').classList.toggle('hidden', !bulk);
