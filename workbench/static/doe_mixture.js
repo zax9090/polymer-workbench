@@ -78,12 +78,12 @@
       if (feasible) { low = Math.min(low, y); high = Math.max(high, y); }
       cells.push({ z, y, feasible });
     }
-    const span = high - low || 1, color = y => { const t = (y - low) / span; return `hsl(${230 - 180 * t} 70% ${32 + 28 * t}%)`; };
-    const dots = cells.map(cell => { const [px, py] = at(cell.z); return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6.4" style="fill:${cell.feasible ? color(cell.y) : '#2a3439'};stroke:none"><title>${names.map((n, k) => `${n} ${formatNumber(lower[k] + scale * cell.z[k])}`).join(' · ')} → ${formatNumber(cell.y)}</title></circle>`; }).join('');
-    const best = result.recommendation?.pseudo, mark = best ? (() => { const [px, py] = at(names.map(n => best[n])); return `<circle cx="${px}" cy="${py}" r="9" style="fill:none;stroke:#fff;stroke-width:2.5"><title>추천 배합</title></circle>`; })() : '';
+    const span = high - low || 1, ramp = window.doeColorScale;
+    const dots = cells.map(cell => { const [px, py] = at(cell.z); return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" style="fill:${cell.feasible ? ramp.color((cell.y - low) / span) : '#1b2a31'};stroke:none;opacity:1"><title>${names.map((n, k) => `${n} ${formatNumber(lower[k] + scale * cell.z[k])}`).join(' · ')} → ${formatNumber(cell.y)}</title></circle>`; }).join('');
+    const best = result.recommendation?.pseudo, mark = best ? (() => { const [px, py] = at(names.map(n => best[n])); return ramp.marker(px, py, '추천 배합'); })() : '';
     const label = (i, dx, dy) => `<text x="${corner[i][0] + dx}" y="${corner[i][1] + dy}" text-anchor="middle">${escape(names[i])}</text>`;
-    return `<section class="doe-assessment-section"><h3>적합 모델의 삼각 색 지도 <small>${fmt(low)} (파랑) ~ ${fmt(high)} (노랑) · 흰 원 = 추천 · 회색 = 범위 밖</small></h3>
-      <svg class="curve-chart doe-chart" viewBox="0 0 560 440" role="img" aria-label="3성분 혼합물 반응 예측 삼각 색 지도">${dots}${mark}${label(0, 0, -6)}${label(1, -10, 24)}${label(2, 10, 24)}</svg>
+    return `<section class="doe-assessment-section"><h3>적합 모델의 삼각 색 지도 <small>밝을수록 큰 예측값 · 고리 = 추천 · 바탕색 = 범위 밖</small></h3>
+      <svg class="curve-chart doe-chart" viewBox="0 0 620 440" style="aspect-ratio:620/440;max-width:640px" role="img" aria-label="3성분 혼합물 반응 예측 삼각 색 지도">${dots}${mark}${label(0, 0, -6)}${label(1, -10, 24)}${label(2, 10, 24)}${ramp.legend('doe-ternary-ramp', 540, 24, 404, low, high)}</svg>
       <p class="research-footnote">꼭짓점은 각 성분의 유사성분 1(하한 반영)입니다. 예측값이며 관측값이 아닙니다.</p></section>`;
   }
   function analysisHTML(result) {
