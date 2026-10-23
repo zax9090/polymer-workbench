@@ -4,6 +4,7 @@
 //! - trajectory: radial distribution function pair counts and mean-squared displacement
 //! - volume:     occupied, probe-accessible and probe-occupiable volume on a grid
 //! - widom:      Widom test-particle insertion of a Lennard-Jones probe
+//! - topology:   molecular connectivity indices (Randić; Kier & Hall) and repeat-unit backbones
 //!
 //! Every random sample draws from its own generator seeded by (seed, sample index), so results do
 //! not depend on the number of threads.
@@ -17,6 +18,7 @@ pub mod widom;
 pub mod doe;
 pub mod execution;
 pub mod statistics;
+pub mod topology;
 
 #[cfg(feature = "python")]
 mod python;

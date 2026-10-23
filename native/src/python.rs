@@ -1,7 +1,7 @@
 //! PyO3 bindings: module workbench_native.
 
 use crate::contacts::{self, closest_scaled_contact, pair_energy, Molecule, COULOMB};
-use crate::{doe, trajectory, volume, widom};
+use crate::{doe, topology, trajectory, volume, widom};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::types::{PyDict, PyList};
 use pyo3::exceptions::PyValueError;
@@ -356,6 +356,26 @@ fn doe_optimize<'py>(py: Python<'py>, coefficients: PyReadonlyArray1<'py, f64>, 
     Ok(out)
 }
 
+/// connectivity_indices(atomic_numbers, hydrogens, bonds) -> dict(chi0, chi1, chi0v, chi1v, delta, delta_v)
+#[pyfunction]
+fn connectivity_indices<'py>(py: Python<'py>, atomic_numbers: Vec<u32>, hydrogens: Vec<u32>, bonds: Vec<(usize, usize)>) -> PyResult<Bound<'py, PyDict>> {
+    let result = topology::indices(&atomic_numbers, &hydrogens, &bonds).map_err(PyValueError::new_err)?;
+    let out = PyDict::new(py);
+    out.set_item("chi0", result.chi0)?;
+    out.set_item("chi1", result.chi1)?;
+    out.set_item("chi0v", result.chi0v)?;
+    out.set_item("chi1v", result.chi1v)?;
+    out.set_item("delta", result.delta)?;
+    out.set_item("delta_v", result.delta_v)?;
+    Ok(out)
+}
+
+/// block_atoms(n, bonds, closure) -> list[bool]: atoms of the biconnected component holding bond `closure`.
+#[pyfunction]
+fn block_atoms(n: usize, bonds: Vec<(usize, usize)>, closure: usize) -> PyResult<Vec<bool>> {
+    topology::block_of(n, &bonds, closure).map_err(PyValueError::new_err)
+}
+
 #[pymodule]
 fn workbench_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ExecutionQueue>()?;
@@ -370,6 +390,8 @@ fn workbench_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(doe_fit, m)?)?;
     m.add_function(wrap_pyfunction!(doe_predict, m)?)?;
     m.add_function(wrap_pyfunction!(doe_optimize, m)?)?;
+    m.add_function(wrap_pyfunction!(connectivity_indices, m)?)?;
+    m.add_function(wrap_pyfunction!(block_atoms, m)?)?;
     m.add("R_KCAL", widom::R_KCAL)?;
     m.add("COULOMB", COULOMB)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

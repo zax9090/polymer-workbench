@@ -15,6 +15,7 @@
 | `workbench/pcff.py`, `class2.py`, `crosslink.py` | PCFF 벌크 셀(EMC), msi2lmp 규칙 대조, 실행 전 계수 점검(`coefficient_check.json`), 에폭시–아민 가교(fix bond/react, 계단식 반응 거리·2차 아민 확률) |
 | `workbench/glass_transition.py` | `atomistic_mode: tg_scan`. 완료된 벌크·가교 셀을 단계 냉각 NPT로 다시 돌려 비부피 쌍곡선 Tg(프로파일 구간, 두 직선 비교)와 열팽창을 구함. 냉각 속도를 함께 보고하고 실험값으로 환산하지 않음. 검증 `docs/GLASS_TRANSITION.md` |
 | `workbench/bridges.py` | Martini 3 단백질–고분자 혼합계(martinize2, polyply, GROMACS). pLDDT 구간 탄성망(`-eunit`), 실험적 단백질–고분자 ε 배율(`martini_lambda.itp`) |
+| `workbench/correlations.py`, `native/src/topology.rs` | Synthia 방식(Bicerano) 물성 상관식의 기반. 반복단위를 고리로 닫은 연결성 지수(반복단위당 값)와 주쇄·곁사슬 구분. 상관식 계수는 원 출처를 확인한 뒤 넣음. 검증 `docs/PROPERTY_CORRELATIONS.md` |
 | `workbench/amorphous.py` | 자체 비정질 셀 빌더(배위 편향 성장). `cell_builder: "native"` |
 | `workbench/blends.py` | Blends 방식 χ(T) (Fan 1992), Rust 커널 사용, 실험적 |
 | `workbench/structure_analysis.py` | RDF·MSD·자유 부피·Widom 분석(Rust 커널). 작업 API·MCP·UI 연결, 입력·계산량 검증과 h/2h 격자 비교 |
@@ -28,7 +29,7 @@
 | `workbench/screening.py`, `compatibility.py` | PI1070 대리 모델 예측, Hansen 용해도·블렌드 |
 | `workbench/mcp_server.py`, `mcp_http.py` | MCP 서버(stdio, Streamable HTTP). 도구 목록은 `docs/MCP.md` |
 | `workbench/static/` | 웹 UI(`index.html`, `app.js`, `research.js`, `screening.js`) |
-| `native/` | Rust 크레이트(PyO3, 모듈 `workbench_native`): contacts, trajectory, volume, widom |
+| `native/` | Rust 크레이트(PyO3, 모듈 `workbench_native`): contacts, trajectory, volume, widom, doe, statistics, topology |
 | `scripts/` | 엔진 워커, 데스크톱 빌드, REA 감사, CI GROMACS 설치, Drive 백업 설정 |
 | `tests/` | pytest(약 165개 함수). 실제 엔진을 쓰는 테스트는 엔진이 없으면 이유를 남기고 건너뜀 |
 | `docs/` | 기능별 문서와 검증 기록. 진행 중 작업은 `docs/RUST_KERNELS.md` |
