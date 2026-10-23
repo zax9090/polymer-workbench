@@ -280,6 +280,8 @@ def atomistic(config, output, emit):
     mode = config.get("atomistic_mode", "build")
     if mode == "crosslink":
         return cure_cell(config, output, emit)
+    if mode == "tg_scan":
+        return tg_scan(config, output, emit)
     mol, metadata = molecule_artifacts(config, output, emit)
     if mode == "build":
         return outcome(output, "polymer_atomistic", "prepared", "RDKit polymer geometry prepared; molecular dynamics has not been run.", engine="RDKit", metadata=metadata, warnings=metadata["warnings"])
@@ -311,7 +313,7 @@ def atomistic(config, output, emit):
 
 
 def class2_lammps(lmp, directory, script):
-    """Run an EMC/class2 LAMMPS input with OpenMP styles; surface the last LAMMPS ERROR line."""
+    """Run a LAMMPS input (EMC/class2 cell or a reused RadonPy cell) with OpenMP styles; surface the last LAMMPS ERROR line."""
     threads = int(os.environ.get("POLYMER_MD_THREADS") or min(4, os.cpu_count() or 1))
     argv = [lmp, "-in", script, "-log", "equilibration.log", "-sf", "omp", "-pk", "omp", str(threads)]
     try:
@@ -344,7 +346,8 @@ def cure_cell(config, output, emit):
     conversion = complete["conversion"]
     gel = (complete["gel_point_ideal"] or {}).get("epoxide_conversion")
     warnings = ["Only epoxide ring opening by primary and secondary amines is modelled; etherification and homopolymerization are not.",
-                "Reactions happen whenever reactive atoms come within the cutoff (probability 1); this is a structural model, not cure kinetics.",
+                "Reactions happen whenever reactive atoms come within the cutoff (secondary amines with the configured assumed probability); "
+                "this is a structural model, not cure kinetics.",
                 "PCFF with bond-increment charges is not validated for this resin/hardener pair here.",
                 "Small cells give few independent network paths; density and moduli of such networks scatter strongly between seeds."]
     if not conversion["target_reached"]:
@@ -363,6 +366,28 @@ def cure_cell(config, output, emit):
                    metrics={"summary": {k: v for k, v in summary.items() if v is not None}, "properties": complete["properties"],
                             "conversion_series": conversion["series"], "equilibrated": False},
                    warnings=warnings)
+
+
+def tg_scan(config, output, emit):
+    """Stepwise NPT cooling of a completed bulk or crosslinked cell; Tg from a hyperbola fit."""
+    from workbench import glass_transition
+    lmp = executable("lmp", "LAMMPS_EXEC")
+    if not lmp:
+        return blocked(output, "polymer_atomistic", ["LAMMPS executable / LAMMPS_EXEC"], "The Tg scan reruns the source cell in LAMMPS.")
+    complete = glass_transition.scan(config, output, emit, lambda directory, script: class2_lammps(lmp, directory, script))
+    low, high = complete["tg_interval_95_kelvin"]
+    summary = {"tg_kelvin": complete["tg_kelvin"], "tg_interval_low_kelvin": low, "tg_interval_high_kelvin": high,
+               "tg_bilinear_kelvin": complete["bilinear"]["tg_kelvin"], "cooling_rate_k_per_ns": complete["cooling_rate_k_per_ns"],
+               "expansion_glass_per_kelvin": complete["expansion_glass_per_kelvin"], "expansion_melt_per_kelvin": complete["expansion_melt_per_kelvin"],
+               "transition_resolved": complete["transition_resolved"], "temperatures": len(complete["stages"])}
+    message = (f"Stepwise NPT cooling scan of job {config['source_job_id'][:8]}: hyperbola Tg {complete['tg_kelvin']:.0f} K "
+               f"(profile 95% {low:.0f}-{high:.0f} K) at {complete['cooling_rate_k_per_ns']:.3g} K/ns.")
+    if not complete["transition_resolved"]:
+        message += " The transition is not resolved; see warnings."
+    return outcome(output, "polymer_atomistic", "completed", message, engine="LAMMPS",
+                   metadata={"source": complete["source"], "protocol": complete["protocol"], "method": complete["method"]},
+                   metrics={"summary": summary, "stages": complete["stages"], "hyperbola_params": complete["hyperbola"]["params"], "equilibrated": False},
+                   warnings=complete["warnings"])
 
 
 def pcff_bulk_cell(config, output, emit):

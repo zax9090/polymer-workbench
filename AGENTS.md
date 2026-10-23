@@ -10,9 +10,11 @@
 
 | 위치 | 내용 |
 |---|---|
-| `workbench/server.py`, `jobs.py`, `models.py` | FastAPI 로컬 서버(127.0.0.1 전용), 작업 관리자, JobConfig 검증 |
+| `workbench/server.py`, `jobs.py`, `models.py`, `preflight.py` | FastAPI 로컬 서버(127.0.0.1 전용), 작업 관리자, JobConfig 검증, 제출 전 화학·크기·엔진 검사(`POST /api/jobs/preflight`, MCP `validate_job`) |
 | `workbench/science.py`, `external.py`, `engines.py` | 계산 경로(route) 실행. 외부 엔진(LAMMPS, RadonPy, GROMACS, EMC, xtb 등) 호출 |
-| `workbench/pcff.py`, `class2.py`, `crosslink.py` | PCFF 벌크 셀(EMC), msi2lmp 규칙 대조, 에폭시–아민 가교(fix bond/react) |
+| `workbench/pcff.py`, `class2.py`, `crosslink.py` | PCFF 벌크 셀(EMC), msi2lmp 규칙 대조, 실행 전 계수 점검(`coefficient_check.json`), 에폭시–아민 가교(fix bond/react, 계단식 반응 거리·2차 아민 확률) |
+| `workbench/glass_transition.py` | `atomistic_mode: tg_scan`. 완료된 벌크·가교 셀을 단계 냉각 NPT로 다시 돌려 비부피 쌍곡선 Tg(프로파일 구간, 두 직선 비교)와 열팽창을 구함. 냉각 속도를 함께 보고하고 실험값으로 환산하지 않음. 검증 `docs/GLASS_TRANSITION.md` |
+| `workbench/bridges.py` | Martini 3 단백질–고분자 혼합계(martinize2, polyply, GROMACS). pLDDT 구간 탄성망(`-eunit`), 실험적 단백질–고분자 ε 배율(`martini_lambda.itp`) |
 | `workbench/amorphous.py` | 자체 비정질 셀 빌더(배위 편향 성장). `cell_builder: "native"` |
 | `workbench/blends.py` | Blends 방식 χ(T) (Fan 1992), Rust 커널 사용, 실험적 |
 | `workbench/structure_analysis.py` | RDF·MSD·자유 부피·Widom 분석(Rust 커널). 작업 API·MCP·UI 연결, 입력·계산량 검증과 h/2h 격자 비교 |

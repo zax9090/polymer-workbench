@@ -74,6 +74,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `list_jobs` · `get_job` · `wait_for_job` | 작업 목록, 상태·단계·결과 요약, 완료 대기(최대 600초, 연구 DB 색인까지 확인) |
 | `read_artifact` | JSON·로그·PDB/GRO·토폴로지·CSV·XVG 등 텍스트 결과 파일 읽기(바이너리 궤적 제외) |
 | `analyze_job_structure` | 완료된 벌크·가교 작업의 RDF·MSD·자유 부피·Widom 분석. 원본 작업을 유지하고 별도 불변 결과 저장·다운로드 링크 반환 |
+| `validate_job` | 제출 전 검사(작업을 만들지 않음): JobConfig 검증, 반복단위 연결점 `*` 2개 규칙, 단량체 SMILES(예: `C=Cc1ccccc1`)의 반복단위 후보, 가교 수지·경화제 검사, 경로별 원자 수 제한(벌크 200개 이상), 필요한 엔진 |
 | `submit_job` · `cancel_job` · `rerun_job` | 검증된 JobConfig로 계산 실행, 중단, 같은 설정으로 다시 실행 |
 | `diagnose_job` · `retry_job_with_fix` | 로그 규칙 진단과 제안된 설정 수정 재실행 |
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
@@ -90,7 +91,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 
-각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다.
+각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다. `analyze_job_structure`와 `analyze_process_data`는 기본으로 요약(`detail: "summary"`)을 돌려줍니다. 20개를 넘는 숫자 배열은 개수·최솟값·최댓값으로, 긴 기록 목록은 처음 몇 개로 줄입니다. 관리도는 3σ 밖 점을 먼저 최대 20개까지 남깁니다. 전체 배열은 `detail: "full"`이나 저장된 결과의 다운로드 링크로 받습니다.
+
+`submit_job`은 작업자 안에서만 실패하던 화학 오류(연결점 수, 수지 에폭시 수, 원자 수 부족)를 작업을 만들기 전에 HTTP 422로 거절합니다. 같은 검사는 `POST /api/jobs/preflight`와 `validate_job`으로 미리 할 수 있습니다.
 
 ### 완료된 셀의 구조·궤적 분석
 
@@ -122,8 +125,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 - **세션 파일:** 데스크톱 세션의 주소·접속 토큰을 소유자만 읽을 수 있는(0600) `.server.json`에 기록하고 종료 시 지웁니다. 같은 사용자 계정의 프로세스는 이 토큰으로 API에 접근할 수 있습니다. 브라우저의 다른 웹사이트는 이 파일을 읽을 수 없습니다.
 - **데이터 폴더 잠금:** 한 작업 폴더에는 서버 하나만 열립니다. 두 번째 서버는 시작하지 않고 오류를 냅니다. 서로의 실행 중 작업을 중단 처리하는 일을 막습니다.
 - **계산 예산:** `control_campaign`의 `start`는 캠페인 예산(최대 50개)까지 계산을 자동 실행합니다. 서버 안내문(instructions)은 예산을 사용자와 먼저 확인하도록 에이전트에게 요구합니다.
+- **Martini 3 혼합계 옵션:** `submit_job`의 혼합계 MD(`bridge_mode: simulate`)에 `elastic_plddt_min`(탄성망을 pLDDT 신뢰 구간 안으로 제한, `elastic_network`·`bfactor_is_plddt` 필요)과 실험적 `protein_polymer_lambda`(단백질–고분자 LJ ε만 배율)를 줄 수 있습니다. 안내문은 λ가 이 계에 맞춘 값이 아니므로 λ = 1 결과와 함께 보고하도록 에이전트에게 알립니다.
 - **pH와 전하:** 단백질 결과의 PROPKA3 분석·PDB2PQR 양성자화 구조와 `packmol_target` `negative_patch`/`positive_patch`, 혼합계 `protein_protonation: propka`는 `submit_job`의 JobConfig(`protein_ph`, `ionic_strength_molar`)로 지정합니다. 안내문은 pKa가 pH ±1 안인 기를 불확실한 상태로 다루고, 패치 배치를 결합 근거로 해석하지 않도록 에이전트에게 알립니다.
-- **PCFF · 가교 · 보정:** `submit_job`의 JobConfig로 `atomistic_forcefield: pcff`(EMC PCFF 벌크 셀), `charge_method: xtb_cm5`(GAFF2 벌크 셀의 xtb CM5 전하), `atomistic_mode: crosslink`(에폭시–아민 bond/react 경화), `protein_repair: pdbfixer`를 지정합니다. 안내문은 PCFF 계수 대조 결과를 함께 보고하고, 가교 결과를 경화 속도론이 아닌 네트워크 구조로, 단축 계산을 탐색용으로 다루도록 에이전트에게 알립니다. `analyze_instrument_curve`의 DSC `analysis: melting`은 용융 온도·엔탈피·결정화도 초안을 돌려줍니다. `ir`·`uvvis`·`turbidity` 종류는 피크와 작용기 후보, 카보닐 지수·밴드 비·에폭시 전환율, λmax·농도·광학 밴드갭, 흐림점을 계산합니다. 안내문은 작용기 후보가 동정이 아니며 농도는 시료 값이라 저장되지 않는다고 에이전트에게 알립니다.
+- **PCFF · 가교 · 보정:** `submit_job`의 JobConfig로 `atomistic_forcefield: pcff`(EMC PCFF 벌크 셀), `charge_method: xtb_cm5`(GAFF2 벌크 셀의 xtb CM5 전하), `atomistic_mode: crosslink`(에폭시–아민 bond/react 경화, `cure_cutoff_schedule: stepwise`와 `secondary_amine_probability`), `atomistic_mode: tg_scan`(완료된 벌크·가교 작업을 `source_job_id`로 받아 단계 냉각 NPT와 쌍곡선 Tg), `protein_repair: pdbfixer`를 지정합니다. 안내문은 PCFF 계수 대조 결과를 함께 보고하고, Tg에는 냉각 속도를 붙이며 DSC 값으로 환산하지 말라고 알리고, 가교 결과를 경화 속도론이 아닌 네트워크 구조로, 단축 계산을 탐색용으로 다루도록 에이전트에게 알립니다. `analyze_instrument_curve`의 DSC `analysis: melting`은 용융 온도·엔탈피·결정화도 초안을 돌려줍니다. `ir`·`uvvis`·`turbidity` 종류는 피크와 작용기 후보, 카보닐 지수·밴드 비·에폭시 전환율, λmax·농도·광학 밴드갭, 흐림점을 계산합니다. 안내문은 작용기 후보가 동정이 아니며 농도는 시료 값이라 저장되지 않는다고 에이전트에게 알립니다.
 - **참조 예측 구분:** 서버 안내문은 `screen_polymer` 값이 공개 MD 데이터 기반 예측이며 측정값이 아님을, HSP 블렌드 χ가 수소결합·이온 상호작용을 표현하지 못함을 에이전트에게 알립니다. 구 피팅 결과는 초안으로만 돌려주고 저장은 `add_measurement`(검토 전)로만 합니다.
 - **해석 범위:** 서버 안내문은 `completed`/`prepared`/`blocked`의 의미, 짧은 계산·CG 모델·접촉 수의 해석 한계를 에이전트에게 알립니다. 도구 결과에는 각 경로의 경고와 단위가 그대로 포함됩니다.
 

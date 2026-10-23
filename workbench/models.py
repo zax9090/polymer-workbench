@@ -17,7 +17,7 @@ class JobConfig(BaseModel):
     engine: Literal["auto", "lammps", "numpy"] = "auto"
     repeat_smiles: str = Field(default="[*]CC[*]", max_length=1000)
     sequence: str = Field(default="", max_length=10000)
-    atomistic_mode: Literal["build", "simulate", "bulk", "crosslink"] = "build"
+    atomistic_mode: Literal["build", "simulate", "bulk", "crosslink", "tg_scan"] = "build"
     atomistic_forcefield: Literal["gaff2", "pcff"] = "gaff2"
     charge_method: Literal["gasteiger", "xtb_cm5"] = "gasteiger"
     cell_builder: Literal["radonpy", "native"] = "radonpy"
@@ -29,8 +29,14 @@ class JobConfig(BaseModel):
     cure_temperature_kelvin: float = Field(default=450, ge=300, le=600)
     target_conversion: float = Field(default=0.85, ge=0.05, le=0.99)
     reaction_cutoff_angstrom: float = Field(default=4.0, ge=3, le=6)
+    cure_cutoff_schedule: Literal["single", "stepwise"] = "single"
+    secondary_amine_probability: float = Field(default=1.0, ge=0.05, le=1)
     cure_steps: int = Field(default=200000, ge=1000, le=5000000)
     protocol_scale: float = Field(default=1.0, ge=0.001, le=1.0)
+    tg_high_kelvin: float = Field(default=500, ge=150, le=800)
+    tg_low_kelvin: float = Field(default=200, ge=50, le=700)
+    tg_step_kelvin: float = Field(default=20, ge=5, le=100)
+    tg_stage_steps: int = Field(default=50000, ge=1000, le=2000000)
     packmol_target: Literal["none", "sap_patch", "negative_patch", "positive_patch"] = "none"
     sap_radius_angstrom: float = Field(default=5.0, ge=3, le=15)
     protein_ph: float = Field(default=7.0, ge=0, le=14)
@@ -60,12 +66,21 @@ class JobConfig(BaseModel):
     salt_molar: float = Field(default=0.15, ge=0, le=1)
     contact_cutoff_nm: float = Field(default=0.6, ge=0.3, le=1.5)
     elastic_network: bool = False
+    elastic_plddt_min: float = Field(default=0, ge=0, le=95)
+    protein_polymer_lambda: float = Field(default=1.0, ge=0.5, le=1.0)
 
     @model_validator(mode="after")
     def bounds(self):
         bulk = self.route == "polymer_atomistic" and self.atomistic_mode == "bulk"
         cure = self.route == "polymer_atomistic" and self.atomistic_mode == "crosslink"
-        if self.route in {"polymer_atomistic", "pysimm"} and not bulk and not cure:
+        scan = self.route == "polymer_atomistic" and self.atomistic_mode == "tg_scan"
+        if scan:
+            if not self.source_job_id:
+                raise ValueError("Tg 스캔에는 완료된 벌크 셀 또는 가교 작업(source_job_id)이 필요합니다.")
+            count = int((self.tg_high_kelvin - self.tg_low_kelvin) / self.tg_step_kelvin + 1e-9) + 1
+            if self.tg_high_kelvin <= self.tg_low_kelvin or not 6 <= count <= 81:
+                raise ValueError("Tg 스캔은 최고 온도가 최저 온도보다 높고, 온도 단계가 6~81개가 되도록 설정하세요.")
+        if self.route in {"polymer_atomistic", "pysimm"} and not bulk and not cure and not scan:
             if "chains" in self.model_fields_set and self.chains != 1:
                 raise ValueError("전원자/RadonPy 및 pysimm 경로는 현재 한 사슬만 지원합니다. 사슬 수를 1로 설정하세요.")
             self.chains = 1
@@ -101,4 +116,8 @@ class JobConfig(BaseModel):
                 raise ValueError("이 데스크톱 혼합계 MD는 약 7만 입자까지 지원합니다. 박스 한 변을 20 nm 이하로 줄이세요.")
             if self.bridge_track == "martini3" and self.polyply_library != "martini3":
                 raise ValueError("Martini 3 브릿지에는 동일 버전의 martini3 라이브러리를 사용하세요.")
+            if self.elastic_plddt_min and not (self.elastic_network and self.bfactor_is_plddt):
+                raise ValueError("pLDDT 기준 탄성 네트워크는 탄성 네트워크를 켜고, 구조의 B-factor가 pLDDT임을 확인해야 사용할 수 있습니다.")
+            if self.protein_polymer_lambda != 1 and self.bridge_mode != "simulate":
+                raise ValueError("단백질–고분자 ε 배율은 혼합계 MD(simulate)에서만 적용됩니다.")
         return self

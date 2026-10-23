@@ -316,3 +316,62 @@ def compare_charges(data_text, frc: FrcField, tolerance=1e-3):
     net = sum(a["charge"] for a in atoms.values())
     return {"atoms": len(atoms), "max_abs_difference": round(worst, 6), "atoms_differing": int(unmatched),
             "missing_increments": dict(missing), "net_charge": round(net, 6)}
+
+
+# Coefficient lines LAMMPS class2 styles need per declared type: (command, cross-term keyword or None, values).
+REQUIRED_TERMS = {"bond": [("bond_coeff", None, 4)],
+                  "angle": [("angle_coeff", None, 4), ("angle_coeff", "bb", 3), ("angle_coeff", "ba", 4)],
+                  "dihedral": [("dihedral_coeff", None, 6), ("dihedral_coeff", "mbt", 4), ("dihedral_coeff", "ebt", 8),
+                               ("dihedral_coeff", "at", 8), ("dihedral_coeff", "aat", 3), ("dihedral_coeff", "bb13", 3)],
+                  "improper": [("improper_coeff", None, 2), ("improper_coeff", "aa", 6)]}
+
+
+def check_coefficients(params_text, data_text):
+    """Every declared type must have finite class2 coefficients before MD runs. Bonds and angles need
+    positive force constants and equilibrium values and LJ sigma must be positive; torsion and
+    out-of-plane terms may legitimately be zero. Zero-filled stretches collapse a chain silently."""
+    declared = {}
+    for line in data_text.splitlines()[:40]:
+        tokens = line.split()
+        if len(tokens) == 3 and tokens[2] == "types" and tokens[0].isdigit():
+            declared[tokens[1]] = int(tokens[0])
+    lines = {}
+    for raw in params_text.splitlines():
+        tokens = raw.split("#", 1)[0].split()
+        if not tokens or tokens[0] not in {"pair_coeff", "bond_coeff", "angle_coeff", "dihedral_coeff", "improper_coeff"}:
+            continue
+        ids = 2 if tokens[0] == "pair_coeff" else 1
+        rest = tokens[1 + ids:]
+        keyword = rest[0] if rest and not _is_number(rest[0]) else None
+        values = [float(t) for t in (rest[1:] if keyword else rest)]
+        lines[(tokens[0], keyword, tuple(tokens[1:1 + ids]))] = values
+    issues = []
+    def problem(term, type_id, message):
+        issues.append({"term": term, "type": type_id, "problem": message})
+    for i in range(1, declared.get("atom", 0) + 1):
+        values = lines.get(("pair_coeff", None, (str(i), str(i))))
+        if values is None:
+            problem("pair", i, "missing pair_coeff")
+        elif len(values) < 2 or not all(map(_finite, values)) or values[0] < 0 or values[1] <= 0:
+            problem("pair", i, f"LJ epsilon must be >= 0 and sigma > 0: {values}")
+    for kind, terms in REQUIRED_TERMS.items():
+        for i in range(1, declared.get(kind, 0) + 1):
+            for command, keyword, count in terms:
+                values = lines.get((command, keyword, (str(i),)))
+                label = kind + (f" {keyword}" if keyword else "")
+                if values is None:
+                    problem(label, i, f"missing {command}{' ' + keyword if keyword else ''}")
+                elif len(values) != count or not all(map(_finite, values)):
+                    problem(label, i, f"expected {count} finite values, found {values}")
+            main = lines.get((terms[0][0], None, (str(i),)))
+            if main and len(main) == terms[0][2] and kind in {"bond", "angle"}:
+                equilibrium, force = main[0], main[1]
+                upper = 180.0 if kind == "angle" else float("inf")
+                if not 0 < equilibrium <= upper or force <= 0:
+                    problem(kind, i, f"equilibrium {equilibrium} and quadratic force constant {force} must be positive")
+    return {"declared_types": declared, "issues": issues, "passed": not issues,
+            "rule": "finite coefficients for every declared type; bond/angle K2 > 0 and r0/theta0 > 0; LJ sigma > 0"}
+
+
+def _finite(value):
+    return value == value and abs(value) != float("inf")

@@ -217,6 +217,19 @@ def extract_job_features(job_dir: Path, job=None) -> dict:
             report["source_files"].append(name)
             report["source_sha256"] = {name: hashlib.sha256((directory / name).read_bytes()).hexdigest()}
             return report
+    if config.get("atomistic_mode") == "tg_scan" and (directory / "tg_complete.json").is_file():
+        complete = _read(directory / "tg_complete.json")
+        method = (f"Hyperbola fit of specific volume over a stepwise NPT cooling scan at {complete['cooling_rate_k_per_ns']:.3g} K/ns "
+                  f"({complete['source']['force_field']}); not rate-converted to DSC")
+        extra = {"cooling_rate_k_per_s": complete["cooling_rate_k_per_s"], "transition_resolved": complete["transition_resolved"]}
+        add("tg_cooling_md", complete["tg_kelvin"], "K", method, interval_95_kelvin=complete["tg_interval_95_kelvin"], **extra)
+        add("expansion_glass_md", complete["expansion_glass_per_kelvin"], "1/K", "Volumetric expansion from the glass-side slope; " + method, **extra)
+        add("expansion_melt_md", complete["expansion_melt_per_kelvin"], "1/K", "Volumetric expansion from the melt-side slope; " + method, **extra)
+        if not complete["transition_resolved"]:
+            report["warnings"].append("The cooling scan did not resolve a glass transition; see tg_complete.json warnings.")
+        report["source_files"].append("tg_complete.json")
+        report["source_sha256"] = {"tg_complete.json": hashlib.sha256((directory / "tg_complete.json").read_bytes()).hexdigest()}
+        return report
     if config.get("route") == "mixture" and (directory / "mixture_analysis.json").is_file():
         _mixture_features(report, _read(directory / "mixture_analysis.json"), add)
         report["source_files"].append("mixture_analysis.json")
