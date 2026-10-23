@@ -16,7 +16,7 @@
 | `workbench/amorphous.py` | 자체 비정질 셀 빌더(배위 편향 성장). `cell_builder: "native"` |
 | `workbench/blends.py` | Blends 방식 χ(T) (Fan 1992), Rust 커널 사용, 실험적 |
 | `workbench/structure_analysis.py` | RDF·MSD·자유 부피·Widom 분석(Rust 커널). 작업 API·MCP·UI 연결, 입력·계산량 검증과 h/2h 격자 비교 |
-| `workbench/execution.py`, `native/src/execution.rs`, `compute_worker.py` | 공통 실행 큐와 별도 계산 프로세스. 새 무거운 계산은 이 경로로 연결 |
+| `workbench/execution.py`, `native/src/execution.rs`, `compute_worker.py` | 실행 큐(MD·분석·통계 세 줄)와 별도 계산 프로세스. 새 계산은 이 경로로 연결하고 `LANES`에서 줄을 정함. HTTP 요청은 `request_wait`로 대기 시간 제한 |
 | `workbench/workflows.py`, `workflow_api.py` | 단계별 DOE→GAFF2 벌크→자유 부피→추천·확인. 입력 일치·예산·중복·출처 검증 |
 | `workbench/doe.py`, `native/src/doe.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색 |
 | `workbench/drive_backup.py`, `manual.py` | 소스·설명서·연구 결과 ZIP과 검증된 Drive 업로드, 단일 설명서 표시 |

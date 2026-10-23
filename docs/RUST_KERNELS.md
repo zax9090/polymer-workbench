@@ -35,7 +35,7 @@ API는 `POST /api/jobs/{job_id}/analysis`입니다. 예를 들어 RDF 요청은 
 {"analysis":"rdf","parameters":{"pairs":["C-C","C-H"],"r_max":5.0,"bins":100,"every":1,"max_frames":100}}
 ```
 
-`analysis`는 `rdf`, `msd`, `free_volume`, `widom` 중 하나입니다. MCP에서는 `analyze_job_structure`에 `job_id`, `analysis`, `parameters`를 전달합니다. 입력 제약은 `/docs`와 MCP 도구 설명에서도 확인할 수 있습니다. 잘못된 입력은 422, 미완료 작업은 409, 커널 미설치는 503, 다른 구조 분석 진행 중에는 429로 응답합니다. 서버 한 개에서는 한 번에 구조 분석 하나를 실행하며 다른 API는 계속 응답합니다.
+`analysis`는 `rdf`, `msd`, `free_volume`, `widom` 중 하나입니다. MCP에서는 `analyze_job_structure`에 `job_id`, `analysis`, `parameters`를 전달합니다. 입력 제약은 `/docs`와 MCP 도구 설명에서도 확인할 수 있습니다. 잘못된 입력은 422, 미완료 작업은 409, 커널 미설치는 503, 다른 구조 분석 진행 중에는 429로 응답합니다. 서버 한 개에서는 한 번에 구조·접촉 분석 하나를 실행하며, MD 작업이 도는 중에도 실행합니다(실행 줄 분리, [사용설명서](MANUAL.md) 참고). 다른 API는 계속 응답합니다.
 
 - **RDF:** 원소 쌍, `all-all`, `heavy-heavy`를 지원합니다. 최대 거리는 가장 짧은 상자 길이의 절반 이하여야 합니다. 자기 쌍은 항상 제외하며, 같은 분자 쌍 제외는 선택입니다.
 - **MSD:** 일정 간격으로 기록된 4개 이상의 궤적 프레임이 필요합니다. 전체 셀 질량 중심 이동 제거가 기본입니다. 양의 피팅 기울기와 로그–로그 지수 0.9~1.1인 경우에만 D 추정값을 표시하며, 이 판정도 평형이나 수렴의 증명은 아닙니다.
