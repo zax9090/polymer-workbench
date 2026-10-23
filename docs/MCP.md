@@ -82,6 +82,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `create_campaign` · `control_campaign` | 유한 후보 캠페인 생성, 한 배치 실행·자동 실행·중지·상태 확인 |
 | `screen_polymer` | 반복단위 최대 20개의 RadonPy PI1070 참조 MD 물성 예측(불확실성·적용 범위·최근접 참조·내 벌크 계산 비교, 선택 시 교차검증) |
 | `rank_solvents` · `fit_hsp_sphere` · `blend_compatibility` | Hansen 용매 순위(RED·χ·두 용매 혼합), 용해 시험으로 구 피팅(저장하지 않는 초안), 고분자 블렌드 χ와 임계 χ |
+| `blend_chi_contacts` | Blends 방식 분자 접촉 χ(T)·배위수·임계점(Rust 커널, 실험적, 엔탈피 χ만) |
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 

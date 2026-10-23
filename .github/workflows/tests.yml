@@ -65,6 +65,14 @@ jobs:
           .venv/bin/python -m pip install --disable-pip-version-check -r requirements.lock.txt
           .venv/bin/python -m pip install --disable-pip-version-check --no-deps -e .
 
+      # Rust kernels (native/): their own unit tests, then the Python extension the Blends tests use.
+      - name: Build Rust kernels
+        run: |
+          cargo --version
+          cargo test --release --locked --no-default-features --manifest-path native/Cargo.toml
+          .venv/bin/python -m pip install --disable-pip-version-check ./native
+          .venv/bin/python -c "import workbench_native; print('workbench_native', workbench_native.__version__)"
+
       # BayBE campaign tests; pins come from the desktop lock, with the CPU-only torch build.
       - name: Install BayBE (CPU torch)
         run: |

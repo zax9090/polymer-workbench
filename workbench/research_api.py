@@ -267,6 +267,19 @@ class BlendRequest(BaseModel):
     reference_volume: float = 100.0
 
 
+class BlendContactRequest(BaseModel):
+    base_smiles: str = Field(min_length=1, max_length=500)
+    screen_smiles: str = Field(min_length=1, max_length=500)
+    temperatures: list[float] | None = Field(default=None, max_length=200)
+    samples: int = Field(default=200000, ge=1000, le=2000000)
+    clusters: int = Field(default=2000, ge=20, le=5000)
+    seed: int = Field(default=1, ge=1, le=2**31 - 1)
+    cap: str = Field(default="hydrogen", pattern="^(hydrogen|methyl)$")
+    contact_scale: float = Field(default=1.0, ge=0.8, le=1.5)
+    n_base: float = Field(default=1.0, ge=1, le=1e6)
+    n_screen: float = Field(default=1.0, ge=1, le=1e6)
+
+
 @router.get("/screening")
 def screening_card():
     from .compatibility import source
@@ -313,6 +326,16 @@ def screening_fit(payload: SphereRequest):
 def screening_blend(payload: BlendRequest):
     from .compatibility import blend_compatibility
     return blend_compatibility(payload.a, payload.b, payload.temperature, payload.reference_volume)
+
+
+@router.post("/screening/blend-contacts")
+def screening_blend_contacts(payload: BlendContactRequest):
+    from .blends import blend_chi
+    try:
+        return blend_chi(payload.base_smiles, payload.screen_smiles, payload.temperatures, payload.samples, payload.clusters,
+                         payload.seed, payload.cap, payload.contact_scale, 1.0, payload.n_base, payload.n_screen)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @router.get("/campaigns")

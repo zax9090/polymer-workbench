@@ -368,6 +368,20 @@ class PolymerLabTools:
                    "b": {"type": "object", "description": "same fields as a"}, "temperature": {"type": "number", "default": 298.15},
                    "reference_volume": {"type": "number", "default": 100.0}}, ["a", "b"]),
           self.blend_compatibility, read_only=True, idempotent=True)
+        t("blend_chi_contacts", "Blends-style chi from pair contacts (experimental)",
+          "Flory-Huggins chi(T) between two molecules (solvents or capped polymer repeat units) by the Blends method of Fan et al. (1992): "
+          "random van der Waals contacts with GAFF2/Gasteiger energies and packed coordination numbers, computed by the Rust kernel. Returns chi(T), "
+          "a fit chi = A + B/T, a bootstrap error, coordination numbers and the Flory-Huggins critical point/spinodal for n_base, n_screen. "
+          "Enthalpic chi only, from rigid single conformers; validation against Hansen chi_H shows rank correlation 0.65 with wrong signs for "
+          "aliphatic solvents of aromatic polymers, so report it as an exploratory estimate.",
+          _schema({"base_smiles": {"type": "string"}, "screen_smiles": {"type": "string"},
+                   "temperatures": {"type": "array", "items": {"type": "number"}, "maxItems": 200},
+                   "samples": {"type": "integer", "default": 200000, "minimum": 1000, "maximum": 2000000},
+                   "clusters": {"type": "integer", "default": 2000, "minimum": 20, "maximum": 5000},
+                   "seed": {"type": "integer", "default": 1}, "cap": {"type": "string", "enum": ["hydrogen", "methyl"]},
+                   "contact_scale": {"type": "number", "default": 1.0}, "n_base": {"type": "number", "default": 1}, "n_screen": {"type": "number", "default": 1}},
+                  ["base_smiles", "screen_smiles"]),
+          self.blend_chi_contacts, read_only=True, idempotent=True)
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
         t("export_research_snapshot", "Export research snapshot", "Write an immutable Parquet snapshot of experiments and measurements (and copy it to the configured sync folder, if any).",
@@ -518,6 +532,9 @@ class PolymerLabTools:
 
     def blend_compatibility(self, args):
         return self.client.request("POST", "/api/research/screening/blend", args, timeout=180)
+
+    def blend_chi_contacts(self, args):
+        return self.client.request("POST", "/api/research/screening/blend-contacts", args, timeout=600)
 
     def rea_evidence(self, args):
         data = self.client.request("GET", "/api/evidence")

@@ -285,7 +285,8 @@ def run_workflow(raw, output_dir, event: Callable | None = None):
             event(record)
     write_json(output / "config.json", config)
     emit("prepare", 0, "Validated workflow configuration")
-    started = time.time()
+    # Monotonic: the wall clock can jump (NTP, WSL resync after sleep) during a run.
+    started = time.monotonic()
     if config["route"] == "mixture":
         from workbench.bridges import run_bridge
         result = run_bridge(config, output, emit)
@@ -327,7 +328,7 @@ def run_workflow(raw, output_dir, event: Callable | None = None):
         result = {"status": "completed", "route": config["route"], "engine": backend,
                   "model": MODEL, "metrics": metrics, "warnings": warnings,
                   "artifacts": [p.name for p in output.iterdir() if p.is_file()]}
-    result["elapsed_seconds"] = round(time.time() - started, 3)
+    result["elapsed_seconds"] = round(time.monotonic() - started, 3)
     write_json(output / "result.json", result)
     try:
         from workbench.descriptors import extract_job_features

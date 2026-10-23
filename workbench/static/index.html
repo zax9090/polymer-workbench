@@ -162,6 +162,15 @@ Acetonitrile,0</textarea></label>
           <div id="blend-result" class="research-result" aria-live="polite"></div>
         </form>
       </section>
+      <section class="panel research-bottom"><div class="panel-title"><h2>분자 접촉 χ (Blends 방식, 실험적)</h2><span class="tiny-label">RUST · FAN 1992</span></div>
+        <form id="contact-chi-form" class="research-body">
+          <div class="field-row"><label class="field"><span>기준 성분 SMILES <small>반복단위는 *를 수소로 막음</small></span><input id="contact-base" class="mono" value="*CC(*)c1ccccc1" required></label><label class="field"><span>상대 성분 SMILES</span><input id="contact-screen" class="mono" value="Cc1ccccc1" required></label></div>
+          <div class="field-row"><label class="field"><span>쌍당 접촉 샘플</span><input id="contact-samples" type="number" min="1000" max="2000000" value="200000"></label><label class="field"><span>배위수 클러스터</span><input id="contact-clusters" type="number" min="20" max="5000" value="2000"></label><label class="field"><span>중합도 기준/상대</span><input id="contact-n" value="1000, 1"></label></div>
+          <p class="field-help">두 분자를 무작위 방향으로 수십만 번 접촉시켜 GAFF2 에너지 분포를 얻고, 주위에 분자를 채워 배위수를 셉니다. χ(T) = ½[Z<sub>bs</sub>E<sub>bs</sub> + Z<sub>sb</sub>E<sub>sb</sub> − Z<sub>bb</sub>E<sub>bb</sub> − Z<sub>ss</sub>E<sub>ss</sub>]/RT. 엔탈피 χ만 계산하며 단단한 단일 구조를 씁니다. 방향족 고분자와 지방족 용매처럼 부호가 틀리는 경우가 있어 탐색용으로만 쓰세요.</p>
+          <button class="secondary-button" type="submit">접촉 χ 계산</button>
+          <div id="contact-chi-result" class="research-result" aria-live="polite"></div>
+        </form>
+      </section>
       <datalist id="solvent-names"></datalist>
     </section>
     <section class="view research-view hidden" id="view-campaigns">
