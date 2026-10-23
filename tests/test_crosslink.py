@@ -81,6 +81,31 @@ def test_lammps_input_uses_custom_charges_and_relaxes_after_cure():
     # thermo_style must drop f_rxns before the fix is removed.
     assert script.index("log cooling.log") < script.index("unfix rxns")
     assert script.index("minimize 1.0e-4 1.0e-6 5000 50000") < script.index("write_data cured.data")
+    assert "variable rmax equal 4.0" in script and script.count("run 5000") == 1 and " prob " not in script
+
+
+@pytest.mark.parametrize("final,stages", [(5.0, [3.5, 4.0, 4.5, 5.0]), (4.2, [3.5, 4.0, 4.2]), (3.0, [3.0]), (3.5, [3.5])])
+def test_stepwise_cutoffs_grow_in_half_angstrom_steps(final, stages):
+    config = {"reaction_cutoff_angstrom": final, "cure_cutoff_schedule": "stepwise"}
+    assert crosslink.cutoff_stages(config) == pytest.approx(stages)
+    assert crosslink.cutoff_stages({**config, "cure_cutoff_schedule": "single"}) == [final]
+    assert sum(crosslink.stage_steps(8001, stages)) == 8001 and max(crosslink.stage_steps(8001, stages)) - min(crosslink.stage_steps(8001, stages)) <= 1
+
+
+def test_stepwise_input_raises_rmax_and_stops_at_target():
+    spec = crosslink.species(DGEBA, EDA)
+    config = {"temperature_kelvin": 300, "cure_temperature_kelvin": 450, "seed": 3, "reaction_cutoff_angstrom": 5.0, "target_conversion": 0.6,
+              "cure_cutoff_schedule": "stepwise", "secondary_amine_probability": 0.35}
+    script = crosslink.lammps_input(spec, {"adduct_a": 4, "adduct_b": 5}, {"resin": 2, "hardener": 1}, config, crosslink.schedule(0.001, 8000))
+    lines = script.splitlines()
+    fix = next(line for line in lines if line.startswith("fix rxns"))
+    # Rmax must be defined before the fix reads it; only the secondary-amine reaction takes the probability.
+    assert lines.index("variable rmax equal 3.5") < lines.index(fix) and fix.count("v_rmax") == 2
+    assert fix.split("react rxn2")[1].endswith("prob 0.35 1010") and " prob " not in fix.split("react rxn2")[0]
+    assert [line for line in lines if line.startswith("variable rmax")][1:] == [f"variable rmax equal {c}" for c in (3.5, 4.0, 4.5, 5.0)]
+    cure = lines[lines.index(fix):lines.index("label cured")]
+    assert cure.count("run 2000") == 4 and cure.count('if "${conversion} >= 0.6" then "jump SELF cured"') == 4
+    assert lines.index("label cured") < lines.index("log cooling.log")
 
 
 @pytest.mark.skipif(not (engines.status("emc")["available"] and shutil.which("perl")), reason="EMC 9.4.4 not installed (EMC_ROOT or the engine cache)")
@@ -96,6 +121,7 @@ def test_epoxy_cure_end_to_end(tmp_path):
                                        "protocol_scale": 0.001, "cure_steps": 6000, "target_conversion": 0.3}).model_dump()
     result = run_workflow(config, tmp_path)
     assert result["status"] == "completed", result
+    assert json.loads((tmp_path / "coefficient_check.json").read_text())["passed"]
     complete = json.loads((tmp_path / "cure_complete.json").read_text())
     conversion = complete["conversion"]
     assert conversion["primary_reactions"] + conversion["secondary_reactions"] > 0

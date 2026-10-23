@@ -31,6 +31,7 @@ AMINE = "[NX3;H2,H1;!$(N[C,S,P]=[O,S,N]);!$(N#*);!$(N=*)]"
 TEMPLATE_RADIUS = 3
 # Reacting atoms move under nve/limit for this many steps before rejoining the thermostat.
 STABILIZE_STEPS = 100
+STEPWISE_START = 3.5
 RELAX_STEPS = 2000
 MAX_ATOMS = 30000
 
@@ -259,11 +260,33 @@ def _map(selected, centre, edges):
     return "\n".join(lines) + "\n"
 
 
+def cutoff_stages(config):
+    """Reaction cutoffs in Angstrom: one stage, or 0.5 A steps from 3.5 A up to the configured cutoff
+    so that nearby pairs react before distant pairs are pulled together."""
+    final = float(config["reaction_cutoff_angstrom"])
+    if config.get("cure_cutoff_schedule", "single") != "stepwise" or final <= STEPWISE_START:
+        return [final]
+    stages = [STEPWISE_START + 0.5 * i for i in range(int((final - STEPWISE_START) / 0.5 + 1e-9) + 1)]
+    return stages if abs(stages[-1] - final) < 1e-9 else stages + [final]
+
+
+def stage_steps(total, stages):
+    base = total // len(stages)
+    return [base + (1 if i < total % len(stages) else 0) for i in range(len(stages))]
+
+
 def lammps_input(spec, molecules, counts, config, steps):
     temperature, cure = float(config.get("temperature_kelvin", 300.0)), float(config["cure_temperature_kelvin"])
     seed = int(config["seed"]) % 900000 + 1000
     epoxides = counts["resin"] * spec["epoxides_per_resin"]
-    cutoff = float(config["reaction_cutoff_angstrom"])
+    stages = cutoff_stages(config)
+    target = float(config["target_conversion"])
+    probability = float(config.get("secondary_amine_probability", 1.0))
+    secondary = f" prob {probability} {seed + 7}" if probability < 1 else ""
+    cure_runs = []
+    for cutoff, n in zip(stages, stage_steps(steps["cure"], stages)):
+        # Later stages start only if the target was not reached; Rmax is read from v_rmax every step.
+        cure_runs += [f"variable rmax equal {cutoff}", f"run {n}", f'if "${{conversion}} >= {target}" then "jump SELF cured"']
     lines = ["# Polymer Lab epoxy-amine cure: EMC PCFF cell, LAMMPS fix bond/react (two concurrent reactions)",
              "units real", "atom_style full", "boundary p p p",
              "variable cutoff index 9.5", "variable charge_cutoff index 9.5",
@@ -276,15 +299,16 @@ def lammps_input(spec, molecules, counts, config, steps):
              "write_data uncured.data", "reset_timestep 0", f"thermo {steps['thermo']}",
              "molecule pre1 rxn1_pre.molecule_template", "molecule post1 rxn1_post.molecule_template",
              "molecule pre2 rxn2_pre.molecule_template", "molecule post2 rxn2_post.molecule_template",
+             f"variable rmax equal {stages[0]}",
              f"fix rxns all bond/react stabilization yes statted_grp 0.03 reset_mol_ids yes "
-             f"react rxn1 all 1 0.0 {cutoff} pre1 post1 rxn1.map stabilize_steps {STABILIZE_STEPS} custom_charges recharge "
-             f"react rxn2 all 1 0.0 {cutoff} pre2 post2 rxn2.map stabilize_steps {STABILIZE_STEPS} custom_charges recharge",
+             f"react rxn1 all 1 0.0 v_rmax pre1 post1 rxn1.map stabilize_steps {STABILIZE_STEPS} custom_charges recharge "
+             f"react rxn2 all 1 0.0 v_rmax pre2 post2 rxn2.map stabilize_steps {STABILIZE_STEPS} custom_charges recharge{secondary}",
              f"fix cure statted_grp_REACT nvt temp {cure} {cure} 100.0",
              f"variable conversion equal (f_rxns[1]+f_rxns[2])/{epoxides}",
              f"thermo_style custom {pcff.THERMO} f_rxns[1] f_rxns[2] v_conversion",
              "log cure.log",
-             f"fix stop all halt {steps['thermo']} v_conversion >= {float(config['target_conversion'])} error continue",
-             f"run {steps['cure']}", "log cooling.log", f"thermo_style custom {pcff.THERMO}",
+             f"fix stop all halt {steps['thermo']} v_conversion >= {target} error continue",
+             *cure_runs, "label cured", "log cooling.log", f"thermo_style custom {pcff.THERMO}",
              "unfix stop", "unfix cure", "unfix rxns",
              # Bonds made in the last steps are still stretched; relax them before any barostat.
              "minimize 1.0e-4 1.0e-6 5000 50000", "fix settle all nve/limit 0.05",
@@ -347,6 +371,7 @@ def cure(config, output, emit, run_lammps):
     from .external import subprocess_environment
     (output / "polymer.esh").write_text(chemistry(spec, resins, hardeners, int(config["seed"])))
     pcff.emc_run(output, emc_root, subprocess_environment("perl"))
+    pcff.coefficients(output)
     topology = read_topology(output / "polymer.data")
     molecules = {"resin": 1, "hardener": resins + 1, "adduct_a": resins + hardeners + 1, "adduct_b": resins + hardeners + 2}
     atoms = len(topology[1]) - sum(1 for a in topology[1].values() if a["molecule"] in (molecules["adduct_a"], molecules["adduct_b"]))
@@ -382,6 +407,11 @@ def cure(config, output, emit, run_lammps):
                 "builder": {**record, "build_density_g_cm3": pcff.BUILD_DENSITY},
                 "cure_temperature_kelvin": float(config["cure_temperature_kelvin"]), "target_conversion": float(config["target_conversion"]),
                 "reaction_cutoff_angstrom": float(config["reaction_cutoff_angstrom"]), "stage_steps": steps, "time_step_fs": 1.0,
+                "cutoff_schedule": {"mode": config.get("cure_cutoff_schedule", "single"), "cutoffs_angstrom": cutoff_stages(config),
+                                    "steps_per_stage": stage_steps(steps["cure"], cutoff_stages(config))},
+                "secondary_amine_probability": {"value": float(config.get("secondary_amine_probability", 1.0)),
+                                                "meaning": "per-step probability that an eligible secondary-amine site reacts, relative to 1 for primary; "
+                                                           "an assumed reactivity contrast, not a rate constant or cure kinetics"},
                 "conversion": {"epoxide": final["epoxide_conversion"], "amine_hydrogen": final["amine_hydrogen_conversion"],
                                "primary_reactions": final["primary"], "secondary_reactions": final["secondary"],
                                "target_reached": final["epoxide_conversion"] >= float(config["target_conversion"]), "series": series[-500:]},

@@ -120,6 +120,40 @@ def test_emc_chemistry_and_protocol_text():
     assert len(atoms) == 100 and chains == 2 and 2 < rg < 10 and lengths.min() > 10
 
 
+PARAMS = """bond_style class2
+pair_coeff 1 1 0.05400 4.01000 # c,c
+pair_coeff 2 2 0.02000 2.99500 # hc,hc
+bond_coeff 1 1.53000 299.67000 -501.77000 679.81000 # c,c
+angle_coeff 1 112.67000 39.51600 -7.44300 -9.55830 # c,c,c
+angle_coeff 1 bb 0.0 1.53 1.53 # c,c,c
+angle_coeff 1 ba 8.016 8.016 1.53 1.53 # c,c,c
+"""
+DATA = "LAMMPS data\n\n2 atom types\n1 bond types\n1 angle types\n"
+
+
+def test_coefficient_check_flags_zero_missing_and_non_finite_terms():
+    assert class2.check_coefficients(PARAMS, DATA)["passed"]
+    broken = {"zero bond": PARAMS.replace("1.53000 299.67000", "1.53000 0.0"),
+              "sigma": PARAMS.replace("0.02000 2.99500", "0.02000 0.0"),
+              "missing ba": "\n".join(line for line in PARAMS.splitlines() if " ba " not in line),
+              "nan": PARAMS.replace("-7.44300", "nan")}
+    assert all(text != PARAMS for text in broken.values())
+    for name, text in broken.items():
+        report = class2.check_coefficients(text, DATA)
+        assert not report["passed"], name
+    missing = class2.check_coefficients(PARAMS, DATA.replace("1 angle types", "2 angle types"))
+    assert {issue["term"] for issue in missing["issues"]} == {"angle", "angle bb", "angle ba"}
+
+
+@pytest.mark.skipif(not (engines.status("emc")["available"] and shutil.which("perl")), reason="EMC 9.4.4 not installed (EMC_ROOT or the engine cache)")
+def test_emc_parameter_gaps_name_the_missing_terms(tmp_path):
+    from workbench import pcff
+    from workbench.external import subprocess_environment
+    root, _ = engines.ensure("emc")
+    with pytest.raises(ValueError, match=r"increment pair \{osi, si\} not found.*gaff2"):
+        pcff.build({"repeat_smiles": "[*]O[Si](C)(C)[*]", "monomers": 6, "chains": 2, "seed": 1}, tmp_path, root, subprocess_environment("perl"))
+
+
 def _emc_available():
     return engines.status("emc")["available"] and shutil.which("perl")
 
@@ -137,6 +171,7 @@ def test_pcff_bulk_cell_end_to_end(tmp_path):
                                        "repeat_smiles": "[*]CC([*])c1ccccc1", "monomers": 10, "chains": 4, "protocol_scale": 0.001}).model_dump()
     result = run_workflow(config, tmp_path)
     assert result["status"] == "completed", result
+    assert json.loads((tmp_path / "coefficient_check.json").read_text())["passed"]
     complete = json.loads((tmp_path / "bulk_complete.json").read_text())
     assert complete["atoms"] == 648 and complete["chains"] == 4 and complete["builder"]["version"] == "9.4.4"
     parity = complete["parity"]

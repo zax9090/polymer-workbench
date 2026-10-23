@@ -29,6 +29,8 @@ class JobConfig(BaseModel):
     cure_temperature_kelvin: float = Field(default=450, ge=300, le=600)
     target_conversion: float = Field(default=0.85, ge=0.05, le=0.99)
     reaction_cutoff_angstrom: float = Field(default=4.0, ge=3, le=6)
+    cure_cutoff_schedule: Literal["single", "stepwise"] = "single"
+    secondary_amine_probability: float = Field(default=1.0, ge=0.05, le=1)
     cure_steps: int = Field(default=200000, ge=1000, le=5000000)
     protocol_scale: float = Field(default=1.0, ge=0.001, le=1.0)
     packmol_target: Literal["none", "sap_patch", "negative_patch", "positive_patch"] = "none"

@@ -186,7 +186,13 @@ def _run(argv, output, logname, env, timeout, what):
         result = subprocess.run([str(a) for a in argv], cwd=output, stdin=subprocess.DEVNULL, stdout=log,
                                 stderr=subprocess.STDOUT, text=True, env=env, timeout=timeout)
     if result.returncode:
-        lines = [l.strip() for l in (output / logname).read_text(errors="replace").splitlines() if re.match(r"^\s*(ERROR|Error)", l)]
+        log_text = (output / logname).read_text(errors="replace")
+        if "Missing force field parameters" in log_text:
+            # EMC names each gap in a warning before aborting; a different force field is the user's choice.
+            gaps = sorted({m.strip() for m in re.findall(r"Warning: (.+? not found)\.", log_text)})
+            raise ValueError("PCFF (pcff.frc via EMC) has no parameters for this chemistry: " + ("; ".join(gaps) or "see " + logname)
+                             + ". Use atomistic_forcefield gaff2 for this repeat unit; Polymer Lab does not mix force fields.")
+        lines = [l.strip() for l in log_text.splitlines() if re.match(r"^\s*(ERROR|Error)", l)]
         raise RuntimeError(f"{what} failed (exit {result.returncode}): {lines[-1] if lines else 'see ' + logname}")
 
 
@@ -216,6 +222,17 @@ def emc_run(output, emc_root, environment):
     for name in ("polymer.data", "polymer.params"):
         if not (output / name).is_file():
             raise RuntimeError(f"EMC did not write {name}; inspect emc_build.log")
+
+
+def coefficients(output):
+    """Refuse to run MD on a cell whose class2 coefficients are missing or zero-filled."""
+    report = class2.check_coefficients((output / "polymer.params").read_text(), (output / "polymer.data").read_text())
+    (output / "coefficient_check.json").write_text(json.dumps(report, indent=2))
+    if not report["passed"]:
+        first = report["issues"][0]
+        raise ValueError(f"{len(report['issues'])} class2 coefficient problems before MD (first: {first['term']} type {first['type']}: "
+                         f"{first['problem']}); see coefficient_check.json. Use atomistic_forcefield gaff2 for this chemistry.")
+    return report
 
 
 def atoms_in(data_path):
@@ -262,6 +279,7 @@ def bulk(config, output, emit, run_lammps):
     if atoms > 30000:
         raise ValueError("This desktop bulk route is limited to 30000 atoms per cell")
     check = parity(output)
+    coefficients(output)
     script, steps = lammps_input(temperature, scale, int(config["seed"]) % 900000 + 1000)
     (output / "in.pcff_bulk").write_text(script)
     emit("simulate", 0.35, f"LAMMPS class2: Larsen 21-step ({steps['eq21']} steps) + NPT sampling ({steps['sampling']} steps)")

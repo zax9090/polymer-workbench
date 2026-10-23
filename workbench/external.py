@@ -344,7 +344,8 @@ def cure_cell(config, output, emit):
     conversion = complete["conversion"]
     gel = (complete["gel_point_ideal"] or {}).get("epoxide_conversion")
     warnings = ["Only epoxide ring opening by primary and secondary amines is modelled; etherification and homopolymerization are not.",
-                "Reactions happen whenever reactive atoms come within the cutoff (probability 1); this is a structural model, not cure kinetics.",
+                "Reactions happen whenever reactive atoms come within the cutoff (secondary amines with the configured assumed probability); "
+                "this is a structural model, not cure kinetics.",
                 "PCFF with bond-increment charges is not validated for this resin/hardener pair here.",
                 "Small cells give few independent network paths; density and moduli of such networks scatter strongly between seeds."]
     if not conversion["target_reached"]:
