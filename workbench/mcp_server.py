@@ -34,6 +34,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
 - create_mixture_design, analyze_mixture_response and optimize_desirability cover mixture experiments (proportions summing to one, Scheffé models in L-pseudocomponents) and multi-response Derringer-Suich desirability. Desirability bounds and importances come from the user; never invent them. Present D with every individual d and the predicted values with intervals, and treat the optimum as a candidate for confirmation runs.
+- create_research_report saves a report folder (summary, figures, tables, xlsx, hashes) from a DoE record, a workflow or the lab master table. It copies saved numbers and verified flags and never reviews anything; recommendations stay unconfirmed candidates and simulation values stay distinct from measurements. Upload to Drive only when the user asks.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
 - Call validate_job before submit_job: it reports chemistry errors, repeat-unit candidates for monomer SMILES, atom counts and missing engines without creating anything. analyze_job_structure and analyze_process_data return summaries (counts and ranges instead of long arrays) unless detail is full; full results stay downloadable.
@@ -534,6 +535,14 @@ class PolymerLabTools:
           self.blend_chi_contacts, read_only=True, idempotent=True)
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
+        t("create_research_report", "Create research report",
+          "Save an immutable report folder for one DoE record (kind doe), one bulk workflow (kind workflow) or the lab master table of experiments and measurements (kind lab): "
+          "summary.md, report.html, SVG/PNG figures, CSV tables plus report.xlsx and a manifest with SHA-256/MD5 per file. Numbers and verified flags are copied from saved records; "
+          "nothing is refitted or reviewed. upload_to_drive copies the folder to the user's configured rclone Google Drive remote and reports success only after every file's size and MD5 match; "
+          "set it only when the user asked for a Drive upload.",
+          _schema({"kind": {"type": "string", "enum": ["doe", "workflow", "lab"]},
+                   "id": {"type": "string", "pattern": "[0-9a-f]{32}", "description": "DoE record or workflow ID; omit for lab"},
+                   "upload_to_drive": {"type": "boolean"}}, ["kind"]), self.create_research_report)
         t("export_research_snapshot", "Export research snapshot", "Write an immutable Parquet snapshot of experiments and measurements (and copy it to the configured sync folder, if any).",
           _schema({}), self.export_research_snapshot)
 
@@ -730,6 +739,18 @@ class PolymerLabTools:
         return {"rea": {key: (data.get("rea") or {}).get(key) for key in ("version", "status", "limitations")},
                 "repositories": [summary(r) for r in data.get("repositories", [])],
                 "extensions": [summary(r) for r in (data.get("extensions") or {}).get("repositories", [])]}
+
+    def create_research_report(self, args):
+        record = self.client.request("POST", "/api/research/reports", {"kind": args["kind"], "id": args.get("id")}, timeout=300)
+        if args.get("upload_to_drive"):
+            record = self.client.request("POST", f"/api/research/reports/{record['id']}/drive", {}, timeout=900)
+        paths = [f["path"] for f in record["files"]]
+        return {"id": record["id"], "title": record["title"], "kind": record["kind"], "subject_id": record["subject_id"], "status": record["status"],
+                "drive": record.get("drive"), "files": len(paths) + 1,
+                "figures": sorted({p.split("/")[1].rsplit(".", 1)[0] for p in paths if p.startswith("figures/")}),
+                "tables": sorted(p.split("/")[1] for p in paths if p.startswith("tables/")),
+                "view_url": self.client.origin + record["view_url"], "download_url": self.client.origin + record["download_url"],
+                "warnings": record["warnings"]}
 
     def export_research_snapshot(self, args):
         return self.client.request("POST", "/api/research/snapshots", {}, timeout=300)

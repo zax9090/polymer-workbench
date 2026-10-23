@@ -24,6 +24,7 @@
 | `workbench/doe.py`, `native/src/doe.rs`, `native/src/mixture.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, 혼합물 설계(심플렉스 격자·중심, 꼭짓점)와 Scheffé 모델(L-유사성분), QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색, Derringer–Suich 다중 반응 만족도. 검증 `docs/DOE_MIXTURE.md` |
 | `workbench/process.py`, `evaluation.py` | 공정 데이터 분석: 데이터 사전, I-MR·X̄-S 관리도와 신호 규칙, Cp·Cpk·Pp·Ppk, 균형 내포 분산 성분, 층별 불량률(Mantel–Haenszel). 모델 평가: 판정 기준별 놓침·오탐·비용, 가상계측 경계 오차, 무작위·로트·시간 분할 비교. 검증 기록 `docs/PROCESS.md` |
 | `workbench/drive_backup.py`, `manual.py` | 소스·설명서·연구 결과 ZIP과 검증된 Drive 업로드, 단일 설명서 표시 |
+| `workbench/reports.py`, `static/reports.js` | DoE 기록·연구 흐름·마스터 표의 불변 보고서(요약·SVG/PNG 그림·CSV·자체 xlsx·해시)와 파일별 MD5를 확인하는 Drive 폴더 업로드. 숫자와 검토 표시는 옮기기만 함. 검증 `docs/REPORTS.md` |
 | `workbench/spectra.py`, `ingestion.py` | IR·UV-vis·탁도, DSC·TGA·GPC·인장 곡선 분석 |
 | `workbench/research_store.py`, `research_api.py`, `learning.py`, `campaigns.py` | DuckDB 연구 데이터, 검토 단계, GP 모델, BayBE 캠페인 |
 | `workbench/screening.py`, `compatibility.py` | PI1070 대리 모델 예측, Hansen 용해도·블렌드 |

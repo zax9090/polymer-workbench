@@ -366,6 +366,8 @@ def create_app(data_root=None):
     app.include_router(research_router)
     from .drive_backup import router as drive_router
     app.include_router(drive_router)
+    from .reports import router as report_router
+    app.include_router(report_router)
     from .workflow_api import router as workflow_router
     app.include_router(workflow_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")

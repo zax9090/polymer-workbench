@@ -33,7 +33,7 @@
     return rows;
   }
   function downloads(result) {
-    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}</div>`;
+    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}${result.id ? reportButton('doe', result.id) : ''}</div>`;
   }
   function notes(result) {
     return result.warnings?.length ? `<details class="structure-warnings"><summary>계산 주의사항 (${result.warnings.length})</summary><ul>${result.warnings.map(item => `<li>${escape(item)}</li>`).join('')}</ul></details>` : '';

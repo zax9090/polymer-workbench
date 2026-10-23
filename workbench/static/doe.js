@@ -71,7 +71,7 @@
     return `${status.length ? `<div class="research-actions">${status.map(item => `<span class="research-tag amber">${escape(item)}</span>`).join('')}</div>` : ''}<details class="structure-warnings"><summary>계산 주의사항 (${result.warnings.length})</summary><ul>${result.warnings.map(item => `<li>${escape(translations.find(([prefix]) => item.startsWith(prefix))?.[1] || item)}</li>`).join('')}</ul></details>`;
   }
   function downloads(result) {
-    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}</div>`;
+    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}${result.id ? reportButton('doe', result.id) : ''}</div>`;
   }
   function resultHeader(result, isDesign) {
     const parameters = result.parameters || {}, method = isDesign ? result.kind || parameters.kind : result.model || parameters.model;
