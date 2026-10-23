@@ -101,6 +101,9 @@ def main(arguments=None) -> int:
     if args and args[0] == "--mcp":
         from .mcp_server import main as run_mcp
         return run_mcp(args[1:])
+    if args and args[0] == "--mcp-http":
+        from .mcp_http import main as run_mcp_http
+        return run_mcp_http(args[1:])
     if args and args[0] == "--worker":
         from .paths import resource_root
         return _run_script(resource_root() / "scripts" / "engine_worker.py", args[1:])

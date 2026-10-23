@@ -13,6 +13,50 @@ Polymer Lab은 [Model Context Protocol](https://modelcontextprotocol.io) stdio �
 
 소스 체크아웃에서는 `<저장소>/.venv/bin/python -m workbench --mcp`를 명령으로 지정합니다. 설치한 데스크톱 앱의 `--mcp` 모드는 이 버전 이후로 다시 빌드한 배포본에 포함됩니다.
 
+### claude.ai 계정(웹·데스크톱·모바일 앱)에 연결
+
+claude.ai의 **사용자 지정 커넥터**는 인터넷에서 HTTPS로 닿는 원격 MCP 주소가 필요합니다. 그래서 내 컴퓨터의 Polymer Lab을 계정에 붙이려면 HTTP MCP 서버 하나와 터널 하나가 필요합니다.
+
+- **`--mcp-http` 모드**: Polymer Lab의 HTTP MCP 서버입니다(Streamable HTTP, `workbench/mcp_http.py`).
+  - 127.0.0.1에서만 받습니다.
+  - 주소 경로에 긴 비밀 토큰이 들어갑니다.
+  - 도구와 검토 규칙은 stdio 모드와 같습니다.
+- **터널**: 이 주소를 바깥에 HTTPS로 공개합니다.
+
+1. Polymer Lab 데스크톱 앱이나 `./start.sh`를 실행해 둡니다. 계산은 이 컴퓨터에서 돌기 때문에, 커넥터를 쓰는 동안 컴퓨터가 켜져 있어야 합니다.
+2. HTTP MCP 서버를 켭니다.
+   ```sh
+   <저장소>/.venv/bin/python -m workbench --mcp-http          # 소스 체크아웃
+   ~/.local/bin/polymer-lab --mcp-http                         # 이 버전 이후로 다시 빌드한 데스크톱 앱
+   ```
+   - 기본 포트는 8766이고, `--port`로 바꿀 수 있습니다.
+   - 처음 실행하면 비밀 토큰이 `<작업 폴더>/.mcp_http_token`(0600)에 만들어지고, 화면에 `/mcp/<토큰>` 경로가 나옵니다.
+3. 다른 터미널에서 터널을 엽니다. 둘 중 하나를 고르면 됩니다.
+   - **Tailscale Funnel**(주소가 바뀌지 않아 권장)
+     - Tailscale을 설치하고 `sudo tailscale up`으로 로그인합니다.
+     - `sudo tailscale funnel --bg 8766`을 실행합니다.
+     - 주소는 `https://<컴퓨터 이름>.<tailnet>.ts.net`입니다.
+   - **cloudflared 빠른 터널**(계정 불필요)
+     - `cloudflared tunnel --url http://127.0.0.1:8766`을 실행합니다.
+     - 나오는 `https://….trycloudflare.com` 주소는 실행할 때마다 바뀝니다. 바뀌면 커넥터 주소도 다시 넣어야 합니다.
+4. 커넥터 주소를 확인합니다. 터널 주소를 넣고 다시 실행하면 전체 주소가 나옵니다.
+   ```sh
+   .venv/bin/python -m workbench --mcp-http --public-url https://<터널 주소>
+   ```
+5. claude.ai에서 **설정 → 커넥터 → 사용자 지정 커넥터 추가**를 엽니다. 이름에 `Polymer Lab`, 주소에 4단계의 전체 주소를 넣습니다.
+6. 대화 화면의 도구 메뉴에서 Polymer Lab을 켜면 됩니다. 웹에서 추가한 커넥터는 같은 계정의 모바일 앱에서도 쓸 수 있습니다.
+
+**알아 둘 점**
+- **커넥터 주소가 곧 비밀번호입니다.**
+  - 주소를 아는 사람은 이 컴퓨터에서 계산을 실행하고, 작업 결과 파일을 읽고, 검토 전 측정값을 넣을 수 있습니다. 측정값을 검토 완료로 바꾸는 것은 앱의 사람만 할 수 있습니다.
+  - 주소가 새었다고 생각되면 `--new-token`으로 토큰을 바꾸고 커넥터 주소를 다시 넣습니다.
+  - 쓰지 않을 때는 터널을 끕니다(`sudo tailscale funnel --bg off` 또는 cloudflared 종료).
+- **보안 장치**: 브라우저의 다른 웹사이트가 보내는 요청(`Origin`이 claude.ai/claude.com이 아닌 요청)은 거절합니다. 잘못된 경로는 404를 돌려주고, 로그에는 비밀 경로를 남기지 않습니다.
+- **오래 기다리는 도구**: `wait_for_job`은 최대 600초까지 기다리지만, 원격 커넥터 요청이 그보다 먼저 끊길 수 있습니다. 긴 계산은 제출한 뒤 나중에 `get_job`으로 확인하게 하세요.
+- **확인한 범위**:
+  - 공식 MCP Python SDK 2.3.0의 Streamable HTTP 클라이언트로 접속, 도구 목록, 도구 호출, 실제 계산 작업 제출·완료를 확인했습니다.
+  - claude.ai 커넥터 자체로는 아직 연결해 보지 않았습니다.
+
 MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 
 1. `POLYMER_LAB_URL`(+ `POLYMER_LAB_TOKEN`) 환경 변수. 루프백 주소만 허용합니다.
