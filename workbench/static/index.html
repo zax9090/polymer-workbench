@@ -291,6 +291,14 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
             <div id="flow-summary"></div><div id="flow-rows" class="table-scroll"></div>
             <div class="research-actions"><button class="secondary-button" id="flow-preview">선택 행 실행 미리보기</button><button class="secondary-button" id="flow-retry">선택 행 실패 계산 재시도 미리보기</button><button class="secondary-button" id="flow-analyze">선택 행 분석 · 반응값 수집</button><button class="text-button" id="flow-refresh">상태 새로고침 ↻</button><button class="text-button" id="flow-cancel">이 흐름 실행 취소</button></div>
             <div id="flow-submit-preview" class="hidden"></div>
+            <details id="flow-autopilot"><summary>승인한 계획으로 끝까지 실행</summary>
+              <p class="research-footnote">계획을 한 번 승인하면 제출 → 같은 설정으로 재시도 → 분석 → 최적화 → 확인 계산 → 보고서를 묻지 않고 진행합니다. 재시도는 설정을 바꾸지 않으며, 모든 값은 검토 전 시뮬레이션입니다. 모델과 목표는 아래 3단계 설정을 씁니다. 행을 선택하지 않으면 모든 행을 계획에 넣습니다.</p>
+              <div class="field-row"><label class="field"><span>행마다 시도 횟수 · 같은 설정</span><input id="pilot-attempts" type="number" value="2" min="1" max="3"></label><label class="field"><span>허용 실패 행 수 · 넘으면 멈춤</span><input id="pilot-failures" type="number" value="0" min="0" max="50"></label></div>
+              <div class="field-row"><label class="checkbox-field"><input type="checkbox" id="pilot-optimize" checked> 반응표면 최적화</label><label class="checkbox-field"><input type="checkbox" id="pilot-confirm" checked> 추천 조건 확인 계산</label><label class="checkbox-field"><input type="checkbox" id="pilot-report" checked> 보고서 만들기</label><label class="checkbox-field"><input type="checkbox" id="pilot-upload"> 보고서 Drive 업로드</label></div>
+              <button class="secondary-button" type="button" id="pilot-preview">계획 미리보기</button>
+              <div id="pilot-plan" aria-live="polite"></div>
+            </details>
+            <div id="flow-autopilot-status" aria-live="polite"></div>
             <details><summary>완료된 기존 작업 연결</summary><div class="field-row"><label class="field"><span>설계 행 번호</span><input id="flow-attach-row" type="number" min="1" max="50"></label><label class="field"><span>작업 ID · 설정과 시드가 일치해야 함</span><input id="flow-attach-job"></label></div><button class="secondary-button" id="flow-attach">기존 작업 연결</button></details>
             <form id="flow-optimize"><h3>3. 반응값 검토 · 조건 추천</h3>
               <div class="field-row"><label class="field"><span>모델</span><select id="flow-model"><option value="quadratic">2차 반응표면 · 중심 합성 설계</option><option value="interaction">주효과 + 상호작용</option><option value="linear">주효과</option></select></label><label class="field"><span>목표</span><select id="flow-objective"><option value="maximize">최대화</option><option value="minimize">최소화</option><option value="target">목표값 맞추기</option></select></label><label class="field hidden" id="flow-target-field"><span>목표값</span><input id="flow-target" type="number" step="any"></label></div>

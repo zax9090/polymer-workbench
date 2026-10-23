@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import threading
 import uuid
+from contextlib import contextmanager
 
 from fastapi import HTTPException
 
@@ -20,6 +21,19 @@ ID = re.compile(r"[0-9a-f]{32}\Z")
 FIELDS = {"temperature_kelvin": {"label": "온도", "unit": "K", "role": "physical_condition"},
           "build_density": {"label": "초기 패킹 밀도", "unit": "g/cm^3", "role": "preparation_condition"}}
 METRICS = {"final_frame_density": "g/cm^3", "probe_accessible_fraction": "1"}
+
+
+_ACTIVE = threading.local()
+
+
+@contextmanager
+def autopilot_context(identifier):
+    # Stage calls made by the approved-plan runner pass the gate that blocks people and agents meanwhile.
+    _ACTIVE.identifier = identifier
+    try:
+        yield
+    finally:
+        _ACTIVE.identifier = None
 
 
 def digest(value):
@@ -68,11 +82,19 @@ class WorkflowManager:
         self.lock = threading.RLock()
         self.cancel_events = {}
         self.closed = False
+        self.on_cancel = None
         for path in self.root.glob("*/result.json"):
             try:
                 record = self._read(path.parent.name)
+                changed = False
                 if record.get("busy"):
                     record.update(busy=False, state="interrupted", error="서버가 종료됐습니다. 확인 후 해당 단계를 다시 실행하세요.")
+                    changed = True
+                if (record.get("autopilot") or {}).get("state") == "running":
+                    record["autopilot"].update(state="interrupted", stopped_reason="서버가 종료되어 자동 실행이 멈췄습니다. 계획을 다시 승인하면 이어서 진행합니다.")
+                    record["autopilot"].setdefault("events", []).append({"time": now(), "stage": "interrupted", "message": record["autopilot"]["stopped_reason"]})
+                    changed = True
+                if changed:
                     self._save(record)
             except (KeyError, ValueError, OSError):
                 continue
@@ -172,6 +194,8 @@ class WorkflowManager:
     def _available(self, record):
         if self.closed or record["busy"]:
             raise RuntimeError("이 연구 흐름의 단계가 진행 중입니다. 완료하거나 취소한 후 실행하세요.")
+        if (record.get("autopilot") or {}).get("state") == "running" and getattr(_ACTIVE, "identifier", None) != record["id"]:
+            raise RuntimeError("이 연구 흐름은 승인된 계획으로 자동 실행 중입니다. 자동 실행을 멈춘 뒤 직접 진행하세요.")
 
     @staticmethod
     def _rows(record, selected):
@@ -417,6 +441,8 @@ class WorkflowManager:
         return self.get(identifier)
 
     def cancel(self, identifier):
+        if self.on_cancel:
+            self.on_cancel(identifier)
         with self.lock:
             record = self._read(identifier)
             event = self.cancel_events.get(identifier)

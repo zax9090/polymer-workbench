@@ -26,7 +26,23 @@
     const previous = record.confirmations.filter(c=>c.optimization_id===result?.id).at(-1);
     const retry = previous && ['failed','blocked','cancelled','interrupted','missing'].includes(previous.job_status);
     $('#flow-recommendation').innerHTML=result?`<div class="doe-recommendation"><h3>추천 조건 · 확인 계산 필요</h3>${Object.entries(result.recommendation.settings).map(([key,val])=>`<p>${escape(key)}: ${number(val)}</p>`).join('')}<p>예측값 ${number(result.recommendation.predicted_response)} ${escape(record.unit)}</p>${result.recommendation.prediction_interval?`<p>개별 결과의 95% 예측구간: ${result.recommendation.prediction_interval.map(number).join(' ~ ')}</p>`:''}<p class="research-footnote">시뮬레이션 기반 미검증 후보입니다. 초기 패킹 밀도 최적화는 실제 소재 물성 개선을 보장하지 않습니다.</p>${reviewNote}<details><summary>적합·제외 기록</summary><p>R² ${number(result.fit.r_squared)} · RMSE ${number(result.fit.rmse)}</p>${diagnosticNote}<p>${escape(Object.entries(result.exclusions).map(([row,reason])=>`${row}행: ${reason}`).join(' / ')||'제외 없음')}</p></details><button class="secondary-button" id="flow-confirm" ${previous&&!retry?'disabled':''} data-retry="${retry?'true':'false'}">${retry?'실패한 확인 계산 재시도':'추천 조건 확인 · 별도 계산 1개 실행'}</button></div>`:'';
+    pilotStatus(record);
     $('#flow-recommendation').innerHTML+=record.confirmations.map(c=>`<p>확인 계산 · ${escape(labels[c.job_status]||c.job_status||'제출됨')} · <button class="text-button" data-flow-job="${escape(c.job_id)}">작업 열기 ↗</button>${c.job_status==='completed'?` <button class="secondary-button" data-confirm-analysis="${escape(c.job_id)}">확인 결과 분석·비교</button>`:''}${c.observation?`<br>관측값 ${number(c.observation.value)} ${escape(c.observation.unit)} · 예측과 차이 ${number(c.observation.prediction_error)} · 미검증 시뮬레이션`:''}</p>`).join('');
+  }
+  const pilotModels={quadratic:'2차 반응표면',interaction:'주효과 + 상호작용',linear:'주효과'},pilotGoals={maximize:'최대화',minimize:'최소화',target:'목표값 맞추기'};
+  const pilotLabels={running:'자동 실행 중',completed:'계획 완료',stopped:'멈춤',failed:'오류로 멈춤',cancelled:'취소됨',interrupted:'서버 재시작으로 멈춤'};
+  function pilotStatus(record){
+    const pilot=record.autopilot;
+    if(!pilot){$('#flow-autopilot-status').innerHTML='';return;}
+    const spent=record.submitted-(pilot.submitted_at_approval||0);
+    $('#flow-autopilot-status').innerHTML=`<div class="doe-next-step"><h3>${escape(pilotLabels[pilot.state]||pilot.state)} <span class="research-tag ${pilot.state==='completed'?'':'amber'}">계산 ${spent}/${pilot.approved_budget} 사용</span></h3>${pilot.stopped_reason?`<p>${escape(pilot.stopped_reason)}</p>`:''}<ul>${(pilot.events||[]).slice(-8).map(e=>`<li>${escape(timeLabel(e.time))} · ${escape(e.message)}</li>`).join('')}</ul>${pilot.state==='running'?'<button class="secondary-button" type="button" id="pilot-stop">자동 실행 멈추기</button>':''}${pilot.report_id?reportLinks(pilot.report_id):''}<p class="research-footnote">승인 ${escape(timeLabel(pilot.approved_at))} · ${escape(pilot.approved_by||'')} · 계획 해시 ${escape((pilot.plan_sha256||'').slice(0,12))}</p></div>`;
+  }
+  const reportLinks=id=>`<div class="research-actions"><a class="secondary-button" href="${escape(safeURL(`/api/research/reports/${id}/view`))}" target="_blank" rel="noopener">자동 실행 보고서 보기 ↗</a></div>`;
+  function pilotPlan(){
+    const rows=selections();
+    return {...(rows.length?{rows}:{}),max_attempts:Number($('#pilot-attempts').value),max_failed_rows:Number($('#pilot-failures').value),optimize:$('#pilot-optimize').checked,
+      model:$('#flow-model').value,objective:$('#flow-objective').value,target:$('#flow-objective').value==='target'?Number($('#flow-target').value):null,
+      confirm:$('#pilot-confirm').checked,report:$('#pilot-report').checked,upload_report:$('#pilot-upload').checked};
   }
   async function refresh() { if(current) render(await api(`/api/research/workflows/${current.id}`)); }
   async function act(path,body) {
@@ -64,6 +80,15 @@
     area.innerHTML=`<h3>실행 전 확인</h3><p>선택한 행: ${rows.join(', ')} · ${retry?'실패한 작업만 새 ID로 재시도':'이미 제출한 행은 중복 실행하지 않음'}</p><p>최대 ${rows.length}개 계산 · 전체 예산 ${current.budget}, 사용 ${current.submitted}. 작업은 한 번에 1개씩 실행합니다.</p><button class="primary-button" id="flow-submit-confirm">위 설정을 확인하고 계산 실행</button>`;
     $('#flow-submit-confirm').onclick=()=>{area.classList.add('hidden');act('submit',{rows,retry_failed:retry});};
   }
+  $('#pilot-preview').onclick=async()=>{
+    if(!current)return;const plan=pilotPlan();
+    try{
+      const result=await api(`/api/research/workflows/${current.id}/autopilot/preview`,{method:'POST',body:JSON.stringify(plan)});
+      $('#pilot-plan').innerHTML=`<div class="doe-recommendation"><h3>승인할 계획</h3><p>계산할 행 ${result.rows_to_run.length}개(${escape(result.rows_to_run.join(', ')||'없음')}) · 행마다 최대 ${result.plan.max_attempts}회 · 허용 실패 ${result.plan.max_failed_rows}행</p>${result.excluded_by_plan.length?`<p>계획 밖이라 최적화에서 제외할 행: ${escape(result.excluded_by_plan.join(', '))}</p>`:''}<p>${result.plan.optimize?`${escape(pilotModels[result.plan.model])} · ${escape(pilotGoals[result.plan.objective])}${result.plan.confirm?' · 확인 계산 1개':''}`:'최적화 없음'}${result.plan.report?' · 보고서':''}${result.plan.upload_report?' · Drive 업로드':''}</p><p><strong>최대 ${result.worst_case_runs}개 계산</strong> · 남은 예산 ${result.remaining_budget}개</p>${result.missing_engines.length?`<p class="error-message">필요 엔진: ${escape(result.missing_engines.join(', '))}</p>`:''}<button class="primary-button" type="button" id="pilot-approve" data-budget="${result.worst_case_runs}">이 계획과 최대 ${result.worst_case_runs}개 계산을 승인하고 실행</button></div>`;
+      $('#pilot-approve').onclick=()=>{$('#pilot-plan').innerHTML='';act('autopilot',{plan,approved_budget:result.worst_case_runs});};
+    }catch(error){$('#pilot-plan').innerHTML=`<p class="error-message">${escape(error.message)}</p>`;}
+  };
+  document.addEventListener('click',event=>{if(event.target.closest('#pilot-stop')&&current)act('autopilot/stop',{});});
   $('#flow-preview').onclick=()=>preview(false);$('#flow-retry').onclick=()=>preview(true);
   $('#flow-analyze').onclick=()=>{const rows=selections();rows.length?act('analyze',{rows}):message('분석할 완료 행을 선택하세요.',true);};
   $('#flow-refresh').onclick=()=>refresh().catch(e=>message(e.message,true));

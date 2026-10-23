@@ -34,6 +34,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
 - create_mixture_design, analyze_mixture_response and optimize_desirability cover mixture experiments (proportions summing to one, Scheffé models in L-pseudocomponents) and multi-response Derringer-Suich desirability. Desirability bounds and importances come from the user; never invent them. Present D with every individual d and the predicted values with intervals, and treat the optimum as a candidate for confirmation runs.
+- run_research_workflow_plan runs a bulk workflow to its end inside one plan the user approved (rows, identical retries, failure limit, fit, confirmation, report) and a calculation budget at least the previewed worst case. Preview first, show the user the plan and the number, and start only after they approve it. It never changes physical settings, and its values stay unreviewed simulations.
 - create_research_report saves a report folder (summary, figures, tables, xlsx, hashes) from a DoE record, a workflow or the lab master table. It copies saved numbers and verified flags and never reviews anything; recommendations stay unconfirmed candidates and simulation values stay distinct from measurements. Upload to Drive only when the user asks.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
@@ -427,6 +428,15 @@ class PolymerLabTools:
           "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize reviewed observations with explicit exclusion reasons, confirm one recommendation, or cancel. Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
           _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "confirm", "analyze-confirmation", "cancel"]},
                    "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+        t("run_research_workflow_plan", "Run an approved workflow plan",
+          "preview: return the worst-case number of new calculations for a plan (rows, max_attempts 1-3 identical retries, max_failed_rows, optimize with model/objective/target, "
+          "confirm, report, upload_report) and the rows the fit would exclude. start: run the plan to the end without per-stage approval: submit, retry failed or interrupted runs "
+          "with the identical configuration, analyze, fit with stated exclusion reasons, run one confirmation and write a report. approved_budget must be at least the previewed "
+          "worst case. Call start only after the user approved this exact plan and approved_budget in the conversation. stop: end it after the current step; running jobs continue. "
+          "Every simulated value stays verified=false and the recommendation stays unconfirmed.",
+          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["preview", "start", "stop"]},
+                   "plan": {"type": "object", "description": "{rows?, max_attempts, max_failed_rows, optimize, model, objective, target?, confirm, report, upload_report}"},
+                   "approved_budget": {"type": "integer", "minimum": 1, "maximum": 50}}, ["workflow_id", "action"]), self.run_research_workflow_plan)
         t("create_experiment_design", "Create experimental design",
           "Generate and save a randomized full factorial or face-centered central composite design. Returns the run table, a CSV with a blank response column, and download links. "
           "Creates an immutable local DOE record; does not execute physical experiments or approve measurements. Factor bounds must reflect the user's feasible experimental range.",
@@ -673,6 +683,17 @@ class PolymerLabTools:
 
     def control_research_workflow(self, args):
         return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/{args['action']}", args.get("parameters", {}), timeout=3600)
+
+    def run_research_workflow_plan(self, args):
+        base = f"/api/research/workflows/{args['workflow_id']}/autopilot"
+        if args["action"] == "preview":
+            return self.client.request("POST", base + "/preview", args.get("plan", {}))
+        if args["action"] == "stop":
+            return self.client.request("POST", base + "/stop", {})
+        if "approved_budget" not in args:
+            raise ToolError("approved_budget is required to start: preview the plan and ask the user to approve that number of calculations")
+        record = self.client.request("POST", base, {"plan": args.get("plan", {}), "approved_budget": args["approved_budget"]}, timeout=300)
+        return {"workflow_id": record["id"], "autopilot": record["autopilot"], "submitted": record["submitted"], "budget": record["budget"]}
 
     def create_experiment_design(self, args):
         return self.client.request("POST", "/api/research/doe/design", args, timeout=300)

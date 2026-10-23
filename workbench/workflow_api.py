@@ -44,6 +44,22 @@ class Confirm(Strict):
 class ConfirmationAnalysis(Strict):
     job_id: str = Field(pattern=r"^[0-9a-f]{32}$")
 
+class Plan(Strict):
+    rows: list[int] | None = Field(default=None, min_length=1, max_length=50)
+    max_attempts: int = Field(default=2, ge=1, le=3)
+    max_failed_rows: int = Field(default=0, ge=0, le=50)
+    optimize: bool = True
+    model: Literal["linear", "interaction", "quadratic"] = "quadratic"
+    objective: Literal["maximize", "minimize", "target"] = "maximize"
+    target: float | None = None
+    confirm: bool = True
+    report: bool = True
+    upload_report: bool = False
+
+class Approval(Strict):
+    plan: Plan
+    approved_budget: int = Field(ge=1, le=50)
+
 @router.get("/capabilities")
 def capabilities():
     return {"fields": FIELDS, "metrics": METRICS, "max_budget": 50,
@@ -90,6 +106,19 @@ def confirm_workflow(identifier: str, payload: Confirm, request: Request):
 @router.post("/{identifier}/analyze-confirmation")
 def analyze_confirmation(identifier: str, payload: ConfirmationAnalysis, request: Request):
     return request.app.state.workflows.analyze_confirmation(identifier, payload.job_id)
+
+@router.post("/{identifier}/autopilot/preview")
+def preview_autopilot(identifier: str, payload: Plan, request: Request):
+    return request.app.state.autopilot.preview(identifier, payload.model_dump())
+
+@router.post("/{identifier}/autopilot")
+def start_autopilot(identifier: str, payload: Approval, request: Request):
+    from .server import client_label
+    return request.app.state.autopilot.start(identifier, payload.plan.model_dump(), payload.approved_budget, client_label(request) or "local")
+
+@router.post("/{identifier}/autopilot/stop")
+def stop_autopilot(identifier: str, request: Request):
+    return request.app.state.autopilot.stop(identifier)
 
 @router.post("/{identifier}/cancel")
 def cancel_workflow(identifier: str, request: Request):

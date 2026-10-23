@@ -108,7 +108,10 @@ def create_app(data_root=None):
             initialize_research(app, app.state.manager)
             from .workflows import WorkflowManager
             app.state.workflows = WorkflowManager(app.state.research_root, app.state.manager)
+            from .autopilot import Autopilot
+            app.state.autopilot = Autopilot(app.state.workflows, app.state.research_root, app.state.research_store)
             yield
+            app.state.autopilot.close()
             app.state.workflows.close()
             app.state.execution.close()
             app.state.campaigns.close()

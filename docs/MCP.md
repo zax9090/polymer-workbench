@@ -92,6 +92,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `rank_solvents` · `fit_hsp_sphere` · `blend_compatibility` | Hansen 용매 순위(RED·χ·두 용매 혼합), 용해 시험으로 구 피팅(저장하지 않는 초안), 고분자 블렌드 χ와 임계 χ |
 | `blend_chi_contacts` | Blends 방식 분자 접촉 χ(T)·배위수·임계점(Rust 커널, 실험적, 엔탈피 χ만) |
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
+| `run_research_workflow_plan` | 벌크 연구 흐름 계획의 최대 계산 수 미리보기, 사용자가 승인한 계획·예산으로 끝까지 실행(같은 설정 재시도·실패 한도·최적화·확인 계산·보고서), 멈추기 |
 | `create_research_report` | DoE 기록·연구 흐름·연구 데이터 마스터 표의 보고서 폴더(요약·그림·CSV·xlsx·해시) 저장, 요청할 때만 Drive 업로드 후 파일별 MD5 확인 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 
@@ -121,6 +122,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `create_mixture_design` | `POST /api/research/doe/mixture-design` | `components: [{name, low, high}]`(비율 0~1), `kind: simplex_lattice·simplex_centroid·extreme_vertices`, `degree`, `axial`, `centroid`, `replicates`, `seed` |
 | `analyze_mixture_response` | `POST /api/research/doe/mixture-analyze` | `text`, `components`, `response`, `model: scheffe_linear·scheffe_quadratic·scheffe_special_cubic`, `objective`, 선택적 `target`, `prediction_points` |
 | `optimize_desirability` | `POST /api/research/doe/desirability` | `text`, `responses: [{name, model, goal, lower, target, upper, lower_shape, upper_shape, importance}]`, `factors` 또는 `components` 중 하나 |
+| `run_research_workflow_plan` | `POST /api/research/workflows/{id}/autopilot/preview`, `…/autopilot`, `…/autopilot/stop` | `action: preview·start·stop`, `plan: {rows, max_attempts, max_failed_rows, optimize, model, objective, target, confirm, report, upload_report}`, start에는 `approved_budget`(미리보기 최대 계산 수 이상) |
 | `create_research_report` | `POST /api/research/reports`, 선택 시 `POST /api/research/reports/{id}/drive` | `kind: doe·workflow·lab`, `id`(doe·workflow), `upload_to_drive` |
 
 두 도구는 `research/doe/{id}`에 불변 JSON과 설계 또는 측정 CSV를 저장하므로 `readOnlyHint=false`입니다. 결과의 `download_url`은 JSON, `csv_download_url`은 CSV입니다. 기록 목록은 `GET /api/research/doe`, 상세는 `GET /api/research/doe/{id}`로 읽습니다. CSV는 UTF-8 기준 1 MB 이하이며 누락된 행을 자동 제거하지 않습니다. 저장해도 검토 완료 측정값이 되지 않습니다.
