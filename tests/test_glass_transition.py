@@ -179,3 +179,11 @@ def test_scan_runs_a_pcff_cell_end_to_end(tmp_path):
     assert complete["source"]["files_sha256"]["final.data"] == __import__("hashlib").sha256((source / "final.data").read_bytes()).hexdigest()
     features = json.loads((root / ("c" * 32) / "features.json").read_text())
     assert features["values"]["tg_cooling_md"]["unit"] == "K"
+
+
+def test_default_scan_holds_200_ps_per_temperature():
+    from workbench import preflight
+    report = preflight.check({"route": "polymer_atomistic", "atomistic_mode": "tg_scan", "source_job_id": SOURCE})
+    # 50 ps holds left a 1,296-atom PS cell unresolved (docs/GLASS_TRANSITION.md).
+    assert report["config"]["tg_stage_steps"] == 200000 and report["estimate"]["cooling_rate_k_per_ns"] == pytest.approx(100)
+    assert report["estimate"]["simulated_ps"] == pytest.approx(17 * 200)

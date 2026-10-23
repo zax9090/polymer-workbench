@@ -36,7 +36,7 @@ class JobConfig(BaseModel):
     tg_high_kelvin: float = Field(default=500, ge=150, le=800)
     tg_low_kelvin: float = Field(default=200, ge=50, le=700)
     tg_step_kelvin: float = Field(default=20, ge=5, le=100)
-    tg_stage_steps: int = Field(default=50000, ge=1000, le=2000000)
+    tg_stage_steps: int = Field(default=200000, ge=1000, le=2000000)
     packmol_target: Literal["none", "sap_patch", "negative_patch", "positive_patch"] = "none"
     sap_radius_angstrom: float = Field(default=5.0, ge=3, le=15)
     protein_ph: float = Field(default=7.0, ge=0, le=14)
