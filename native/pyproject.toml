@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin==1.15.0"]
+build-backend = "maturin"
+
+[project]
+name = "workbench-native"
+version = "0.1.0"
+description = "Polymer Lab compute kernels in Rust"
+requires-python = ">=3.12"
+dependencies = ["numpy"]
+
+[tool.maturin]
+features = ["python"]
+# Build exactly the dependency versions recorded in Cargo.lock.
+locked = true
+module-name = "workbench_native"

@@ -127,3 +127,20 @@ $('#sphere-form').addEventListener('submit', e => { e.preventDefault(); research
 $$('[data-sphere-add]').forEach(button => button.addEventListener('click', () => { const name = $('#sphere-search').value.trim(); if (!name) return; const area = $('#sphere-tests'); area.value = `${area.value.replace(/\s*$/, '')}\n${name},${button.dataset.sphereAdd}`; $('#sphere-search').value = ''; }));
 $('#blend-form').addEventListener('submit', e => { e.preventDefault(); researchAction($('button[type="submit"]', e.currentTarget), '#blend-result', async () => renderBlend(await screenRequest('/blend', { a: blendSide('a'), b: blendSide('b'), temperature: Number($('#blend-temperature').value), reference_volume: Number($('#blend-vref').value) }))); });
 document.addEventListener('polymer:view', event => { if (event.detail === 'screening') loadSolventNames().catch(error => toast(error.message, true)); });
+
+function renderContactChi(data) {
+  const ref = data.chi_reference, phase = data.phase;
+  const z = Object.entries(data.coordination).map(([pair, v]) => `Z<sub>${pair}</sub> ${screenNumber(v.mean, 3)}`).join(' · ');
+  const tc = phase.critical_temperature_kelvin ? `${phase.kind} 임계 온도 ${screenNumber(phase.critical_temperature_kelvin, 4)} K` : escape(phase.kind || '');
+  $('#contact-chi-result').innerHTML = `<div class="research-value">${screenNumber(ref.chi, 3)}<small>χ<sub>H</sub> at ${ref.temperature_kelvin} K ± ${screenNumber(ref.bootstrap_std, 2)} (부트스트랩)</small></div>
+    <p>χ = ${screenNumber(data.fit.A, 3)} ${data.fit.B_kelvin < 0 ? '−' : '+'} ${screenNumber(Math.abs(data.fit.B_kelvin), 4)}/T · 임계 χ<sub>c</sub> ${screenNumber(phase.critical_chi, 3)} · ${tc} · 계산 ${escape(data.kernel.engine)}</p>
+    <p>${z}</p>
+    <div class="table-scroll"><table class="research-table"><thead><tr><th>T (K)</th><th>χ</th><th>E<sub>mix</sub> (kcal/mol)</th></tr></thead><tbody>${data.chi_vs_temperature.map(r => `<tr><td>${r.temperature_kelvin}</td><td>${screenNumber(r.chi, 3)}</td><td>${screenNumber(r.e_mix_kcal_mol, 3)}</td></tr>`).join('')}</tbody></table></div>
+    <ul class="research-list">${data.warnings.map(w => `<li>${escape(w)}</li>`).join('')}</ul>`;
+}
+
+$('#contact-chi-form').addEventListener('submit', e => { e.preventDefault(); researchAction($('button[type="submit"]', e.currentTarget), '#contact-chi-result', async () => {
+  const [nBase, nScreen] = $('#contact-n').value.split(',').map(x => Number(x.trim()) || 1);
+  renderContactChi(await screenRequest('/blend-contacts', { base_smiles: $('#contact-base').value.trim(), screen_smiles: $('#contact-screen').value.trim(),
+    samples: Number($('#contact-samples').value), clusters: Number($('#contact-clusters').value), n_base: nBase, n_screen: nScreen ?? 1 }));
+}); });

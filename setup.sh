@@ -9,4 +9,10 @@ if [[ -f requirements.lock.txt ]]; then
 else
   .venv/bin/python -m pip install -e '.[science,builders,test]' mpich
 fi
+# Rust compute kernels (Blends-style contact sampling); without cargo the numpy implementation runs instead.
+if command -v cargo >/dev/null 2>&1; then
+  .venv/bin/python -m pip install ./native
+else
+  echo 'cargo가 없어 Rust 계산 커널을 건너뜁니다. 접촉 χ 계산은 느린 numpy 구현으로 돌아갑니다. (설치: https://rustup.rs)'
+fi
 echo '설치 완료. ./start.sh 로 실행하세요.'
