@@ -33,7 +33,7 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
-- analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings.
+- analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
 - Generic CG bead jobs (polymer_cg, hoomd) are reduced-unit models with no chemical mapping; do not present them as material predictions.
 - Measurements you add are always stored unreviewed (verified=false). Only a person can mark data reviewed in the Polymer Lab window, and only reviewed experimental/literature data trains models.
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
@@ -364,9 +364,13 @@ class PolymerLabTools:
           "Read-only analysis of one process/fab CSV with explicitly named columns; rows are never dropped silently and nothing is stored. "
           "kind dictionary (options keys [top..bottom], value, unit, order), control_chart (value, optional subgroup for Xbar-S, order, baseline, unit), "
           "capability (value, lsl and/or usl, optional subgroup, order, unit), variance_components (value, factors [top..bottom]; balanced nested design, "
-          "the residual is replication within the lowest factor) or stratified_rates (group, stratum, and defects+inspected counts or a 0/1 outcome column, optional reference).",
-          _schema({"kind": {"type": "string", "enum": ["dictionary", "control_chart", "capability", "variance_components", "stratified_rates"]},
-                   "csv_text": {"type": "string", "maxLength": 5000000},
+          "the residual is replication within the lowest factor), stratified_rates (group, stratum, and defects+inspected counts or a 0/1 outcome column, optional reference), "
+          "classification_metrics (label, score, positive, thresholds, miss_cost with false_alarm_cost; compares with flagging nothing), "
+          "regression_metrics (actual, predicted, lsl/usl, band near the limits) or split_validation (target, features, task, group and/or order; "
+          "a fixed baseline model scored under random, lot-grouped and time-forward splits).",
+          _schema({"kind": {"type": "string", "enum": ["dictionary", "control_chart", "capability", "variance_components", "stratified_rates",
+                                                    "classification_metrics", "regression_metrics", "split_validation"]},
+                   "csv_text": {"type": "string", "maxLength": 20000000},
                    "options": {"type": "object", "description": "Column names and settings for the chosen kind; unknown keys are rejected"}},
                   ["kind", "csv_text", "options"]), self.analyze_process_data, read_only=True, idempotent=True)
         t("get_research_workflow", "Read connected bulk workflow",

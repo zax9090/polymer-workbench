@@ -81,8 +81,9 @@ class Retry(BaseModel):
 
 class ProcessAnalysis(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["dictionary", "control_chart", "capability", "variance_components", "stratified_rates"]
-    text: str = Field(min_length=1, max_length=5_000_000)
+    kind: Literal["dictionary", "control_chart", "capability", "variance_components", "stratified_rates",
+                  "classification_metrics", "regression_metrics", "split_validation"]
+    text: str = Field(min_length=1, max_length=20_000_000)
     options: dict = Field(default_factory=dict)
 
 

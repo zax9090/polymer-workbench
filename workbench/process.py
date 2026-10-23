@@ -16,9 +16,10 @@ import math
 import numpy as np
 from scipy import stats
 
-MAX_BYTES = 5_000_000
+MAX_BYTES = 20_000_000
 MAX_ROWS = 200_000
-KINDS = ("dictionary", "control_chart", "capability", "variance_components", "stratified_rates")
+KINDS = ("dictionary", "control_chart", "capability", "variance_components", "stratified_rates",
+         "classification_metrics", "regression_metrics", "split_validation")
 
 # Individuals charts use moving ranges of two points: d2 = E[R]/sigma, d3 = sd(R)/sigma for n = 2.
 D2_TWO = 2 / math.sqrt(math.pi)
@@ -35,7 +36,7 @@ def _table(text):
     if not isinstance(text, str) or not text.strip():
         raise ValueError("CSV 내용이 비어 있습니다.")
     if len(text.encode("utf-8")) > MAX_BYTES:
-        raise ValueError("공정 데이터 CSV는 UTF-8 기준 5 MB 이하여야 합니다.")
+        raise ValueError("공정 데이터 CSV는 UTF-8 기준 20 MB 이하여야 합니다.")
     try:
         reader = csv.reader(io.StringIO(text.lstrip("﻿")), strict=True)
         header = [name.strip() for name in next(reader)]
@@ -564,17 +565,19 @@ FUNCTIONS = {"dictionary": dictionary, "control_chart": control_chart, "capabili
 
 
 def analyze(kind, text, options=None):
+    from . import evaluation
+    functions, allowed = {**FUNCTIONS, **evaluation.FUNCTIONS}, {**OPTIONS, **evaluation.OPTIONS}
     options = dict(options or {})
-    if kind not in FUNCTIONS:
+    if kind not in functions:
         raise ValueError("분석 종류는 " + ", ".join(KINDS) + " 중 하나여야 합니다.")
-    unknown = set(options) - OPTIONS[kind]
+    unknown = set(options) - allowed[kind]
     if unknown:
         raise ValueError(f"{kind} 분석에서 쓰지 않는 설정입니다: {', '.join(sorted(unknown))}")
-    required = [name for name, parameter in inspect.signature(FUNCTIONS[kind]).parameters.items()
+    required = [name for name, parameter in inspect.signature(functions[kind]).parameters.items()
                 if name != "text" and parameter.default is inspect.Parameter.empty]
     missing = [name for name in required if options.get(name) is None]
     if missing:
         raise ValueError(f"{kind} 분석에 필요한 설정이 없습니다: {', '.join(missing)}")
-    result = FUNCTIONS[kind](text, **options)
+    result = functions[kind](text, **options)
     result["input"] = _source(text, kind, options)
     return result
