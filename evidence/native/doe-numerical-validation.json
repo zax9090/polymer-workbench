@@ -1,0 +1,938 @@
+{
+  "evidence_kind": "independent_numeric_comparison_not_REA",
+  "validated_at": "2026-10-23T07:50:08.534907+00:00",
+  "artifact_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+  "algorithm_source_sha256": "ec6f9cba76a71a29bec5a3548a6489fbad54bc508445a86db5ef7ce22101effb",
+  "validation_script_sha256": "722dfed633d9ed66e0a83c26faae69e6a5b87fea9a0a2c3459164728d47d7e96",
+  "command": "OPENBLAS_NUM_THREADS=1 .venv/bin/python scripts/validate_doe_numerics.py",
+  "python": "3.12.14",
+  "numpy": "2.5.4",
+  "random_seed": 827,
+  "generator": "numpy.random.default_rng(827); k=2..6; linear/interaction/quadratic (quadratic k<=4); 10 repeats each; 90 points uniform(-1,1); truth normal(p); y=X@truth+normal(0,0.05,90)",
+  "feature_order": "intercept, linear, pairwise interactions(i<j), squares for quadratic only",
+  "reference_coefficients": "numpy.linalg.lstsq(X,y,rcond=None)[0]",
+  "reference_standard_errors": "sqrt(SSE/(n-p) * diag(inv(X.T@X)))",
+  "rtol": 1e-10,
+  "atol": 1e-12,
+  "passed": 130,
+  "failed": 0,
+  "max_coefficient_absolute_difference": 1.6431300764452317e-14,
+  "max_standard_error_absolute_difference": 4.85722573273506e-17,
+  "cases": [
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 2.6020852139652106e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 4.440892098500626e-16,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 8.881784197001252e-16,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 3.3306690738754696e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 4.440892098500626e-16,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 7.771561172376096e-16,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 0.0
+    },
+    {
+      "factors": 2,
+      "model": "linear",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 2.220446049250313e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 8.881784197001252e-16,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 2.6645352591003757e-15,
+      "max_standard_error_absolute_difference": 0.0
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 5.551115123125783e-16,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 2.411265631607762e-16,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 5.551115123125783e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 2,
+      "model": "interaction",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.942890293094024e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 1.4432899320127035e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 3.885780586188048e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 7.216449660063518e-16,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 2.220446049250313e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 2.4424906541753444e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 2,
+      "model": "quadratic",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.6375789613221059e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.2465614478152087e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 5.551115123125783e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 4.440892098500626e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 1.2212453270876722e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 5.329070518200751e-15,
+      "max_standard_error_absolute_difference": 1.214306433183765e-17
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 3,
+      "model": "linear",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 9.159339953157541e-16,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 7.771561172376096e-16,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 1.304512053934559e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 3,
+      "model": "interaction",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 3.122502256758253e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 6.217248937900877e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 2.220446049250313e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 2.1371793224034263e-15,
+      "max_standard_error_absolute_difference": 2.949029909160572e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 2.886579864025407e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 2.220446049250313e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 3,
+      "model": "quadratic",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 4.440892098500626e-16,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 6.661338147750939e-16,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 1.4432899320127035e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 3.0531133177191805e-16,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 4.551914400963142e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 4,
+      "model": "linear",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 2.6645352591003757e-15,
+      "max_standard_error_absolute_difference": 1.214306433183765e-17
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 4.191091917959966e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 3.774758283725532e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 3.9968028886505635e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 2.220446049250313e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 4,
+      "model": "interaction",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 2.886579864025407e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 2.886579864025407e-15,
+      "max_standard_error_absolute_difference": 4.85722573273506e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 6.661338147750939e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 7.105427357601002e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 9.159339953157541e-15,
+      "max_standard_error_absolute_difference": 3.122502256758253e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 1.4432899320127035e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 1.582067810090848e-14,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 5.995204332975845e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 4.440892098500626e-15,
+      "max_standard_error_absolute_difference": 4.163336342344337e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 3.774758283725532e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-17
+    },
+    {
+      "factors": 4,
+      "model": "quadratic",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 4.440892098500626e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 1.4432899320127035e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 9.992007221626409e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 1.5959455978986625e-15,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 3.552713678800501e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.5543122344752192e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 7.216449660063518e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 1.8318679906315083e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 5,
+      "model": "linear",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.3322676295501878e-15,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 4.6074255521944e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 2.886579864025407e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 1.214306433183765e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 3.552713678800501e-15,
+      "max_standard_error_absolute_difference": 4.5102810375396984e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 3.1086244689504383e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 2.55351295663786e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 3.4416913763379853e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 6.106226635438361e-15,
+      "max_standard_error_absolute_difference": 2.0816681711721685e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 7.993605777301127e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 5,
+      "model": "interaction",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.582067810090848e-14,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 5.551115123125783e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 1.1102230246251565e-15,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 9.992007221626409e-16,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 6.938893903907228e-16,
+      "max_standard_error_absolute_difference": 3.469446951953614e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 1.5265566588595902e-15,
+      "max_standard_error_absolute_difference": 8.673617379884035e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 1.7763568394002505e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 1.9984014443252818e-15,
+      "max_standard_error_absolute_difference": 5.204170427930421e-18
+    },
+    {
+      "factors": 6,
+      "model": "linear",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.2212453270876722e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 0,
+      "max_coefficient_absolute_difference": 3.3306690738754696e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 1,
+      "max_coefficient_absolute_difference": 4.440892098500626e-15,
+      "max_standard_error_absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 2,
+      "max_coefficient_absolute_difference": 3.3306690738754696e-15,
+      "max_standard_error_absolute_difference": 1.0408340855860843e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 3,
+      "max_coefficient_absolute_difference": 4.551914400963142e-15,
+      "max_standard_error_absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 4,
+      "max_coefficient_absolute_difference": 4.052314039881821e-15,
+      "max_standard_error_absolute_difference": 3.122502256758253e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 5,
+      "max_coefficient_absolute_difference": 5.662137425588298e-15,
+      "max_standard_error_absolute_difference": 1.734723475976807e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 6,
+      "max_coefficient_absolute_difference": 5.329070518200751e-15,
+      "max_standard_error_absolute_difference": 2.42861286636753e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 7,
+      "max_coefficient_absolute_difference": 2.706168622523819e-15,
+      "max_standard_error_absolute_difference": 2.7755575615628914e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 8,
+      "max_coefficient_absolute_difference": 5.551115123125783e-15,
+      "max_standard_error_absolute_difference": 1.5612511283791264e-17
+    },
+    {
+      "factors": 6,
+      "model": "interaction",
+      "repeat": 9,
+      "max_coefficient_absolute_difference": 1.6431300764452317e-14,
+      "max_standard_error_absolute_difference": 4.163336342344337e-17
+    }
+  ],
+  "limitations": [
+    "This validates finite full-rank synthetic designs; it does not prove all ill-conditioned fits are stable.",
+    "This checks coefficients and classical homoscedastic OLS standard errors, not experimental independence, model adequacy, predictive coverage or global optimization.",
+    "REA evidence is separate static artifact inspection and does not supply these numerical results."
+  ]
+}

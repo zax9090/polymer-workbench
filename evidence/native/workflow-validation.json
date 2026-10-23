@@ -1,0 +1,125 @@
+{
+  "kind": "temporary_real_engine_workflow_validation",
+  "job_id": "54406d0e57bd4978a1fb70b9ff8ce0fb",
+  "workflow_id": "ab40352ff0324e47a76d407aea65d7ec",
+  "job_status": "completed",
+  "analysis_state": "observed",
+  "config": {
+    "name": "DOE 9 · TEMPORARY engine validation, not research",
+    "route": "polymer_atomistic",
+    "monomers": 18,
+    "chains": 2,
+    "steps": 1000,
+    "temperature": 1.0,
+    "temperature_kelvin": 300.0,
+    "timestep": 0.002,
+    "seed": 80,
+    "engine": "auto",
+    "repeat_smiles": "[*]CC[*]",
+    "sequence": "",
+    "atomistic_mode": "bulk",
+    "atomistic_forcefield": "gaff2",
+    "charge_method": "gasteiger",
+    "cell_builder": "native",
+    "build_density": 0.6000000000000001,
+    "resin_smiles": "CC(C)(c1ccc(OCC2CO2)cc1)c1ccc(OCC2CO2)cc1",
+    "hardener_smiles": "NCCN",
+    "resin_count": 16,
+    "hardener_count": 8,
+    "cure_temperature_kelvin": 450.0,
+    "target_conversion": 0.85,
+    "reaction_cutoff_angstrom": 4.0,
+    "cure_steps": 200000,
+    "protocol_scale": 0.001,
+    "packmol_target": "none",
+    "sap_radius_angstrom": 5.0,
+    "protein_ph": 7.0,
+    "ionic_strength_molar": 0.15,
+    "protein_protonation": "as_input",
+    "protein_repair": "none",
+    "protein_mode": "export",
+    "accession": "P69905",
+    "msa_mode": "single_sequence",
+    "bfactor_is_plddt": false,
+    "ligand_smiles": "",
+    "polyply_library": "martini3",
+    "polyply_residue": "PEO",
+    "forcefield_itp_text": "",
+    "mdp_text": "",
+    "box_nm": 15.0,
+    "source_job_id": null,
+    "source_artifact": "structure.pdb",
+    "pdb_text": "",
+    "a3m_text": "",
+    "engine_input": "",
+    "bridge_track": "martini3",
+    "bridge_mode": "prepare",
+    "secondary_structure": "",
+    "polymer_net_charge": 0,
+    "equilibration_steps": 50000,
+    "salt_molar": 0.15,
+    "contact_cutoff_nm": 0.6,
+    "elastic_network": false
+  },
+  "observation": {
+    "value": 0.08199708454810496,
+    "unit": "1",
+    "method": "probe_accessible_fraction",
+    "analysis_id": "bc4149e8096c40229f12d335638c9c4c",
+    "analysis_sha256": "348ec6d9bcce5c05ee8668bbd1e14cf7b14d4c2726bddf4c8d1b6ff72a50286e",
+    "job_id": "54406d0e57bd4978a1fb70b9ff8ce0fb",
+    "config_sha256": "1a3b082301039115e103d970052e5c25d2040f42762bfe6830a4580f687cfb5c",
+    "warnings": [
+      "Probe-occupiable volume can miss narrow accessible pockets on a coarse grid. Compare h and 2h and refine further; a small two-grid difference does not establish convergence.",
+      "Accessible volume counts all geometrically accessible probe centres, including isolated pockets; it does not establish a connected transport pathway."
+    ],
+    "verified": false
+  },
+  "analysis_provenance": {
+    "job_id": "54406d0e57bd4978a1fb70b9ff8ce0fb",
+    "parameters": {
+      "probes": [
+        1.0
+      ],
+      "spacing": 0.5,
+      "frame": "last"
+    },
+    "source_sha256": {
+      "eq3_last.data": "dcbf3958754143c0e04418b082a9c6fd918dbb284b720455f86ddf593a1ef504"
+    },
+    "kernel_version": "0.1.0",
+    "kernel_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+    "analysis_code_sha256": "0e1e0c3a1a9aaf036e8d5b8bcbf9d12f54a8f5d31383cfa0e4afbe8a3f9b0408"
+  },
+  "grid_comparison": {
+    "coarse_grid": [
+      14,
+      14,
+      14
+    ],
+    "coarse_spacing_angstrom": 1.0,
+    "fine_spacing_angstrom": [
+      0.48339080301827203,
+      0.48339080301827203,
+      0.48339080301827203
+    ],
+    "coarse_actual_spacing_angstrom": [
+      0.9667816060365441,
+      0.9667816060365441,
+      0.9667816060365441
+    ],
+    "coarse_occupied_fraction": 0.4613702623906705,
+    "occupied_fraction_absolute_difference": 0.002323250728862969,
+    "bondi_ffv_absolute_difference": 0.0030202259475218597,
+    "note": "Absolute differences between requested spacings h and 2h are a sensitivity diagnostic, not an error bound or proof of convergence."
+  },
+  "final_frame_density_g_cm3": 0.6790590311361716,
+  "job_warnings": [
+    "Stage lengths were multiplied by 0.001 relative to RadonPy's EQ21step defaults; this is an exploratory protocol.",
+    "GAFF2_mod with approximate Gasteiger charges; not a validated material model.",
+    "Fluctuation properties (Cp, compressibility, bulk modulus, expansion) need long sampling; short runs can give unphysical signs or magnitudes.",
+    "Oligomer chains and small cells do not represent high-molecular-weight polymer density or Tg; no Tg is inferred.",
+    "RadonPy's convergence criteria were not met: Total energy does not converge. mean = 1100.315485, sma_sd = 30.403920; Kinetic energy does not converge. mean = 626.826676, sma_sd = 8.113056; Potential energy of bonds does not converge. mean = 95.120488, sma_sd = 1.185081; Potential energy of angles does not converge. mean = 416.841160, sma_sd = 8.525552; Potential energy of dihedrals does not converge. mean = 189.125777, sma_sd = 4.472997; Density does not converge. mean = 0.705165, sma_sd = 0.007844"
+  ],
+  "note": "One 220-atom GAFF2 native-builder bulk cell, protocol_scale 0.001; checks integration, not equilibrium or material-property accuracy."
+}

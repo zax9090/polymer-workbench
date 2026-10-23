@@ -1,0 +1,249 @@
+{
+  "audited_at": "2026-10-23T07:50:35.171121+00:00",
+  "artifact": {
+    "path": "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+    "sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+    "bytes": 1005344
+  },
+  "tool": {
+    "name": "rea-agents",
+    "version": "6.7.0",
+    "lock_sha256": "9ef74db153958863141f10021031a9caa7a17aacf869583bf0a9e05ca824e36e",
+    "registry_integrity": "sha512-yhIx2ioJYYT1C/tONfYeitC6LhnKmCh+ZwRUOgYuhSc733lGhkkt73zhug9WmLgxoMdKuqIYGCoBfD4fXkOhFw=="
+  },
+  "status": "complete_static_inspection",
+  "inspections": {
+    "rust-metadata": {
+      "evidence_id": "ev_25b1624d910b9263574724da9696503ceefa025fff776a108c03ab0bf002378d",
+      "operation": "inspect_rust_binary",
+      "subject_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+      "evidence": "rust-metadata.json",
+      "evidence_sha256": "b40720e27947a5eeefe021e3c4ca52e5f3d452aa49bd8e8cf511922e63682041",
+      "stderr": "rust-metadata.stderr.log",
+      "command": [
+        "node",
+        "tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+        "inspect-rust-binary",
+        "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+        "--format",
+        "json"
+      ],
+      "output_complete": true,
+      "limitations": [
+        "Embedded dependency metadata is file content. It does not authenticate package names, versions, sources, or the compiler that produced the binary.",
+        "Only the .dep-v0 dependency section and read-only compiler path strings are inspected. Functions, types, and runtime behavior are not recovered.",
+        "Resource guards bound the selected file to 256 MiB, a dependency section to 1 MiB, inflated JSON to the smaller of 8 MiB and 64 times the section size, and the complete report to 8 MiB. Package and dependency counts are admitted against that output budget before schema cloning, graph objects, or reverse-edge allocation.",
+        "No .dep-v0 section was found. Absence of .dep-v0 does not mean the binary has no dependencies.",
+        "The rustc commit hash is inferred from a /rustc/<40-hex>/ path in read-only data. It does not by itself prove which compiler produced the binary."
+      ],
+      "provider_failure": null,
+      "reused_matching_evidence": false
+    },
+    "file-headers": {
+      "evidence_id": "ev_b7fd6f44e8886b9f5a4c9b8be913b9d5bc45f703d4555b47f55f6748610688d8",
+      "operation": "inspect_with_objdump",
+      "subject_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+      "evidence": "file-headers.json",
+      "evidence_sha256": "be0a48cfac62219bc296e716dbb0bd58c493b0664d5efd0f1b200e45b5709d7b",
+      "stderr": "file-headers.stderr.log",
+      "command": [
+        "node",
+        "tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+        "inspect-with-objdump",
+        "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+        "file_headers",
+        "--format",
+        "json"
+      ],
+      "output_complete": true,
+      "limitations": [
+        "The executable version and supported formats are reported as unknown because no reliable version probe was performed.",
+        "A non-zero process exit is preserved as an observed command result.",
+        "When both are available, pre-run and post-run digests detect artifact changes across the provider call but cannot prove the exact bytes consumed during the call."
+      ],
+      "provider_failure": null,
+      "reused_matching_evidence": false
+    },
+    "section-headers": {
+      "evidence_id": "ev_d26994883a42e9a9ae6d523af6d667030989ee9428b0010e41e9e2c553785712",
+      "operation": "inspect_with_objdump",
+      "subject_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+      "evidence": "section-headers.json",
+      "evidence_sha256": "90b7d3907293493f309d299fb13d9ae7357cd9ce387fb369f51386cd39688121",
+      "stderr": "section-headers.stderr.log",
+      "command": [
+        "node",
+        "tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+        "inspect-with-objdump",
+        "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+        "section_headers",
+        "--format",
+        "json"
+      ],
+      "output_complete": true,
+      "limitations": [
+        "The executable version and supported formats are reported as unknown because no reliable version probe was performed.",
+        "A non-zero process exit is preserved as an observed command result.",
+        "When both are available, pre-run and post-run digests detect artifact changes across the provider call but cannot prove the exact bytes consumed during the call."
+      ],
+      "provider_failure": null,
+      "reused_matching_evidence": false
+    },
+    "symbols": {
+      "evidence_id": "ev_9c6669129d5319da74de8d7caff8b302dbb9623faf0a1323ca1a316ecaa1b0bd",
+      "operation": "inspect_with_objdump",
+      "subject_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+      "evidence": "symbols.json",
+      "evidence_sha256": "e4138c412140990dab80e6bab67e0ff1b104008c01a076851ad4131b887e718f",
+      "stderr": "symbols.stderr.log",
+      "command": [
+        "node",
+        "tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+        "inspect-with-objdump",
+        "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+        "symbols",
+        "--format",
+        "json"
+      ],
+      "output_complete": true,
+      "limitations": [
+        "The executable version and supported formats are reported as unknown because no reliable version probe was performed.",
+        "A non-zero process exit is preserved as an observed command result.",
+        "When both are available, pre-run and post-run digests detect artifact changes across the provider call but cannot prove the exact bytes consumed during the call."
+      ],
+      "provider_failure": null,
+      "reused_matching_evidence": false
+    },
+    "relocations": {
+      "evidence_id": "ev_a6e1fd02d2fd545264bdbcb5d68e743d3ee99603bd740e3fcb18c558069af569",
+      "operation": "inspect_with_objdump",
+      "subject_sha256": "fb1455203d85f720c89eca6eefa8b95138b64bfc7c3b87ea9722463b41da75a2",
+      "evidence": "relocations.json",
+      "evidence_sha256": "46d3a94d5c9bd20bef77c606531ead347c7238207c1e871018ca528c494bc6bc",
+      "stderr": "relocations.stderr.log",
+      "command": [
+        "node",
+        "tools/rea/node_modules/rea-agents/scripts/rea.mjs",
+        "inspect-with-objdump",
+        "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so",
+        "relocations",
+        "--format",
+        "json"
+      ],
+      "output_complete": true,
+      "limitations": [
+        "The executable version and supported formats are reported as unknown because no reliable version probe was performed.",
+        "A non-zero process exit is preserved as an observed command result.",
+        "When both are available, pre-run and post-run digests detect artifact changes across the provider call but cannot prove the exact bytes consumed during the call."
+      ],
+      "provider_failure": null,
+      "reused_matching_evidence": false
+    }
+  },
+  "observations": {
+    "file_headers": "/workspace/polymer-workbench/.venv/lib/python3.12/site-packages/workbench_native/workbench_native.abi3.so:     file format elf64-x86-64\narchitecture: i386:x86-64, flags 0x00000150:\nHAS_SYMS, DYNAMIC, D_PAGED\nstart address 0x0000000000000000",
+    "selected_symbol_lines": [
+      "0000000000090750 l     F .text\t0000000000001651              _RINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB6_3zip11ZipProducerINtNtB8_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB1D_B2B_EEINtNtB6_3map11MapConsumerINtNtB6_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB3P_s_0ENCB3P_0EEB3T_",
+      "0000000000086090 l     F .text\t00000000000005a9              _RINvMs0_NtCs8I5kmBrXjjI_4pyo36markerNtB6_6Python6detachINtNtCsgFX3jaOk65H_5alloc3vec3VecdENCNvNtCshWuW7rRmMBW_16workbench_native6python15widom_insertions1_0EB1w_",
+      "0000000000091db0 l     F .text\t0000000000000f3e              _RINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB8_5range12IterProducerjEINtNtB6_3map11MapConsumerINtNtB6_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EEB2F_",
+      "0000000000086640 l     F .text\t0000000000002d21              _RINvMs0_NtCs8I5kmBrXjjI_4pyo36markerNtB6_6Python6detachNtNtCshWuW7rRmMBW_16workbench_native6volume12VolumeResultNCNvNtBV_6python11free_volumes4_0EBV_",
+      "0000000000092fb0 l     F .text\t00000000000002be              _RINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB8_5range12IterProducerjEINtNtB6_3map11MapConsumerINtNtNtB6_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EEB2W_",
+      "0000000000089560 l     F .text\t00000000000001b5              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry14in_worker_coldNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1N_3zip11ZipProducerINtNtB1P_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB3l_B4k_EEINtNtB1N_3map11MapConsumerINtNtB1N_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB5A_s_0ENCB5A_0EE0NCB1G_s_0IB3O_dEB75_E0TB75_B75_EEB5E_",
+      "00000000000afc80 l     F .text\t000000000000025e              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobINtNtB7_5latch8LatchRefNtBT_9LockLatchENCNCINvMs4_NtB7_8registryNtB1E_8Registry14in_worker_coldNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2Z_3zip11ZipProducerINtNtB31_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB4x_B5w_EEINtNtB2Z_3map11MapConsumerINtNtB2Z_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB6M_s_0ENCB6M_0EE0NCB2S_s_0IB50_dEB8h_E0TB8h_B8h_EE00B8u_ENtB5_3Job7executeB6Q_",
+      "0000000000089720 l     F .text\t0000000000000177              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry14in_worker_coldNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1P_5range12IterProducerjEINtNtB1N_3map11MapConsumerINtNtB1N_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB1G_s_0ddE0TddEEB4p_",
+      "00000000000afee0 l     F .text\t0000000000000196              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobINtNtB7_5latch8LatchRefNtBT_9LockLatchENCNCINvMs4_NtB7_8registryNtB1E_8Registry14in_worker_coldNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB31_5range12IterProducerjEINtNtB2Z_3map11MapConsumerINtNtB2Z_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB2S_s_0ddE0TddEE00B6B_ENtB5_3Job7executeB5B_",
+      "000000000008c7b0 l     F .text\t0000000000000056              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobINtNtBG_5latch8LatchRefNtB1m_9LockLatchENCNCINvMs4_NtBG_8registryNtB28_8Registry14in_worker_coldNCINvNtBG_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB3v_5range12IterProducerjEINtNtB3t_3map11MapConsumerINtNtB3t_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB3m_s_0ddE0TddEE00B75_EEB65_",
+      "00000000000898a0 l     F .text\t00000000000001a9              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry14in_worker_coldNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1P_5range12IterProducerjEINtNtB1N_3map11MapConsumerINtNtNtB1N_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB1G_s_0INtB3S_13CollectResultdEB5F_E0TB5F_B5F_EEB4G_",
+      "00000000000b0080 l     F .text\t0000000000000239              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobINtNtB7_5latch8LatchRefNtBT_9LockLatchENCNCINvMs4_NtB7_8registryNtB1E_8Registry14in_worker_coldNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB31_5range12IterProducerjEINtNtB2Z_3map11MapConsumerINtNtNtB2Z_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB2S_s_0INtB54_13CollectResultdEB6R_E0TB6R_B6R_EE00B7l_ENtB5_3Job7executeB5S_",
+      "000000000008c810 l     F .text\t000000000000005f              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobINtNtBG_5latch8LatchRefNtB1m_9LockLatchENCNCINvMs4_NtBG_8registryNtB28_8Registry14in_worker_coldNCINvNtBG_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB3v_5range12IterProducerjEINtNtB3t_3map11MapConsumerINtNtNtB3t_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB3m_s_0INtB5y_13CollectResultdEB7l_E0TB7l_B7l_EE00B7P_EEB6m_",
+      "0000000000089a50 l     F .text\t00000000000001a9              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry14in_worker_coldNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1P_5range12IterProducerjEINtNtB1N_3map11MapConsumerINtNtNtB1N_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EE0NCB1G_s_0INtB3S_13CollectResultdEB5M_E0TB5M_B5M_EEB4G_",
+      "00000000000b02c0 l     F .text\t0000000000000239              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobINtNtB7_5latch8LatchRefNtBT_9LockLatchENCNCINvMs4_NtB7_8registryNtB1E_8Registry14in_worker_coldNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB31_5range12IterProducerjEINtNtB2Z_3map11MapConsumerINtNtNtB2Z_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EE0NCB2S_s_0INtB54_13CollectResultdEB6Y_E0TB6Y_B6Y_EE00B7s_ENtB5_3Job7executeB5S_",
+      "0000000000089f60 l     F .text\t00000000000001c1              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry15in_worker_crossNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1O_3zip11ZipProducerINtNtB1Q_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB3m_B4l_EEINtNtB1O_3map11MapConsumerINtNtB1O_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB5B_s_0ENCB5B_0EE0NCB1H_s_0IB3P_dEB76_E0TB76_B76_EEB5F_",
+      "00000000000b0980 l     F .text\t00000000000002ec              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2I_3zip11ZipProducerINtNtB2K_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB4g_B5f_EEINtNtB2I_3map11MapConsumerINtNtB2I_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB6v_s_0ENCB6v_0EE0NCB2B_s_0IB4J_dEB80_E0TB80_B80_EE0B8d_ENtB5_3Job7executeB6z_",
+      "000000000008a130 l     F .text\t0000000000000197              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry15in_worker_crossNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1Q_5range12IterProducerjEINtNtB1O_3map11MapConsumerINtNtB1O_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB1H_s_0ddE0TddEEB4q_",
+      "00000000000b0c70 l     F .text\t000000000000021a              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtB2I_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB2B_s_0ddE0TddEE0B6k_ENtB5_3Job7executeB5k_",
+      "000000000008c870 l     F .text\t0000000000000056              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobNtNtBG_5latch9SpinLatchNCINvMs4_NtBG_8registryNtB1P_8Registry15in_worker_crossNCINvNtBG_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB3d_5range12IterProducerjEINtNtB3b_3map11MapConsumerINtNtB3b_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCB34_s_0ddE0TddEE0B6N_EEB5N_",
+      "000000000008a2d0 l     F .text\t00000000000001dd              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry15in_worker_crossNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1Q_5range12IterProducerjEINtNtB1O_3map11MapConsumerINtNtNtB1O_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB1H_s_0INtB3T_13CollectResultdEB5G_E0TB5G_B5G_EEB4H_",
+      "00000000000b0e90 l     F .text\t00000000000002b9              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB2B_s_0INtB4N_13CollectResultdEB6A_E0TB6A_B6A_EE0B74_ENtB5_3Job7executeB5B_",
+      "000000000008c8d0 l     F .text\t000000000000005c              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobNtNtBG_5latch9SpinLatchNCINvMs4_NtBG_8registryNtB1P_8Registry15in_worker_crossNCINvNtBG_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB3d_5range12IterProducerjEINtNtB3b_3map11MapConsumerINtNtNtB3b_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCB34_s_0INtB5g_13CollectResultdEB73_E0TB73_B73_EE0B7x_EEB64_",
+      "000000000008a4b0 l     F .text\t00000000000001dd              _RINvMs4_NtCsbvNZu5mzzOl_10rayon_core8registryNtB6_8Registry15in_worker_crossNCINvNtB8_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB1Q_5range12IterProducerjEINtNtB1O_3map11MapConsumerINtNtNtB1O_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EE0NCB1H_s_0INtB3T_13CollectResultdEB5N_E0TB5N_B5N_EEB4H_",
+      "00000000000b1150 l     F .text\t00000000000002b9              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EE0NCB2B_s_0INtB4N_13CollectResultdEB6H_E0TB6H_B6H_EE0B7b_ENtB5_3Job7executeB5B_",
+      "000000000008c930 l     F .text\t0000000000000056              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobNtNtBG_5latch9SpinLatchNCINvNvNtBG_4join12join_context6call_bINtNtNtNtCs3gVHhDuNReR_5rayon4iter7collect8consumer13CollectResultdENCINvNvNtB2p_8plumbing24bridge_producer_consumer6helperINtNtB2r_5range12IterProducerjEINtNtB2p_3map11MapConsumerINtB2l_15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EEs_0E0B2i_EEB5I_",
+      "000000000008c990 l     F .text\t0000000000000056              _RINvNtCskADBYZwJmSU_4core3ptr9drop_glueINtNtCsbvNZu5mzzOl_10rayon_core3job8StackJobNtNtBG_5latch9SpinLatchNCINvNvNtBG_4join12join_context6call_bdNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2u_5range12IterProducerjEINtNtB2s_3map11MapConsumerINtNtB2s_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EEs_0E0dEEB54_",
+      "000000000008db30 l     F .text\t000000000000006b              _RINvNtNtCs8I5kmBrXjjI_4pyo35impl_10trampoline32fastcall_cfunction_with_keywordsNtNvMs3_NtCshWuW7rRmMBW_16workbench_native6pythonNtNtB1n_11free_volume7MakeDef9__PYO3_DEF3DefEB1p_",
+      "00000000000a3950 l     F .text\t0000000000000e55              _RNvNtCshWuW7rRmMBW_16workbench_native6python24___pyfunction_free_volume",
+      "000000000008dba0 l     F .text\t000000000000006b              _RINvNtNtCs8I5kmBrXjjI_4pyo35impl_10trampoline32fastcall_cfunction_with_keywordsNtNvMs4_NtCshWuW7rRmMBW_16workbench_native6pythonNtNtB1n_15widom_insertion7MakeDef9__PYO3_DEF3DefEB1p_",
+      "00000000000a83e0 l     F .text\t0000000000000afc              _RNvNtCshWuW7rRmMBW_16workbench_native6python28___pyfunction_widom_insertion",
+      "000000000008dc10 l     F .text\t000000000000006b              _RINvNtNtCs8I5kmBrXjjI_4pyo35impl_10trampoline32fastcall_cfunction_with_keywordsNtNvMs5_NtCshWuW7rRmMBW_16workbench_native6pythonNtNtB1n_10doe_design7MakeDef9__PYO3_DEF3DefEB1p_",
+      "00000000000a0c50 l     F .text\t00000000000018f8              _RNvNtCshWuW7rRmMBW_16workbench_native6python23___pyfunction_doe_design",
+      "000000000008dc80 l     F .text\t000000000000006b              _RINvNtNtCs8I5kmBrXjjI_4pyo35impl_10trampoline32fastcall_cfunction_with_keywordsNtNvMs6_NtCshWuW7rRmMBW_16workbench_native6pythonNtNtB1n_7doe_fit7MakeDef9__PYO3_DEF3DefEB1p_",
+      "000000000009d540 l     F .text\t0000000000003708              _RNvNtCshWuW7rRmMBW_16workbench_native6python20___pyfunction_doe_fit",
+      "000000000008dcf0 l     F .text\t000000000000006b              _RINvNtNtCs8I5kmBrXjjI_4pyo35impl_10trampoline32fastcall_cfunction_with_keywordsNtNvMs7_NtCshWuW7rRmMBW_16workbench_native6pythonNtNtB1n_12doe_optimize7MakeDef9__PYO3_DEF3DefEB1p_",
+      "00000000000a47b0 l     F .text\t00000000000026fa              _RNvNtCshWuW7rRmMBW_16workbench_native6python25___pyfunction_doe_optimize",
+      "0000000000096400 l     F .text\t00000000000005af              _RNCINvNtCsbvNZu5mzzOl_10rayon_core4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtBY_3zip11ZipProducerINtNtB10_5slice12IterProducerINtNtCsgFX3jaOk65H_5alloc3vec3VecAdj3_EEIB2v_B3u_EEINtNtBY_3map11MapConsumerINtNtBY_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB4I_s_0ENCB4I_0EE0NCBR_s_0IB2Y_dEB6c_E0B4M_",
+      "0000000000094cc0 l     F .text\t00000000000003ff              _RNCINvNtCsbvNZu5mzzOl_10rayon_core4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB10_5range12IterProducerjEINtNtBY_3map11MapConsumerINtNtBY_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EE0NCBR_s_0ddE0B3y_",
+      "0000000000092cf0 l     F .text\t00000000000002be              _RINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB8_5range12IterProducerjEINtNtB6_3map11MapConsumerINtNtNtB6_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EEB2W_",
+      "00000000000b3710 l     F .text\t000000000000029b              _RNvXs_NtNtNtCskADBYZwJmSU_4core3ops8function5implsRNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0INtB6_5FnMutTjEE8call_mutBT_",
+      "00000000000950c0 l     F .text\t00000000000004cd              _RNCINvNtCsbvNZu5mzzOl_10rayon_core4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB10_5range12IterProducerjEINtNtBY_3map11MapConsumerINtNtNtBY_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EE0NCBR_s_0INtB32_13CollectResultdEB4N_E0B3P_",
+      "00000000000b39b0 l     F .text\t0000000000000153              _RNvXs_NtNtNtCskADBYZwJmSU_4core3ops8function5implsRNCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0INtB6_5FnMutTjEE8call_mutBT_",
+      "0000000000095590 l     F .text\t00000000000004cd              _RNCINvNtCsbvNZu5mzzOl_10rayon_core4join12join_contextNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB10_5range12IterProducerjEINtNtBY_3map11MapConsumerINtNtNtBY_7collect8consumer15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EE0NCBR_s_0INtB32_13CollectResultdEB4U_E0B3P_",
+      "0000000000094410 l     F .text\t000000000000011e              _RINvXs_NtNtNtCskADBYZwJmSU_4core4iter8adapters5chainINtB5_5ChainIBP_IBP_INtNtNtBb_5slice4iter4IterdEB18_EB18_EB18_ENtNtNtB9_6traits8iterator8Iterator8try_folduNCINvNvB1P_3any5checkRdNCNvNtCshWuW7rRmMBW_16workbench_native3doe3fitsg_0E0INtNtNtBb_3ops12control_flow11ControlFlowuEEB30_",
+      "0000000000094530 l     F .text\t00000000000000bd              _RINvYINtNtNtCskADBYZwJmSU_4core3ops5range5RangejENtNtNtNtBa_4iter6traits8iterator8Iterator4folddNCINvNtNtBR_8adapters3map8map_foldjddNCNvNtCshWuW7rRmMBW_16workbench_native6python11free_volumes3_0NCINvXs27_NtBP_5accumdNtB3h_7Product7productINtB1B_3MapB3_B27_EE0E0EB2d_",
+      "00000000000b2400 l     F .text\t00000000000001b9              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bdNCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB21_5range12IterProducerjEINtNtB1Z_3map11MapConsumerINtNtB1Z_3sum11SumConsumerdENCNCNvNtCshWuW7rRmMBW_16workbench_native5widom5widom00EEs_0E0dENtB5_3Job7executeB4B_",
+      "00000000000b1bc0 l     F .text\t0000000000000208              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bINtNtNtNtCs3gVHhDuNReR_5rayon4iter7collect8consumer13CollectResultdENCINvNvNtB1W_8plumbing24bridge_producer_consumer6helperINtNtB1Y_5range12IterProducerjEINtNtB1W_3map11MapConsumerINtB1S_15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native10trajectory3msd0EEs_0E0B1P_ENtB5_3Job7executeB5f_",
+      "00000000000b1dd0 l     F .text\t0000000000000208              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bINtNtNtNtCs3gVHhDuNReR_5rayon4iter7collect8consumer13CollectResultdENCINvNvNtB1W_8plumbing24bridge_producer_consumer6helperINtNtB1Y_5range12IterProducerjEINtNtB1W_3map11MapConsumerINtB1S_15CollectConsumerdENCNvNtCshWuW7rRmMBW_16workbench_native6volume11free_volumes1_0EEs_0E0B1P_ENtB5_3Job7executeB5f_",
+      "00000000000b1990 l     F .text\t0000000000000221              _RNvXs2_NtCsbvNZu5mzzOl_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bINtNtCsgFX3jaOk65H_5alloc3vec3VecdENCINvNvNtNtCs3gVHhDuNReR_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2x_3zip11ZipProducerINtNtB2z_5slice12IterProducerIB1Q_Adj3_EEIB45_B4C_EEINtNtB2x_3map11MapConsumerINtNtB2x_6reduce14ReduceConsumerNCNvNtCshWuW7rRmMBW_16workbench_native10trajectory10rdf_countss0_0NCB5S_s_0ENCB5S_0EEs_0E0B1P_ENtB5_3Job7executeB5W_",
+      "000000000009a310 l     F .text\t0000000000000189              _RNvNtCshWuW7rRmMBW_16workbench_native3doe5terms",
+      "000000000009a4a0 l     F .text\t00000000000002ff              _RNvNtCshWuW7rRmMBW_16workbench_native3doe8features",
+      "000000000009a7a0 l     F .text\t00000000000010cf              _RNvNtCshWuW7rRmMBW_16workbench_native6python11free_volume",
+      "000000000009b870 l     F .text\t00000000000011a7              _RNvNtCshWuW7rRmMBW_16workbench_native6python15widom_insertion",
+      "00000000000b3580 l     F .text\t0000000000000188              _RNvXs_NtNtCsgFX3jaOk65H_5alloc3vec21spec_from_iter_nestedINtB6_3VecdEINtB4_18SpecFromIterNesteddINtNtNtNtCskADBYZwJmSU_4core4iter8adapters3map3MapINtNtNtB1F_5slice4iter4IterBT_ENCNvNtCshWuW7rRmMBW_16workbench_native3doe3fitsa_0EE9from_iterB2V_",
+      "00000000000b33a0 l     F .text\t00000000000001d7              _RNvXs_NtNtCsgFX3jaOk65H_5alloc3vec21spec_from_iter_nestedINtB6_3VecdEINtB4_18SpecFromIterNesteddINtNtNtNtCskADBYZwJmSU_4core4iter8adapters3map3MapINtNtB1B_3zip3ZipINtNtNtB1F_5slice4iter4IterdEB2B_ENCNvNtCshWuW7rRmMBW_16workbench_native3doe3fitsb_0EE9from_iterB3f_",
+      "00000000000bc9d0 l     O .data\t0000000000000020              _RNvNtNtCshWuW7rRmMBW_16workbench_native6python11free_volume9__PYO3_DEF",
+      "00000000000bca30 l     O .data\t0000000000000020              _RNvNtNtCshWuW7rRmMBW_16workbench_native6python15widom_insertion9__PYO3_DEF",
+      "00000000000bc990 l     O .data\t0000000000000020              _RNvNtNtCshWuW7rRmMBW_16workbench_native6python10doe_design9__PYO3_DEF",
+      "00000000000bcb30 l     O .data\t0000000000000020              _RNvNtNtCshWuW7rRmMBW_16workbench_native6python7doe_fit9__PYO3_DEF",
+      "00000000000bc9f0 l     O .data\t0000000000000020              _RNvNtNtCshWuW7rRmMBW_16workbench_native6python12doe_optimize9__PYO3_DEF",
+      "0000000000085de0 g     F .text\t000000000000000d              PyInit_workbench_native"
+    ],
+    "rust_metadata": {
+      "format": "elf",
+      "architecture": "amd64",
+      "bits": 64,
+      "byte_order": "little",
+      "auditable_metadata": null,
+      "rustc_commit": {
+        "evidence_kind": "inferred",
+        "hashes": [
+          {
+            "hash": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+            "file_offset": 41408
+          }
+        ]
+      }
+    }
+  },
+  "source_snapshot_sha256": {
+    "native/Cargo.toml": "d3067ee9c1241e5c508c0f1b7f75f444a00e00ef9c760de6f6c9858b71228389",
+    "native/Cargo.lock": "36f3f218d55362b60ae2a09e0691d954934e0083f556576e4fa9d6a164a406d4",
+    "native/pyproject.toml": "e069682faa8e42c8d63861ed148790633918d75d0902d4b454be8483967cab43",
+    "native/src/cells.rs": "89fbfb164b8158fa2dd1e0bd4ed6ac589c804eab4d033abc6f395ca43b1a3c58",
+    "native/src/contacts.rs": "8d95d88c0d6949e9ad1eec45013d3a096f012fae58e976b70ad16e27b85f071a",
+    "native/src/doe.rs": "ec6f9cba76a71a29bec5a3548a6489fbad54bc508445a86db5ef7ce22101effb",
+    "native/src/execution.rs": "eb57a0d7f95dbeb8820357c295d88e7a07b170dbc22106f148bedc8072b00be8",
+    "native/src/lib.rs": "5df3d33b838a961ed2e2551be4cdf4e0b01ebea754116f779287761ddcd4f5d6",
+    "native/src/python.rs": "7da41466d256757aa65fc947e99cac18bf882e40219c61a61b8a0847abe28834",
+    "native/src/rng.rs": "f7173aaef60697e47a51d64b40a472de118b41c8c5adf0b568d69ead7c998b77",
+    "native/src/trajectory.rs": "570b35ffea3bb6732c377911cc94d4486658bb97d713c2f1cc999546abcac0b3",
+    "native/src/volume.rs": "f5fea7bb65635d5e6356a6bd704f7acf73b0411ca2924c3f268f3df4f39735c6",
+    "native/src/widom.rs": "3272577bb1b79c99c512a05346d9c132a2ec6bf1cc22cbc4b88d5385633c9c6a"
+  },
+  "limitations": [
+    "This is actual REA inspection of the compiled local extension, not an audit of proprietary Materials Studio or Minitab artifacts.",
+    "ELF headers, sections, symbols and relocations are static observations; no target was loaded or executed and no decompiler was used.",
+    "Symbol names do not establish numerical correctness or API behavior; regression and independent numerical comparison tests supply that evidence separately.",
+    "The separately recorded source snapshot is build context, not an embedded or cryptographic source-to-binary attestation.",
+    "A missing cargo-auditable .dep-v0 section means the embedded dependency list is unavailable, not that the binary has no dependencies.",
+    "Any provider cleanup failure is preserved in the raw record and marks that inspection partial, even when its captured helper output reports exit 0."
+  ]
+}

@@ -14,6 +14,9 @@ pub mod rng;
 pub mod trajectory;
 pub mod volume;
 pub mod widom;
+pub mod doe;
+pub mod execution;
+pub mod statistics;
 
 #[cfg(feature = "python")]
 mod python;

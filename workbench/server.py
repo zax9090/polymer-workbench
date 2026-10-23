@@ -1,22 +1,74 @@
 """Loopback-only application API for the local research workbench."""
 from contextlib import asynccontextmanager
+import hashlib
 import json
 import os
 import re
 import secrets
+import sys
+import threading
 from pathlib import Path
+from typing import Literal
 import zipfile
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .jobs import JobManager, ROOT
 from .models import JobConfig
 from .paths import default_jobs_root
 from . import __version__
+
+
+class AnalysisParameters(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class TrajectoryParameters(AnalysisParameters):
+    every: int = Field(default=1, ge=1, le=10000)
+    max_frames: int = Field(default=2000, ge=1, le=2000)
+
+
+class RdfParameters(TrajectoryParameters):
+    pairs: list[str] = Field(default_factory=lambda: ["C-C"], min_length=1, max_length=8)
+    r_max: float = Field(default=10.0, gt=0)
+    bins: int = Field(default=200, ge=1, le=2000)
+    exclude_same_molecule: bool = False
+
+
+class MsdParameters(TrajectoryParameters):
+    selection: str = Field(default="heavy", min_length=1, max_length=100)
+    remove_drift: bool = True
+    time_step_fs: float | None = Field(default=None, gt=0, le=1e6)
+    fit_window: list[float] = Field(default_factory=lambda: [0.1, 0.5], min_length=2, max_length=2)
+
+
+class FreeVolumeParameters(AnalysisParameters):
+    probes: list[float] = Field(default_factory=lambda: [0.0, 1.0, 1.5], min_length=1, max_length=8)
+    spacing: float = Field(default=0.25, ge=0.05, le=1.0)
+    frame: Literal["last"] | int = "last"
+
+
+class WidomParameters(TrajectoryParameters):
+    max_frames: int = Field(default=200, ge=1, le=2000)
+    gas: Literal["He", "H2", "N2", "O2", "Ar", "CH4", "CO2"] = "CO2"
+    temperature: float | None = Field(default=None, gt=0, le=10000)
+    insertions: int = Field(default=20000, ge=1, le=200000)
+    cutoff: float | None = Field(default=None, gt=0)
+    seed: int = Field(default=1, ge=0, le=2**63 - 1)
+
+
+ANALYSIS_PARAMETERS = {"rdf": RdfParameters, "msd": MsdParameters,
+                       "free_volume": FreeVolumeParameters, "widom": WidomParameters}
+
+
+class StructureAnalysisRequest(AnalysisParameters):
+    analysis: Literal["rdf", "msd", "free_volume", "widom"]
+    parameters: dict = Field(default_factory=dict)
 
 
 def acquire_data_lock(root: Path):
@@ -49,16 +101,23 @@ def create_app(data_root=None):
         root = Path(data_root or default_jobs_root())
         lock = acquire_data_lock(root)
         try:
-            app.state.manager = JobManager(root)
+            from .execution import ExecutionManager
+            app.state.execution = ExecutionManager()
+            app.state.manager = JobManager(root, execution=app.state.execution)
             from .research_api import initialize_research
             initialize_research(app, app.state.manager)
+            from .workflows import WorkflowManager
+            app.state.workflows = WorkflowManager(app.state.research_root, app.state.manager)
             yield
+            app.state.workflows.close()
+            app.state.execution.close()
             app.state.campaigns.close()
             app.state.manager.close()
         finally:
             lock.close()
 
     app = FastAPI(title="Polymer Lab", version=__version__, lifespan=lifespan)
+    analysis_lock = threading.BoundedSemaphore(1)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
 
     @app.middleware("http")
@@ -83,8 +142,30 @@ def create_app(data_root=None):
         return JSONResponse({"detail": "작업 또는 파일을 찾을 수 없습니다."}, status_code=404)
 
     @app.get("/api/health")
-    def health():
+    async def health():
         return {"ok": True, "name": "Polymer Lab", "version": __version__, "local_only": True}
+
+    @app.get("/api/execution")
+    def execution_status(request: Request):
+        status = request.app.state.execution.status()
+        admitted = {task["owner"] for task in status["tasks"] if task["status"] in {"queued", "running"}}
+        status["pending_jobs"] = sum(job["status"] == "queued" and "job:" + job["id"] not in admitted
+                                     for job in request.app.state.manager.list())
+        return status
+
+    @app.post("/api/execution/{identifier}/cancel")
+    def cancel_execution(identifier: str, request: Request):
+        # Simulation cancellation needs the job manager's process-group cleanup.
+        for task in request.app.state.execution.status()["tasks"]:
+            if task["id"] == identifier and task["kind"] == "simulation":
+                return request.app.state.manager.cancel(task["owner"].split(":", 1)[1])
+        if not request.app.state.execution.cancel(identifier=identifier):
+            raise HTTPException(404, "실행 중인 계산을 찾을 수 없습니다.")
+        return {"cancel_requested": True}
+
+    @app.exception_handler(RuntimeError)
+    async def execution_error(request, exc):
+        return JSONResponse({"detail": str(exc)}, status_code=409)
 
     @app.get("/api/capabilities")
     def capabilities():
@@ -162,6 +243,17 @@ def create_app(data_root=None):
     def job(job_id: str, request: Request):
         return request.app.state.manager.get(job_id)
 
+    @app.post("/api/jobs/{job_id}/analysis")
+    def analyze_structure(job_id: str, payload: StructureAnalysisRequest, request: Request):
+        from .analysis_service import analyze_structure as run_analysis
+        if not analysis_lock.acquire(blocking=False):
+            raise HTTPException(429, "다른 구조 분석이 진행 중입니다. 완료 후 다시 실행하세요.")
+        try:
+            return run_analysis(request.app.state.manager, request.app.state.research_root,
+                                job_id, payload.analysis, payload.parameters)
+        finally:
+            analysis_lock.release()
+
     @app.post("/api/jobs/{job_id}/cancel")
     def cancel(job_id: str, request: Request):
         return request.app.state.manager.cancel(job_id)
@@ -222,8 +314,28 @@ def create_app(data_root=None):
             raise HTTPException(404, "분석 자료를 찾을 수 없습니다.")
         return FileResponse(path, media_type="text/plain; charset=utf-8")
 
+    @app.get("/manual", response_class=HTMLResponse)
+    def user_manual():
+        from .manual import manual_path, render_manual
+        try:
+            return HTMLResponse(render_manual(manual_path().read_text(encoding="utf-8")))
+        except FileNotFoundError as exc:
+            raise HTTPException(503, str(exc)) from exc
+
+    @app.get("/manual/download")
+    def download_manual():
+        from .manual import manual_path
+        try:
+            return FileResponse(manual_path(), media_type="text/markdown; charset=utf-8", filename="PolymerLab-설명서.md")
+        except FileNotFoundError as exc:
+            raise HTTPException(503, str(exc)) from exc
+
     from .research_api import router as research_router
     app.include_router(research_router)
+    from .drive_backup import router as drive_router
+    app.include_router(drive_router)
+    from .workflow_api import router as workflow_router
+    app.include_router(workflow_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")
     app.mount("/", StaticFiles(directory=ROOT / "workbench" / "static", html=True), name="frontend")
     return app

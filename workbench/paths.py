@@ -129,6 +129,25 @@ def worker_command(config: Path, output: Path, source_root: Path | None = None) 
     return prefix + ["--config", str(config), "--output", str(output)]
 
 
+def install_worker_lifecycle():
+    """On Linux, stop the worker process group if its owning server dies abruptly."""
+    expected = os.environ.get("POLYMER_WORKER_PARENT_PID")
+    if not expected or not sys.platform.startswith("linux"):
+        return
+    import ctypes
+    import signal
+    def stop_group(signum, frame):
+        if os.getpgrp() == os.getpid():
+            os.killpg(os.getpid(), signal.SIGKILL)
+        raise SystemExit(1)
+    signal.signal(signal.SIGTERM, stop_group)
+    if ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM) != 0:
+        raise RuntimeError("계산 프로세스의 부모 종료 감시를 설정하지 못했습니다.")
+    # Covers the parent dying between spawn and prctl registration.
+    if os.getppid() != int(expected):
+        stop_group(signal.SIGTERM, None)
+
+
 def script_command(interpreter: str, script: str) -> list[str]:
     if frozen() and Path(interpreter).resolve() == Path(sys.executable).resolve():
         return [sys.executable, "--engine-script", script]

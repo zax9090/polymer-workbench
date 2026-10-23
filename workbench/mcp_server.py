@@ -31,6 +31,8 @@ STATUSES = ["queued", "running", "cancelling", "completed", "prepared", "blocked
 INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Every calculation is a job with saved inputs, logs, versions and hashes.
 - Status meanings: completed = the route finished; prepared = structures/topologies/inputs only; blocked = an engine or input is missing. None certifies scientific validity.
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
+- analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
+- create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - Generic CG bead jobs (polymer_cg, hoomd) are reduced-unit models with no chemical mapping; do not present them as material predictions.
 - Measurements you add are always stored unreviewed (verified=false). Only a person can mark data reviewed in the Polymer Lab window, and only reviewed experimental/literature data trains models.
 - Martini 3 protein-polymer MD (route mixture, bridge_mode simulate) needs a protein PDB, an explicit per-residue secondary structure from a reviewed DSSP assignment, a polyply block and polymer_net_charge equal to that block's chain charge.
@@ -255,6 +257,10 @@ def _schema(properties, required=()):
 
 
 JOB_ID = {"type": "string", "pattern": "^[a-f0-9]{32}$", "description": "32-character Polymer Lab job id"}
+DOE_FACTORS = {"type": "array", "minItems": 2, "maxItems": 6,
+               "items": _schema({"name": {"type": "string", "minLength": 1, "maxLength": 80},
+                                  "low": {"type": "number"}, "high": {"type": "number"}}, ["name", "low", "high"]),
+               "description": "Explicit factor bounds, low < high; 2-6 factors (2-4 for central composite/quadratic). Names must match CSV headers."}
 
 
 def _job_config_schema():
@@ -301,6 +307,33 @@ class PolymerLabTools:
                    "offset": {"type": "integer", "minimum": 0, "default": 0},
                    "max_chars": {"type": "integer", "minimum": 100, "maximum": 200000, "default": 20000}}, ["job_id", "name"]),
           self.read_artifact, read_only=True, idempotent=True)
+        t("analyze_job_structure", "Analyze finished bulk structure",
+          "Rust analysis of a completed polymer_atomistic bulk/crosslink job: rdf (element pairs), msd (unwrapped trajectory), "
+          "free_volume (Bondi radii and h/2h grid comparison), or widom (single-site gas insertion, GAFF2 only). "
+          "Saves a separate immutable result and returns its download link, units, source hashes, full numeric arrays and scientific warnings. "
+          "Original job artifacts and reviewed measurements are unchanged; each successful call creates a new analysis record. "
+          "Only parameters applicable to the chosen analysis are accepted. One analysis runs at a time; large requests may exceed the client's timeout.",
+          _schema({"job_id": JOB_ID, "analysis": {"type": "string", "enum": ["rdf", "msd", "free_volume", "widom"]},
+                   "parameters": _schema({
+                       "every": {"type": "integer", "minimum": 1, "maximum": 10000, "description": "rdf/msd/widom: sample every Nth frame"},
+                       "max_frames": {"type": "integer", "minimum": 1, "maximum": 2000, "description": "rdf/msd/widom: frame limit"},
+                       "pairs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 8, "description": "rdf: e.g. C-C, C-H, heavy-heavy"},
+                       "r_max": {"type": "number", "exclusiveMinimum": 0, "description": "rdf: maximum distance in angstrom, at most half the shortest box edge"},
+                       "bins": {"type": "integer", "minimum": 1, "maximum": 2000, "description": "rdf: histogram bins"},
+                       "exclude_same_molecule": {"type": "boolean", "description": "rdf: exclude intramolecular pairs"},
+                       "selection": {"type": "string", "description": "msd: all, heavy, or comma-separated elements"},
+                       "remove_drift": {"type": "boolean", "description": "msd: subtract whole-cell center-of-mass motion"},
+                       "time_step_fs": {"type": "number", "exclusiveMinimum": 0, "maximum": 1e6, "description": "msd: integrator time step in fs; omit to read bulk metadata"},
+                       "fit_window": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}, "minItems": 2, "maxItems": 2, "description": "msd: increasing fractions of the trajectory lag range"},
+                       "probes": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 5}, "minItems": 1, "maxItems": 8, "description": "free_volume: probe radii in angstrom"},
+                       "spacing": {"type": "number", "minimum": 0.05, "maximum": 1, "description": "free_volume: requested fine grid spacing in angstrom"},
+                       "frame": {"anyOf": [{"type": "string", "enum": ["last"]}, {"type": "integer", "minimum": 0}], "description": "free_volume: last or zero-based frame index"},
+                       "gas": {"type": "string", "enum": ["He", "H2", "N2", "O2", "Ar", "CH4", "CO2"], "description": "widom: single-site LJ gas"},
+                       "temperature": {"type": "number", "exclusiveMinimum": 0, "maximum": 10000, "description": "widom: kelvin; omit to read bulk metadata"},
+                       "insertions": {"type": "integer", "minimum": 1, "maximum": 200000, "description": "widom: insertions per frame"},
+                       "cutoff": {"type": "number", "exclusiveMinimum": 0, "description": "widom: LJ cutoff in angstrom, at most half the shortest box edge"},
+                       "seed": {"type": "integer", "minimum": 0, "maximum": 2**63 - 1, "description": "widom: deterministic random seed"},
+                   })}, ["job_id", "analysis"]), self.analyze_job_structure, read_only=False, idempotent=False)
         t("submit_job", "Submit calculation job",
           "Queue one calculation with a validated JobConfig. Routes: polymer_cg (reduced-unit CG), polymer_atomistic (RDKit build or RadonPy MD), protein (AlphaFold DB, PDB import, AF3 export, ColabFold), "
           "packmol (packmol_target sap_patch / negative_patch / positive_patch places chains near the protein's SAP or PROPKA surface-charge patch), polyply, pysimm, hoomd, mixture (protein-polymer bridges; bridge_mode simulate runs Martini 3 GROMACS MD). "
@@ -326,6 +359,40 @@ class PolymerLabTools:
           "uvvis (absorption maximum, Beer-Lambert concentration, optical gap) and turbidity (cloud point). csv_text may hold a JCAMP-DX spectrum for ir and uvvis. Options follow the Polymer Lab curve form.",
           _schema({"kind": {"type": "string", "enum": ["dsc", "tensile", "tga", "gpc", "ir", "uvvis", "turbidity"]}, "csv_text": {"type": "string", "maxLength": 2000000},
                    "options": {"type": "object"}}, ["kind", "csv_text"]), self.analyze_instrument_curve, read_only=True, idempotent=True)
+        t("get_research_workflow", "Read connected bulk workflow",
+          "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
+          _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
+        t("create_research_workflow", "Connect DOE to bulk calculations",
+          "Save a reviewed two-factor DOE connection to GAFF2 native bulk jobs. Does not start calculations. Packing density is a preparation parameter. Templates, bindings and metrics follow /api/research/workflows/capabilities.",
+          _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": ["temperature_kelvin", "build_density"]}},
+                   "metric": {"type": "string", "enum": ["final_frame_density", "probe_accessible_fraction"]},
+                   "budget": {"type": "integer", "minimum": 1, "maximum": 50}, "probe": {"type": "number", "minimum": 0, "maximum": 5},
+                   "spacing": {"type": "number", "minimum": 0.05, "maximum": 1}}, ["design_id", "template", "bindings"]), self.create_research_workflow)
+        t("control_research_workflow", "Advance one reviewed research stage",
+          "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize reviewed observations with explicit exclusion reasons, confirm one recommendation, or cancel. Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
+          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "confirm", "analyze-confirmation", "cancel"]},
+                   "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+        t("create_experiment_design", "Create experimental design",
+          "Generate and save a randomized full factorial or face-centered central composite design. Returns the run table, a CSV with a blank response column, and download links. "
+          "Creates an immutable local DOE record; does not execute physical experiments or approve measurements. Factor bounds must reflect the user's feasible experimental range.",
+          _schema({"factors": DOE_FACTORS, "kind": {"type": "string", "enum": ["factorial", "central_composite"], "default": "factorial"},
+                   "center_points": {"type": "integer", "minimum": 0, "maximum": 20, "default": 3},
+                   "replicates": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1},
+                   "seed": {"type": "integer", "minimum": 0, "maximum": 2**63 - 1, "default": 1}}, ["factors"]), self.create_experiment_design)
+        t("analyze_response_surface", "Fit and optimize experimental response",
+          "Fit a linear, interaction or quadratic response model to CSV experimental data, then recommend a candidate inside explicit factor bounds for maximize/minimize/target. "
+          "Rust computes ANOVA, lack-of-fit/pure error, residual influence, PRESS predicted R-squared, model comparisons and 95% prediction intervals. Returns a blank confirmation-experiment CSV. "
+          "Saves the original CSV and result as an immutable local DOE record. Coefficients, diagnostics, uncertainty and warnings must accompany any recommendation; confirm it experimentally. "
+          "CSV is limited to 1 MB UTF-8 and selected numeric values cannot be missing. This never creates reviewed measurements.",
+          _schema({"text": {"type": "string", "maxLength": 1000000, "description": "CSV with a header and measured response values"},
+                   "factors": DOE_FACTORS, "response": {"type": "string", "minLength": 1, "maxLength": 80},
+                   "model": {"type": "string", "enum": ["linear", "interaction", "quadratic"], "default": "quadratic"},
+                   "objective": {"type": "string", "enum": ["maximize", "minimize", "target"], "default": "maximize"},
+                   "target": {"type": "number", "description": "Required finite target response only for objective=target"},
+                   "prediction_points": {"type": "array", "maxItems": 50,
+                       "items": {"type": "object", "additionalProperties": {"type": "number"}},
+                       "description": "Optional conditions to predict, each mapping every factor name to a real value within its declared bounds. Returns mean confidence and individual prediction intervals."}},
+                  ["text", "factors", "response"]), self.analyze_response_surface)
         t("add_measurement", "Add measurement (unreviewed)",
           "Store one measurement with property, value, unit, method, conditions, source, origin and a material or indexed job_id. It is always saved unreviewed; a person must review it in Polymer Lab before models use it.",
           _schema({"measurement": {"type": "object"}}, ["measurement"]), self.add_measurement)
@@ -458,6 +525,10 @@ class PolymerLabTools:
     def submit_job(self, args):
         return _compact_job(self.client.request("POST", "/api/jobs", args["config"]))
 
+    def analyze_job_structure(self, args):
+        return self.client.request("POST", f"/api/jobs/{args['job_id']}/analysis",
+                                   {"analysis": args["analysis"], "parameters": args.get("parameters", {})}, timeout=600)
+
     def cancel_job(self, args):
         return _compact_job(self.client.request("POST", f"/api/jobs/{args['job_id']}/cancel", {}))
 
@@ -492,6 +563,22 @@ class PolymerLabTools:
         draft = self.client.request("POST", "/api/research/curves", {"kind": args["kind"], "text": args["csv_text"], "options": args.get("options", {})})
         draft["preview"] = f"{len((draft.get('preview') or {}).get('x', []))} downsampled points omitted"
         return draft
+
+    def get_research_workflow(self, args):
+        suffix = "/" + args["workflow_id"] if args.get("workflow_id") else ""
+        return self.client.request("GET", "/api/research/workflows" + suffix)
+
+    def create_research_workflow(self, args):
+        return self.client.request("POST", "/api/research/workflows", args, timeout=300)
+
+    def control_research_workflow(self, args):
+        return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/{args['action']}", args.get("parameters", {}), timeout=3600)
+
+    def create_experiment_design(self, args):
+        return self.client.request("POST", "/api/research/doe/design", args, timeout=300)
+
+    def analyze_response_surface(self, args):
+        return self.client.request("POST", "/api/research/doe/analyze", args, timeout=300)
 
     def add_measurement(self, args):
         record = dict(args["measurement"])

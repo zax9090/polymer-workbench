@@ -15,6 +15,7 @@ datas = [
     (str(ROOT / "workbench" / "data"), "workbench/data"),
     (str(ROOT / "evidence"), "evidence"),
     (str(ROOT / "assets"), "assets"),
+    (str(ROOT / "docs" / "MANUAL.md"), "docs"),
     (str(ROOT / "scripts" / "engine_worker.py"), "scripts"),
     (str(ROOT / "requirements.lock.txt"), "."),
     (str(ROOT / "requirements.desktop.lock.txt"), "."),
@@ -32,7 +33,9 @@ hiddenimports = [
     "workbench.ingestion", "workbench.learning", "workbench.campaigns",
     "workbench.bridges", "workbench.diagnostics", "workbench.forcefields", "workbench.mixture_analysis", "workbench.mcp_server", "workbench.sap", "workbench.protonation", "workbench.screening", "workbench.compatibility",
     "workbench.class2", "workbench.pcff", "workbench.crosslink", "workbench.engines", "workbench.repair",
-    "workbench.mcp_http", "workbench.amorphous", "workbench.blends",
+    "workbench.mcp_http", "workbench.amorphous", "workbench.blends", "workbench.structure_analysis", "workbench.manual",
+    "workbench.doe", "workbench.drive_backup",
+    "workbench.execution", "workbench.compute_worker", "workbench.analysis_service", "workbench.workflows", "workbench.workflow_api",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
     "uvicorn.protocols.http.h11_impl", "uvicorn.protocols.websockets.auto",
@@ -43,6 +46,7 @@ hiddenimports = [
 # The Rust kernel is optional: bundled when the build environment has it installed.
 if importlib.util.find_spec("workbench_native") is not None:
     hiddenimports.append("workbench_native")
+    datas += copy_metadata("workbench-native")
 
 def production_module(name):
     return not any(part in {"tests", "test", "testing", "conftest"} for part in name.split("."))

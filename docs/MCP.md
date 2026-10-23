@@ -73,10 +73,13 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `start_lab_server` | 서버가 없을 때 세션 소유 서버 시작 |
 | `list_jobs` · `get_job` · `wait_for_job` | 작업 목록, 상태·단계·결과 요약, 완료 대기(최대 600초, 연구 DB 색인까지 확인) |
 | `read_artifact` | JSON·로그·PDB/GRO·토폴로지·CSV·XVG 등 텍스트 결과 파일 읽기(바이너리 궤적 제외) |
+| `analyze_job_structure` | 완료된 벌크·가교 작업의 RDF·MSD·자유 부피·Widom 분석. 원본 작업을 유지하고 별도 불변 결과 저장·다운로드 링크 반환 |
 | `submit_job` · `cancel_job` · `rerun_job` | 검증된 JobConfig로 계산 실행, 중단, 같은 설정으로 다시 실행 |
 | `diagnose_job` · `retry_job_with_fix` | 로그 규칙 진단과 제안된 설정 수정 재실행 |
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
 | `analyze_instrument_curve` | DSC·인장·TGA·GPC·IR·UV-vis·탁도 곡선(IR·UV-vis는 JCAMP-DX도)에서 저장하지 않는 측정값 초안 계산 |
+| `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
+| `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
 | `add_measurement` | 측정값 저장. 항상 검토 전 상태로 저장 |
 | `train_property_model` · `predict_property` | 검토 완료 데이터로 GP 기준 모델 학습, 예측 |
 | `create_campaign` · `control_campaign` | 유한 후보 캠페인 생성, 한 배치 실행·자동 실행·중지·상태 확인 |
@@ -87,6 +90,28 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 
 각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다.
+
+### 완료된 셀의 구조·궤적 분석
+
+`analyze_job_structure`는 `job_id`, `analysis`(`rdf`, `msd`, `free_volume`, `widom`), 선택적 `parameters`를 받습니다. 같은 입력을 HTTP로 쓰려면 `POST /api/jobs/{job_id}/analysis`에 `{"analysis": "rdf", "parameters": {"pairs": ["C-C", "C-H"], "r_max": 8.0, "bins": 160}}`를 보냅니다. 완료된 `polymer_atomistic` 벌크·가교 작업만 분석하며, 원본 작업·해시 목록·연구 측정값은 변경하지 않습니다. 성공할 때마다 `research/analyses` 아래 별도 불변 결과를 저장하고 `/api/research/analyses/{id}/download` 다운로드 링크와 전체 분석 배열을 반환합니다. 새 기록을 만들므로 `readOnlyHint`와 `idempotentHint`는 모두 false입니다.
+
+| 분석 | 주요 매개변수 | 입력·해석 제한 |
+|---|---|---|
+| `rdf` | `pairs`, `r_max`(Å), `bins`, `every`, `max_frames`, `exclude_same_molecule` | `C-C`, `C-O`, `heavy-heavy` 등의 원소 쌍. 거리 상한은 가장 짧은 상자 길이의 절반. 궤적이 없으면 최종 구조 한 장 |
+| `msd` | `selection`, `remove_drift`, `time_step_fs`, `fit_window`, `every`, `max_frames` | 이미지 인덱스가 있는 등간격 궤적 필요. 시간 간격은 벌크 메타데이터 또는 명시적 값 필요. 확산 영역인지 경고 확인 |
+| `free_volume` | `probes`(Å), `spacing`(Å), `frame`(`last` 또는 0부터 시작하는 번호) | 최종 구조 또는 지정 궤적 프레임. h와 2h의 점유·접근 가능·탐침 점유율 차이는 격자 민감도이며 엄밀한 오차 한계가 아님 |
+| `widom` | `gas`, `temperature`(K), `insertions`, `every`, `max_frames`, `cutoff`(Å), `seed` | GAFF2 벌크 셀의 12-6 LJ만 지원. PCFF·가교 제외. 단일 점 기체·고정 고분자 근사로 실험 용해도를 보장하지 않음 |
+
+분석은 한 번에 하나씩 실행됩니다. 다른 분석 중이면 HTTP 429, 미완료 작업은 409, 잘못된 매개변수·입력은 422, Rust 커널이 없으면 503을 반환합니다. 프레임 수·격자 크기·삽입 횟수에는 계산 예산 제한이 있습니다. 큰 요청은 클라이언트의 시간 제한에 걸릴 수 있으므로 먼저 적은 프레임·거친 격자로 확인합니다. 결과의 `provenance`에는 적용한 매개변수, 입력 파일 SHA-256, 커널 버전·해시, 분석 코드 해시가 들어갑니다.
+
+### 실험계획·반응표면 API
+
+| MCP 도구 | HTTP 경로 | 주요 입력 |
+|---|---|---|
+| `create_experiment_design` | `POST /api/research/doe/design` | `factors: [{name, low, high}]`, `kind: factorial 또는 central_composite`, `center_points`, `replicates`, `seed` |
+| `analyze_response_surface` | `POST /api/research/doe/analyze` | `text: 측정 CSV`, `factors`, `response: 반응값 열`, `model: linear·interaction·quadratic`, `objective: maximize·minimize·target`, 선택적 `target`, `prediction_points: [{인자명: 실제값}]`(최대 50개) |
+
+두 도구는 `research/doe/{id}`에 불변 JSON과 설계 또는 측정 CSV를 저장하므로 `readOnlyHint=false`입니다. 결과의 `download_url`은 JSON, `csv_download_url`은 CSV입니다. 기록 목록은 `GET /api/research/doe`, 상세는 `GET /api/research/doe/{id}`로 읽습니다. CSV는 UTF-8 기준 1 MB 이하이며 누락된 행을 자동 제거하지 않습니다. 저장해도 검토 완료 측정값이 되지 않습니다.
 
 ## 안전 장치와 기록
 
@@ -104,3 +129,8 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 ## 한계
 
 MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없습니다. `wait_for_job`은 클라이언트의 도구 시간 제한보다 짧게 설정해야 합니다. 시간이 오래 걸리면 `get_job`으로 다시 확인합니다. 파일 업로드는 텍스트(PDB·CSV 등)를 인자로 전달하는 방식이며 PDF 업로드 도구는 없습니다.
+
+
+### 단계별 벌크 연구 연결
+
+`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 GAFF2 자체 벌크 템플릿을 연결합니다. 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`, `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.

@@ -22,7 +22,7 @@ const badge = status => `<span class="status-badge ${escape(status)}">${escape(s
 function toast(message, error = false) { const el = $('#toast'); el.textContent = message; el.classList.toggle('error', error); el.classList.remove('hidden'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.add('hidden'), error ? 9000 : 4200); }
 async function api(path, options = {}) { const response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } }); const data = await response.json().catch(() => null); if (!response.ok) { const d = data?.detail; let message = typeof d === 'string' ? d : Array.isArray(d) ? d.map(x => `${x.loc?.slice(1).join('.') || '설정'}: ${x.msg}`).join('\n') : data?.error || `서버 응답 오류 (${response.status})`; throw new Error(message); } return data; }
 function setConnection(connected) { state.connected = connected; $('#connection-dot').className = `connection-dot ${connected ? 'ok' : 'error'}`; $('#connection-text').textContent = connected ? '연구 환경 연결됨' : '서버 연결 확인 필요'; }
-function showView(view) { if (state.view !== view) window.scrollTo(0, 0); state.view = view; $$('.view').forEach(el => el.classList.toggle('hidden', el.id !== `view-${view}`)); $$('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view)); $('#breadcrumb-current').textContent = { workflow: '워크플로우', history: '실험 기록', evidence: 'REA 분석 근거', engines: '계산 엔진', research: '연구 데이터', measurements: '실험 데이터', models: '물성 학습 · 예측', screening: '빠른 예측 · 상용성', campaigns: '탐색 캠페인', bridges: '혼합계 준비' }[view] || view; if (view === 'history') refreshJobs(); if (view === 'evidence') loadEvidence(); if (view === 'workflow') setTimeout(() => state.viewer?.resize(), 0); history.replaceState(null, '', `#${view}`); document.dispatchEvent(new CustomEvent('polymer:view', { detail: view })); }
+function showView(view) { if (state.view !== view) window.scrollTo(0, 0); state.view = view; $$('.view').forEach(el => el.classList.toggle('hidden', el.id !== `view-${view}`)); $$('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view)); $('#breadcrumb-current').textContent = { workflow: '워크플로우', history: '실험 기록', evidence: 'REA 분석 근거', engines: '계산 엔진', research: '연구 데이터', measurements: '실험 데이터', models: '물성 학습 · 예측', screening: '빠른 예측 · 상용성', campaigns: '탐색 캠페인', bridges: '혼합계 준비', doe: '실험 설계·최적화' }[view] || view; if (view === 'history') refreshJobs(); if (view === 'evidence') loadEvidence(); if (view === 'workflow') setTimeout(() => state.viewer?.resize(), 0); history.replaceState(null, '', `#${view}`); document.dispatchEvent(new CustomEvent('polymer:view', { detail: view })); }
 function currentRoute() { return $('#route-select').value; }
 function routeCapability(id) { return state.capabilities?.routes?.find(x => x.id === id); }
 function updateRoute() {
@@ -55,14 +55,14 @@ function updateRoute() {
   $('#timestep-field').classList.toggle('hidden', !['polymer_cg','hoomd'].includes(id));
   $('#model-type').textContent = state.current ? (routes[state.current.config?.route]?.tag || meta.tag) : meta.tag;
   if (!state.current) $('#scientific-note').textContent = meta.note;
-  $('#smiles-help').textContent = id === 'polymer_cg' || id === 'hoomd' ? '조대화 경로에서는 화학종별 힘장으로 변환되지 않습니다.' : '두 연결점을 [*]로 표시한 반복단위를 입력하세요.';
+  $('#smiles-help').textContent = id === 'polymer_cg' || id === 'hoomd' ? '환산 단위 모델 · 화학종별 보정 없음.' : '연결점 두 개를 [*]로 표시하세요.';
   const cap = routeCapability(id), missing = cap?.missing || [];
   let available = cap ? cap.available : true, detail = cap?.description || meta.description;
   if (protein) { available = true; detail = meta.description; }
   if (atomistic && $('#atomistic-mode').value === 'crosslink') { const eng = state.capabilities?.engines?.find(x => x.id === 'emc'); available = !!state.capabilities?.engines?.find(x => x.id === 'radonpy')?.available; detail = available ? `EMC PCFF 혼합물 → 21단계 고밀도화 → LAMMPS bond/react 경화 → 냉각 NPT.${eng?.available ? '' : ' EMC는 첫 실행 때 고정 릴리스를 내려받습니다.'}` : '경화 계산의 물성 분석에는 RadonPy와 LAMMPS가 필요합니다.'; }
   else if (atomistic && ['simulate','bulk'].includes($('#atomistic-mode').value)) { const eng = state.capabilities?.engines?.find(x => x.id === 'radonpy'); available = !!eng?.available; detail = available ? (bulk ? 'RadonPy 비정질 벌크 셀: 패킹 → Larsen 21단계 평형화 → NPT 샘플링 → 밀도·탄성률·Cp.' : 'RadonPy 전원자 MD 경로입니다. 힘장 및 추가 의존성을 확인합니다.') : '전원자 MD에는 RadonPy 및 의존성 설정이 필요합니다. RDKit 구조 생성은 별도 실행할 수 있습니다.'; }
   const info = $('#route-info'); info.classList.toggle('unavailable', !available);
-  info.innerHTML = `<span class="route-status-dot"></span><div><strong>${escape(meta.label)}${!available ? ' · 설정 필요' : ''}</strong><p>${escape(detail)}${missing.length ? `<br>필요 항목: ${escape(missing.join(', '))}` : ''}</p></div>`;
+  info.innerHTML = `<span class="route-status-dot"></span><div><strong>${escape(meta.label)}${!available ? ' · 설정 필요' : ''}</strong>${!available ? `<p>${escape(detail)}</p>` : ''}${missing.length ? `<p>필요 항목: ${escape(missing.join(', '))}</p>` : ''}</div>`;
   $('#run-button').disabled = !state.connected;
   $('#run-button span:first-child').textContent = !available ? '설정 확인 및 입력 준비' : protein && $('#protein-mode').value === 'database' ? 'AlphaFold 구조 가져오기' : '워크플로우 실행';
   $('#run-help').textContent = state.handoff ? `이전 작업 ${state.handoff.name}의 구조를 연결합니다.` : !available ? '누락된 의존성을 확인하고 준비 상태를 기록합니다.' : '설정, 시드, 계산 결과가 함께 기록됩니다.';
@@ -81,7 +81,7 @@ function updateProteinFields() {
   if (!(protein && mode === 'import')) $('#protein-repair').value = 'none';
   $('#pdb-text').closest('.field').classList.toggle('hidden', protein && mode !== 'import');
   if (protein) $('#external-fields').classList.toggle('hidden', mode !== 'import');
-  $('#protein-mode-help').textContent = { database: '공개 데이터베이스에 이미 존재하는 예측 구조를 다운로드하고 신뢰도를 분석합니다. 새 예측을 실행하지 않습니다.', import: '제공한 구조를 분석하고 저장합니다. PDB의 B-factor가 항상 pLDDT를 의미하지는 않습니다.', export: '입력 파일을 준비합니다. 구조 예측은 수행하지 않습니다.', predict: '실제 예측에는 로컬 ColabFold, 모델 가중치와 충분한 계산 자원이 필요합니다.' }[mode];
+  $('#protein-mode-help').textContent = { database: '기존 예측 조회 · 새 추론 아님.', import: 'B-factor의 의미를 확인하세요.', export: '입력 준비 · 구조 예측 아님.', predict: 'ColabFold·모델 가중치·계산 자원이 필요합니다.' }[mode];
   $('#sequence').required = protein && ['export','predict'].includes(mode);
   $('#pdb-text').required = protein && mode === 'import';
   $('#accession').required = protein && mode === 'database';
@@ -140,6 +140,7 @@ async function renderJob() {
   if (pdb && job.config?.route === 'protein' && terminal.has(job.status) && job.status === 'completed') content += `<button class="secondary-button" data-bridge-job="${escape(job.id)}" style="margin-top:12px">이 단백질로 혼합계 준비 →</button>`;
   if (!metrics.length && terminal.has(job.status) && !job.error && !result?.message) content += '<p class="outcome-note">세부 내용은 실행 로그와 결과 파일에서 확인할 수 있습니다.</p>';
   $('#output-overview').innerHTML = content;
+  window.PolymerStructureAnalysis?.render(job, $('#output-overview'));
   if (result?.metrics?.series?.length > 1) drawChart(result.metrics.series);
   if (result?.metrics?.plddt_interpreted) drawConfidence(result.metrics.residues || []);
   await loadStructure(job);
@@ -189,4 +190,10 @@ $('#route-select').addEventListener('change',()=>{state.handoff=null;updateRoute
 document.addEventListener('click',e=>{const open=e.target.closest('[data-open-job]');if(open)openJob(open.dataset.openJob);if(e.target.closest('#handoff-packmol'))handoffPackmol();});
 for(const [fileId,textId] of [['a3m-file','a3m-text'],['pdb-file','pdb-text']]){$(`#${fileId}`).addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(file.size>5000000){toast('5 MB 이하의 입력 파일을 선택하세요.',true);e.target.value='';return;}try{$(`#${textId}`).value=await file.text();toast(`${file.name} 파일을 불러왔습니다.`);}catch{toast('입력 파일을 읽지 못했습니다.',true);}});}
 window.addEventListener('resize',()=>{state.viewer?.resize();if(state.current?.result?.metrics?.series)drawChart(state.current.result.metrics.series);if(state.current?.result?.metrics?.plddt_interpreted)drawConfidence(state.current.result.metrics.residues);});
-(async()=>{const hash=location.hash.slice(1);if(['workflow','history','evidence','engines','research','measurements','models','campaigns','bridges'].includes(hash))showView(hash);await Promise.allSettled([refreshCapabilities(),refreshJobs()]);updateRoute();setInterval(poll,1800);})();
+(async()=>{const hash=location.hash.slice(1);if(['workflow','history','evidence','engines','research','measurements','models','campaigns','bridges','doe','screening'].includes(hash))showView(hash);await Promise.allSettled([refreshCapabilities(),refreshJobs()]);updateRoute();setInterval(poll,1800);})();
+
+const compactWorkspace = matchMedia('(max-width: 900px)');
+function resizeConfiguration() { $('#configuration-panel').open = !compactWorkspace.matches; }
+resizeConfiguration();
+compactWorkspace.addEventListener('change', resizeConfiguration);
+$('#configuration-panel').addEventListener('toggle', () => state.viewer?.resize());

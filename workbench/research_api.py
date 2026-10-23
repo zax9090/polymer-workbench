@@ -1,20 +1,26 @@
 """Local, reviewable research data and bounded optimization API."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
+import sys
+import threading
+from typing import Literal
 import uuid
 import zipfile
 
-from fastapi import APIRouter, Body, HTTPException, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRoute
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from .jobs import atomic_json
+from .jobs import atomic_json, now
 from .models import JobConfig
+from .paths import resource_root
 from .research_store import PROPERTY_UNITS, ResearchStore
 from .server import client_label
 
@@ -70,12 +76,40 @@ class Retry(BaseModel):
     rule_id: str = Field(max_length=100)
 
 
+class DoeFactor(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    name: str = Field(min_length=1, max_length=80)
+    low: float
+    high: float
+
+
+class DoeDesign(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    factors: list[DoeFactor] = Field(min_length=2, max_length=6)
+    kind: Literal["factorial", "central_composite"] = "factorial"
+    center_points: int = Field(default=3, ge=0, le=20)
+    replicates: int = Field(default=1, ge=1, le=10)
+    seed: int = Field(default=1, ge=0, le=2**63 - 1)
+
+
+class DoeAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    text: str = Field(min_length=1, max_length=1_000_000)
+    factors: list[DoeFactor] = Field(min_length=2, max_length=6)
+    response: str = Field(min_length=1, max_length=80)
+    model: Literal["linear", "interaction", "quadratic"] = "quadratic"
+    objective: Literal["maximize", "minimize", "target"] = "maximize"
+    target: float | None = None
+    prediction_points: list[dict[str, float]] | None = Field(default=None, max_length=50)
+
+
 def initialize_research(app, manager):
     from .learning import SurrogateManager
     from .campaigns import CampaignManager
     root = manager.root.parent / "research"
     store = ResearchStore(root)
     app.state.research_root = root
+    app.state.doe_lock = threading.BoundedSemaphore(1)
     app.state.research_store = store
     app.state.surrogates = SurrogateManager(root, store)
     app.state.campaigns = CampaignManager(root, manager, store)
@@ -138,6 +172,137 @@ def import_measurements(payload: Rows, request: Request):
 def curves(payload: Curve):
     from .ingestion import analyze_curve
     return analyze_curve(payload.kind, payload.text, payload.options)
+
+
+def doe_root(request, create=False):
+    root = request.app.state.research_root / "doe"
+    if root.is_symlink() or root.resolve() != root:
+        raise HTTPException(422, "실험계획 기록 폴더는 링크가 아닌 로컬 폴더여야 합니다.")
+    if create:
+        root.mkdir(exist_ok=True, mode=0o700)
+    return root
+
+
+def save_doe_record(request, result, parameters, csv_text, record_type):
+    """Publish a complete immutable result and its CSV together; never touch reviewed measurements."""
+    from . import doe
+    root = doe_root(request, create=True)
+    identifier = uuid.uuid4().hex
+    staging = root / (".staging-" + identifier)
+    final = root / identifier
+    filename = "design.csv" if record_type == "doe_design" else "input.csv"
+    raw = csv_text.encode("utf-8")
+    kernel = doe._kernel()
+    compiled = sys.modules.get(kernel.doe_fit.__module__, kernel)
+    def file_hash(path):
+        if not path.is_file():
+            return None
+        with path.open("rb") as stream:
+            return hashlib.file_digest(stream, "sha256").hexdigest()
+    record = {**result, "id": identifier, "created_at": now(), "record_type": record_type,
+              "parameters": parameters, "input": {"file": filename, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)},
+              "provenance": {"kernel_version": kernel.__version__,
+                             "kernel_sha256": file_hash(Path(compiled.__file__)),
+                             "analysis_code_sha256": file_hash(resource_root() / "workbench" / "doe.py")},
+              "download_url": f"/api/research/doe/{identifier}/download", "csv_download_url": f"/api/research/doe/{identifier}/csv"}
+    label = client_label(request)
+    if label:
+        record["submitted_via"] = label
+    staging.mkdir(mode=0o700)
+    try:
+        (staging / filename).write_bytes(raw)
+        atomic_json(staging / "result.json", record)
+        staging.rename(final)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return record
+
+
+def doe_record_file(identifier, request, filename="result.json"):
+    if not re.fullmatch(r"[a-f0-9]{32}", identifier):
+        raise HTTPException(404, "실험계획 기록을 찾을 수 없습니다.")
+    folder = doe_root(request) / identifier
+    path = folder / filename
+    if folder.is_symlink() or folder.resolve() != folder or path.is_symlink() or not path.is_file():
+        raise HTTPException(404, "실험계획 기록을 찾을 수 없습니다.")
+    return path
+
+
+def doe_module():
+    from . import doe
+    try:
+        doe._kernel()
+    except ValueError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    return doe
+
+
+@router.post("/doe/design", status_code=201)
+def design_experiment(payload: DoeDesign, request: Request):
+    doe = doe_module()
+    if not request.app.state.doe_lock.acquire(blocking=False):
+        raise HTTPException(429, "다른 실험계획 계산이 진행 중입니다. 완료 후 다시 실행하세요.")
+    try:
+        parameters = payload.model_dump()
+        result = request.app.state.execution.compute("doe_design", parameters)
+        return save_doe_record(request, result, parameters, result["csv"], "doe_design")
+    finally:
+        request.app.state.doe_lock.release()
+
+
+@router.post("/doe/analyze", status_code=201)
+def analyze_experiment(payload: DoeAnalysis, request: Request):
+    if len(payload.text.encode("utf-8")) > 1_000_000:
+        raise HTTPException(413, "실험 데이터 CSV는 UTF-8 기준 1 MB 이하여야 합니다.")
+    doe = doe_module()
+    if not request.app.state.doe_lock.acquire(blocking=False):
+        raise HTTPException(429, "다른 실험계획 계산이 진행 중입니다. 완료 후 다시 실행하세요.")
+    try:
+        parameters = payload.model_dump(exclude={"text"})
+        result = request.app.state.execution.compute("doe_analyze", {"text": payload.text, **parameters})
+        return save_doe_record(request, result, parameters, payload.text, "doe_analysis")
+    finally:
+        request.app.state.doe_lock.release()
+
+
+@router.get("/doe")
+def list_doe_records(request: Request, limit: int = Query(default=30, ge=1, le=100)):
+    root = doe_root(request)
+    if not root.is_dir():
+        return {"records": []}
+    folders = [folder for folder in root.iterdir() if re.fullmatch(r"[a-f0-9]{32}", folder.name)
+               and folder.is_dir() and not folder.is_symlink()]
+    records, unreadable = [], 0
+    for folder in sorted(folders, key=lambda path: path.stat().st_mtime_ns, reverse=True):
+        if len(records) >= limit:
+            break
+        try:
+            path = doe_record_file(folder.name, request)
+            record = json.loads(path.read_text())
+            records.append({key: record.get(key) for key in ("id", "created_at", "record_type", "parameters", "kind", "factors", "response",
+                                                             "model", "objective", "total_runs", "fit", "recommendation",
+                                                             "download_url", "csv_download_url")})
+        except (OSError, ValueError, HTTPException):
+            unreadable += 1
+    return {"records": records, "unreadable_records": unreadable}
+
+
+@router.get("/doe/{identifier}")
+def get_doe_record(identifier: str, request: Request):
+    return json.loads(doe_record_file(identifier, request).read_text())
+
+
+@router.get("/doe/{identifier}/download")
+def download_doe_record(identifier: str, request: Request):
+    return FileResponse(doe_record_file(identifier, request), media_type="application/json", filename=f"PolymerLab-DOE-{identifier}.json")
+
+
+@router.get("/doe/{identifier}/csv")
+def download_doe_csv(identifier: str, request: Request):
+    record = get_doe_record(identifier, request)
+    filename = "design.csv" if record.get("record_type") == "doe_design" else "input.csv"
+    return FileResponse(doe_record_file(identifier, request, filename), media_type="text/csv; charset=utf-8", filename=f"PolymerLab-DOE-{identifier}.csv")
 
 
 @router.post("/documents", status_code=201)
@@ -329,11 +494,10 @@ def screening_blend(payload: BlendRequest):
 
 
 @router.post("/screening/blend-contacts")
-def screening_blend_contacts(payload: BlendContactRequest):
+def screening_blend_contacts(payload: BlendContactRequest, request: Request):
     from .blends import blend_chi
     try:
-        return blend_chi(payload.base_smiles, payload.screen_smiles, payload.temperatures, payload.samples, payload.clusters,
-                         payload.seed, payload.cap, payload.contact_scale, 1.0, payload.n_base, payload.n_screen)
+        return request.app.state.execution.compute("blend_contacts", payload.model_dump())
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 

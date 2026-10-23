@@ -7,6 +7,8 @@ import sys
 import traceback
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from workbench.paths import install_worker_lifecycle
+install_worker_lifecycle()
 from workbench.science import run_workflow, write_json
 
 

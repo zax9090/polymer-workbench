@@ -31,7 +31,9 @@ def atomic_json(path, value):
 
 
 class JobManager:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, execution=None):
+        from .execution import ExecutionManager
+        self.execution = execution or ExecutionManager()
         self.root = root.resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
@@ -68,11 +70,18 @@ class JobManager:
             atomic_json(self.directory(job_id) / "job.json", job)
             return job
 
-    def create(self, config, submitted_via=None):
+    def create(self, config, submitted_via=None, job_id=None):
         with self.lock:
             if self.closed:
                 raise RuntimeError("Server is stopping")
-            job_id = uuid.uuid4().hex
+            job_id = job_id or uuid.uuid4().hex
+            if len(job_id) != 32 or any(c not in "0123456789abcdef" for c in job_id):
+                raise ValueError("작업 ID 형식이 잘못되었습니다.")
+            if (self.root / job_id).exists():
+                existing = self._read(job_id)
+                if existing["config"] != config:
+                    raise ValueError("예약된 작업 ID의 설정이 다릅니다.")
+                return self.get(job_id)
             directory = self.root / job_id
             directory.mkdir()
             atomic_json(directory / "config.json", config)
@@ -85,6 +94,16 @@ class JobManager:
             return self.get(job_id)
 
     def _run(self, job_id):
+        from .execution import ExecutionCancelled
+        try:
+            with self.execution.slot("simulation", "job:" + job_id, lambda: job_id in self.cancelled or self.closed):
+                self._execute(job_id)
+        except ExecutionCancelled:
+            self._update(job_id, status="cancelled", finished_at=now())
+        except Exception as exc:
+            self._update(job_id, status="failed", error=str(exc), finished_at=now())
+
+    def _execute(self, job_id):
         directory = self.directory(job_id)
         try:
             with self.lock:
@@ -93,6 +112,9 @@ class JobManager:
                 self._update(job_id, status="running", started_at=now())
                 self._runtime(directory)
                 env = runtime_environment()
+                env["POLYMER_WORKER_PARENT_PID"] = str(os.getpid())
+                env["RAYON_NUM_THREADS"] = str(max(1, min(4, os.cpu_count() or 1)))
+                env.setdefault("POLYMER_MD_THREADS", env["RAYON_NUM_THREADS"])
                 # An isolated interpreter keeps long native MD/GPU work outside the API process.
                 log = open(directory / "worker.log", "w", encoding="utf-8")
                 try:
@@ -106,6 +128,11 @@ class JobManager:
                 rc = proc.wait()
             finally:
                 log.close()
+                # An engine timeout/crash must not leave descendants computing after the lease ends.
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
             # A native child may outlive its Python leader. Wait for group cleanup
             # before making a cancelled run downloadable.
             while True:
@@ -235,6 +262,7 @@ class JobManager:
             if job["status"] in TERMINAL:
                 return self.get(job_id)
             self.cancelled.add(job_id)
+            self.execution.cancel(owner="job:" + job_id)
             proc = self.processes.get(job_id)
             if proc is not None:
                 if job_id in self.stop_events:

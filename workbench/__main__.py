@@ -96,6 +96,9 @@ def main(arguments=None) -> int:
     # another desktop window when multiprocessing imports the executable.
     multiprocessing.freeze_support()
     args = list(sys.argv[1:] if arguments is None else arguments)
+    if args and args[0] == "--compute-worker":
+        from .compute_worker import main as run_compute
+        return run_compute(args[1])
     if args and args[0] == "--server":
         return run_server(args[1:])
     if args and args[0] == "--mcp":
