@@ -176,6 +176,19 @@ def test_analysis_busy_response_keeps_health_endpoint_responsive(client, monkeyp
         assert first.result(timeout=10).status_code == 200
 
 
+def test_analysis_runs_beside_a_simulation_but_not_another_analysis(client):
+    pytest.importorskip("workbench_native")
+    bulk_fixture(client)
+    execution = client.app.state.execution
+    with execution.slot("simulation", "job:held"):
+        assert post(client, "rdf", {"r_max": 5.0}).status_code == 200
+    execution.request_wait = 0.2
+    with execution.slot("blend_contacts", "held"):
+        busy = post(client, "rdf", {"r_max": 5.0})
+    assert busy.status_code == 429
+    assert "구조·접촉 분석" in busy.json()["detail"]
+
+
 def test_mcp_adapter_runs_real_analysis_and_returns_server_errors(client):
     pytest.importorskip("workbench_native")
     bulk_fixture(client)

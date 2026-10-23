@@ -268,7 +268,7 @@ class WorkflowManager:
                     if config_digest(job["config"]) != row["config_sha256"]:
                         raise ValueError("설계와 계산 설정이 다릅니다.")
                     result = analyze_structure(self.jobs, self.research_root, row["job_id"], "free_volume",
-                        record["analysis_parameters"], owner="workflow:" + identifier, cancelled=event.is_set)
+                        record["analysis_parameters"], owner="workflow:" + identifier, cancelled=event.is_set, bounded=False)
                     value = result["density_g_cm3"] if record["metric"] == "final_frame_density" else result["probes"][0]["accessible_fraction"]
                     if not math.isfinite(value):
                         raise ValueError("반응값이 유한하지 않습니다.")
@@ -402,7 +402,7 @@ class WorkflowManager:
                 raise ValueError("확인 계산의 설정이 변경됐습니다.")
             from .analysis_service import analyze_structure
             result = analyze_structure(self.jobs, self.research_root, job_id, "free_volume", record["analysis_parameters"],
-                owner="workflow:" + identifier, cancelled=event.is_set)
+                owner="workflow:" + identifier, cancelled=event.is_set, bounded=False)
             value = result["density_g_cm3"] if record["metric"] == "final_frame_density" else result["probes"][0]["accessible_fraction"]
             optimization = next(item for item in record["optimizations"] if item["id"] == confirmation["optimization_id"])
             observation = {"value": value, "unit": record["unit"], "analysis_id": result["record_id"],

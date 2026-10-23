@@ -167,6 +167,12 @@ def create_app(data_root=None):
     async def execution_error(request, exc):
         return JSONResponse({"detail": str(exc)}, status_code=409)
 
+    from .execution import ExecutionBusy
+
+    @app.exception_handler(ExecutionBusy)
+    async def execution_busy(request, exc):
+        return JSONResponse({"detail": str(exc)}, status_code=429)
+
     @app.get("/api/capabilities")
     def capabilities():
         from .external import get_capabilities

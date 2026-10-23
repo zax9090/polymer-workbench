@@ -3,7 +3,8 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 
-def analyze_structure(manager, research_root, job_id, analysis, parameters, owner=None, cancelled=None):
+def analyze_structure(manager, research_root, job_id, analysis, parameters, owner=None, cancelled=None, bounded=True):
+    """bounded=True answers 429 when another analysis holds the lane; workflow stages wait instead."""
     from .server import ANALYSIS_PARAMETERS
     from . import structure_analysis
     directory = manager.directory(job_id)
@@ -32,7 +33,8 @@ def analyze_structure(manager, research_root, job_id, analysis, parameters, owne
         raise HTTPException(503, "Rust 계산 커널이 설치되어 있지 않습니다. cargo가 있는 환경에서 setup.sh를 다시 실행하세요.")
     try:
         result = manager.execution.compute("structure", {"directory": str(directory), "analysis": analysis,
-            "parameters": parameters, "job_id": job_id}, owner=owner or "analysis:" + job_id, cancelled=cancelled)
+            "parameters": parameters, "job_id": job_id}, owner=owner or "analysis:" + job_id, cancelled=cancelled,
+            wait=manager.execution.request_wait if bounded else None)
         from .drive_backup import save_structure_analysis
         return save_structure_analysis(research_root, job_id, result, parameters)
     except (ValueError, OSError) as exc:

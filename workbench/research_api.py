@@ -18,6 +18,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
+from .execution import ExecutionBusy
 from .jobs import atomic_json, now
 from .models import JobConfig
 from .paths import resource_root
@@ -39,6 +40,8 @@ class ResearchRoute(APIRoute):
                 raise HTTPException(422, str(exc)) from exc
             except ImportError as exc:
                 raise HTTPException(503, f"필요한 실행 의존성을 확인하세요: {exc}") from exc
+            except ExecutionBusy as exc:
+                raise HTTPException(429, str(exc)) from exc
             except RuntimeError as exc:
                 raise HTTPException(409, str(exc)) from exc
         return handler
@@ -245,7 +248,8 @@ def design_experiment(payload: DoeDesign, request: Request):
         raise HTTPException(429, "다른 실험계획 계산이 진행 중입니다. 완료 후 다시 실행하세요.")
     try:
         parameters = payload.model_dump()
-        result = request.app.state.execution.compute("doe_design", parameters)
+        execution = request.app.state.execution
+        result = execution.compute("doe_design", parameters, wait=execution.request_wait)
         return save_doe_record(request, result, parameters, result["csv"], "doe_design")
     finally:
         request.app.state.doe_lock.release()
@@ -260,7 +264,8 @@ def analyze_experiment(payload: DoeAnalysis, request: Request):
         raise HTTPException(429, "다른 실험계획 계산이 진행 중입니다. 완료 후 다시 실행하세요.")
     try:
         parameters = payload.model_dump(exclude={"text"})
-        result = request.app.state.execution.compute("doe_analyze", {"text": payload.text, **parameters})
+        execution = request.app.state.execution
+        result = execution.compute("doe_analyze", {"text": payload.text, **parameters}, wait=execution.request_wait)
         return save_doe_record(request, result, parameters, payload.text, "doe_analysis")
     finally:
         request.app.state.doe_lock.release()
@@ -497,7 +502,8 @@ def screening_blend(payload: BlendRequest):
 def screening_blend_contacts(payload: BlendContactRequest, request: Request):
     from .blends import blend_chi
     try:
-        return request.app.state.execution.compute("blend_contacts", payload.model_dump())
+        execution = request.app.state.execution
+        return execution.compute("blend_contacts", payload.model_dump(), wait=execution.request_wait)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 
