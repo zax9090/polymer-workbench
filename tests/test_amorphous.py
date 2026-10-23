@@ -87,7 +87,7 @@ def test_native_cell_runs_through_the_bulk_route(tmp_path):
     config = JobConfig.model_validate({"route": "polymer_atomistic", "atomistic_mode": "bulk", "cell_builder": "native",
                                        "repeat_smiles": "[*]CC([*])c1ccccc1", "monomers": 6, "chains": 4, "protocol_scale": 0.001}).model_dump()
     result = run_workflow(config, tmp_path)
-    assert result["status"] == "completed"
+    assert result["status"] == "completed" and result["message"].startswith("Polymer Lab native") and result["elapsed_seconds"] >= 0
     builder = result["metadata"]["builder"]
     assert builder["builder"].startswith("native") and builder["chains"] == 4 and builder["density_g_cm3"] == 0.8
     assert (tmp_path / "native_amorphous.py").read_text() == (amorphous.__file__ and open(amorphous.__file__).read())

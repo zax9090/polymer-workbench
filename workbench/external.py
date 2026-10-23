@@ -420,7 +420,10 @@ def bulk_cell(config, output, emit, metadata):
     if missing:
         return blocked(output, "polymer_atomistic", missing, "Chain geometry and a RadonPy bulk-cell runner were exported; required engine is unavailable.")
     scale = float(config.get("protocol_scale", 1.0))
-    emit("simulate", 0.3, f"RadonPy amorphous cell ({config['chains']} chains) → packing → Larsen 21-step → NPT sampling (stage length x{scale:g})")
+    native = config.get("cell_builder", "radonpy") == "native"
+    start = (f"Polymer Lab native cell ({config['chains']} chains grown at {config.get('build_density', 0.8):g} g/cm^3) → minimisation + NVT"
+             if native else f"RadonPy amorphous cell ({config['chains']} chains) → packing")
+    emit("simulate", 0.3, f"{start} → Larsen 21-step → NPT sampling (stage length x{scale:g})")
     # Full-length RadonPy protocols take hours to days on a desktop.
     try:
         run_command(script_command(python, "run_radonpy_bulk.py"), output, "radonpy_bulk.log", timeout=7 * 86400, seed=config["seed"])
@@ -445,7 +448,8 @@ def bulk_cell(config, output, emit, metadata):
     summary = {"density_g_cm3": values["density"], "bulk_modulus_gpa": values["bulk_modulus"], "cp_j_kg_k": values["heat_capacity_cp"],
                "chain_rg_angstrom": values["chain_rg"], "atoms": complete["atoms"], "chains": complete["chains"],
                "sampling_ps": complete["stage_steps"]["sampling"] * complete["time_step_fs"] / 1000}
-    return outcome(output, "polymer_atomistic", "completed", "RadonPy bulk amorphous cell equilibrated by the Larsen 21-step protocol and sampled under NPT.",
+    cell = "Polymer Lab native amorphous cell" if native else "RadonPy bulk amorphous cell"
+    return outcome(output, "polymer_atomistic", "completed", f"{cell} equilibrated by the Larsen 21-step protocol and sampled under NPT.",
                    engine="RadonPy / LAMMPS", metadata={**{key: complete[key] for key in ("force_field", "charge_method", "ensemble", "protocol", "protocol_scale", "stage_steps", "time_step_fs", "temperature_kelvin", "pressure_atm", "chains", "atoms", "radonpy_criteria_met")}, "builder": complete.get("builder")},
                    metrics={"summary": {k: v for k, v in summary.items() if v is not None}, "properties": complete["properties"], "equilibrated": False},
                    warnings=warnings)
