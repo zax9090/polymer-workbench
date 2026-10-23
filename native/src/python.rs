@@ -1,7 +1,7 @@
 //! PyO3 bindings: module workbench_native.
 
 use crate::contacts::{self, closest_scaled_contact, pair_energy, Molecule, COULOMB};
-use crate::{doe, topology, trajectory, volume, widom};
+use crate::{doe, mixture, topology, trajectory, volume, widom};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::types::{PyDict, PyList};
 use pyo3::exceptions::PyValueError;
@@ -356,6 +356,103 @@ fn doe_optimize<'py>(py: Python<'py>, coefficients: PyReadonlyArray1<'py, f64>, 
     Ok(out)
 }
 
+fn region(lower: &[f64], upper: &[f64]) -> PyResult<mixture::Region> {
+    mixture::Region::new(lower, upper).map_err(PyValueError::new_err)
+}
+
+/// mixture_region(lower, upper) -> (lower, upper, simplex): bounds tightened by the sum-to-one constraint.
+#[pyfunction]
+fn mixture_region(lower: Vec<f64>, upper: Vec<f64>) -> PyResult<(Vec<f64>, Vec<f64>, bool)> {
+    let r = region(&lower, &upper)?;
+    let simplex = r.is_simplex();
+    Ok((r.lower, r.upper, simplex))
+}
+
+/// mixture_design(lower, upper, kind, degree=2, axial=False, centroid=True, replicates=1, seed=1)
+/// -> dict(points, types, lower, upper, simplex); points are real proportions summing to one.
+#[pyfunction]
+#[pyo3(signature = (lower, upper, kind, degree=2, axial=false, centroid=true, replicates=1, seed=1))]
+fn mixture_design<'py>(py: Python<'py>, lower: Vec<f64>, upper: Vec<f64>, kind: &str, degree: usize, axial: bool, centroid: bool,
+                       replicates: usize, seed: u64) -> PyResult<Bound<'py, PyDict>> {
+    let r = region(&lower, &upper)?;
+    let result = mixture::design(&r, kind, degree, axial, centroid, replicates, seed).map_err(PyValueError::new_err)?;
+    let out = PyDict::new(py);
+    out.set_item("points", result.points)?;
+    out.set_item("types", result.types)?;
+    out.set_item("simplex", r.is_simplex())?;
+    out.set_item("lower", r.lower)?;
+    out.set_item("upper", r.upper)?;
+    Ok(out)
+}
+
+/// mixture_optimize(lower, upper, coefficients, model, objective, target=None) -> dict(point, pseudo, predicted_response, starts)
+/// Coefficients are a Scheffé model in L-pseudocomponents of the region.
+#[pyfunction]
+#[pyo3(signature = (lower, upper, coefficients, model, objective, target=None))]
+fn mixture_optimize<'py>(py: Python<'py>, lower: Vec<f64>, upper: Vec<f64>, coefficients: Vec<f64>, model: String, objective: &str,
+                         target: Option<f64>) -> PyResult<Bound<'py, PyDict>> {
+    let r = region(&lower, &upper)?;
+    let response = mixture::Response { coefficients, model };
+    let domain = mixture::Domain::Mixture(r.clone());
+    mixture::check_response(&domain, &response).map_err(PyValueError::new_err)?;
+    let aim = match (objective, target) {
+        ("maximize" | "minimize", None) => 0.0,
+        ("target", Some(t)) if t.is_finite() => t,
+        _ => return Err(PyValueError::new_err("objective is maximize, minimize, or target with a finite target")),
+    };
+    let score = |x: &[f64]| {
+        let y = domain.predict(&response, x);
+        match objective { "maximize" => y, "minimize" => -y, _ => -(y - aim).abs() }
+    };
+    let best = py.detach(|| mixture::optimize_region(&r, &score));
+    let out = PyDict::new(py);
+    out.set_item("predicted_response", domain.predict(&response, &best.point))?;
+    out.set_item("pseudo", r.to_pseudo(&best.point))?;
+    out.set_item("point", best.point)?;
+    out.set_item("starts", best.starts)?;
+    Ok(out)
+}
+
+type GoalSpec = (String, f64, f64, f64, f64, f64, f64);
+
+fn goals(specs: &[GoalSpec]) -> PyResult<Vec<mixture::Goal>> {
+    specs.iter().map(|(kind, lower, target, upper, s, t, importance)|
+        mixture::Goal::new(kind, *lower, *target, *upper, *s, *t, *importance).map_err(PyValueError::new_err)).collect()
+}
+
+/// desirability(goals, values) -> (individual, composite); goal = (kind, lower, target, upper, lower_shape, upper_shape, importance).
+#[pyfunction]
+fn desirability(goal_specs: Vec<GoalSpec>, values: Vec<f64>) -> PyResult<(Vec<f64>, f64)> {
+    let g = goals(&goal_specs)?;
+    if g.len() != values.len() {
+        return Err(PyValueError::new_err("one value per goal is required"));
+    }
+    Ok(mixture::composite(&g, &values))
+}
+
+/// desirability_optimize(domain, models, goals, factors=0, lower=[], upper=[]) -> dict(point, values, individual, composite, starts)
+/// domain "cube" searches coded [-1, 1]^factors; "mixture" searches the bounded mixture region.
+#[pyfunction]
+#[pyo3(signature = (domain, models, goal_specs, factors=0, lower=Vec::new(), upper=Vec::new()))]
+fn desirability_optimize<'py>(py: Python<'py>, domain: &str, models: Vec<(Vec<f64>, String)>, goal_specs: Vec<GoalSpec>, factors: usize,
+                              lower: Vec<f64>, upper: Vec<f64>) -> PyResult<Bound<'py, PyDict>> {
+    let domain = match domain {
+        "cube" => mixture::Domain::Cube(factors),
+        "mixture" => mixture::Domain::Mixture(region(&lower, &upper)?),
+        _ => return Err(PyValueError::new_err("domain is cube or mixture")),
+    };
+    let responses: Vec<mixture::Response> = models.into_iter().map(|(coefficients, model)| mixture::Response { coefficients, model }).collect();
+    let g = goals(&goal_specs)?;
+    let best = py.detach(|| mixture::optimize_desirability(&domain, &responses, &g)).map_err(PyValueError::new_err)?;
+    let out = PyDict::new(py);
+    out.set_item("point", best.point)?;
+    out.set_item("values", best.values)?;
+    out.set_item("individual", best.individual)?;
+    out.set_item("composite", best.composite)?;
+    out.set_item("starts", best.starts)?;
+    Ok(out)
+}
+
 /// connectivity_indices(atomic_numbers, hydrogens, bonds) -> dict(chi0, chi1, chi0v, chi1v, delta, delta_v)
 #[pyfunction]
 fn connectivity_indices<'py>(py: Python<'py>, atomic_numbers: Vec<u32>, hydrogens: Vec<u32>, bonds: Vec<(usize, usize)>) -> PyResult<Bound<'py, PyDict>> {
@@ -391,6 +488,11 @@ fn workbench_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(doe_predict, m)?)?;
     m.add_function(wrap_pyfunction!(doe_optimize, m)?)?;
     m.add_function(wrap_pyfunction!(connectivity_indices, m)?)?;
+    m.add_function(wrap_pyfunction!(mixture_design, m)?)?;
+    m.add_function(wrap_pyfunction!(mixture_region, m)?)?;
+    m.add_function(wrap_pyfunction!(mixture_optimize, m)?)?;
+    m.add_function(wrap_pyfunction!(desirability, m)?)?;
+    m.add_function(wrap_pyfunction!(desirability_optimize, m)?)?;
     m.add_function(wrap_pyfunction!(block_atoms, m)?)?;
     m.add("R_KCAL", widom::R_KCAL)?;
     m.add("COULOMB", COULOMB)?;
