@@ -566,6 +566,16 @@ class PolymerLabTools:
                    "contact_scale": {"type": "number", "default": 1.0}, "n_base": {"type": "number", "default": 1}, "n_screen": {"type": "number", "default": 1}},
                   ["base_smiles", "screen_smiles"]),
           self.blend_chi_contacts, read_only=True, idempotent=True)
+        t("run_sheet", "Paste-to-run sheet (실행표)",
+          "A line-based sheet starting with '# Polymer Lab 실행표 v1' declares a Blends chi screen (종류: blends; 기준/대상 lines 'name | SMILES | 중합도=N', "
+          "온도, 표본, 클러스터, 시드, 말단, 접촉배율) or a job batch (종류: 작업; '공통: field=value | ...' and '작업: name | field=value | ...' with JobConfig field names). "
+          "Nothing in a sheet is executed as code. preview checks every line and each job exactly like the job API and returns line-numbered Korean errors without creating anything; "
+          "run saves the sheet and starts it (Blends pairs one by one in the analysis queue, jobs in the MD queue); status, list, cancel, resume and templates manage sheets. "
+          "Call run only after the user asked to run that sheet. Blends chi is an exploratory enthalpic estimate (see blend_chi_contacts); jobs keep the usual status meanings.",
+          _schema({"action": {"type": "string", "enum": ["preview", "run", "status", "list", "cancel", "resume", "templates"]},
+                   "text": {"type": "string", "maxLength": 100000, "description": "Sheet text for preview or run"},
+                   "sheet_id": {"type": "string", "pattern": "^[0-9a-f]{32}$", "description": "Sheet ID for status, cancel or resume"}}, ["action"]),
+          self.run_sheet)
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
         t("create_research_report", "Create research report",
@@ -706,6 +716,24 @@ class PolymerLabTools:
 
     def control_research_workflow(self, args):
         return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/{args['action']}", args.get("parameters", {}), timeout=3600)
+
+    def run_sheet(self, args):
+        action, text, identifier = args["action"], args.get("text"), args.get("sheet_id")
+        if action in {"preview", "run"} and not text:
+            raise ToolError("preview and run need the sheet text.")
+        if action in {"status", "cancel", "resume"} and not identifier:
+            raise ToolError(f"{action} needs sheet_id.")
+        if action == "preview":
+            return self.client.request("POST", "/api/research/sheets/preview", {"text": text}, timeout=120)
+        if action == "run":
+            return self.client.request("POST", "/api/research/sheets", {"text": text}, timeout=300)
+        if action == "list":
+            return self.client.request("GET", "/api/research/sheets")
+        if action == "templates":
+            return self.client.request("GET", "/api/research/sheets/templates")
+        if action == "status":
+            return self.client.request("GET", f"/api/research/sheets/{identifier}")
+        return self.client.request("POST", f"/api/research/sheets/{identifier}/{action}", {}, timeout=60)
 
     def create_tg_scan_workflow(self, args):
         body = {key: value for key, value in args.items() if key != "workflow_id"}

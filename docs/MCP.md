@@ -91,6 +91,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `screen_polymer` | 반복단위 최대 20개의 RadonPy PI1070 참조 MD 물성 예측(불확실성·적용 범위·최근접 참조·내 벌크 계산 비교, 선택 시 교차검증) |
 | `rank_solvents` · `fit_hsp_sphere` · `blend_compatibility` | Hansen 용매 순위(RED·χ·두 용매 혼합), 용해 시험으로 구 피팅(저장하지 않는 초안), 고분자 블렌드 χ와 임계 χ |
 | `blend_chi_contacts` | Blends 방식 분자 접촉 χ(T)·배위수·임계점(Rust 커널, 실험적, 엔탈피 χ만) |
+| `run_sheet` | `# Polymer Lab 실행표 v1` 실행표(Blends χ 스크리닝·작업 묶음)를 검사(줄 번호가 붙은 한국어 오류, 아무것도 만들지 않음)·실행·상태·취소·이어서 실행. 실행표는 코드로 실행되지 않음(`docs/RUN_SHEETS.md`) |
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
 | `create_tg_scan_workflow` | 완료된 GAFF2·PCFF 벌크·가교 흐름의 셀마다 단계 냉각 Tg 스캔을 만드는 후속 흐름 저장(계산은 시작하지 않음) |
 | `run_research_workflow_plan` | 벌크 연구 흐름 계획의 최대 계산 수 미리보기, 사용자가 승인한 계획·예산으로 끝까지 실행(같은 설정 재시도·실패 한도·최적화·확인 계산·보고서), 멈추기 |
@@ -126,6 +127,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `create_tg_scan_workflow` | `POST /api/research/workflows/{id}/tg-scan` | `tg_high_kelvin`, `tg_low_kelvin`, `tg_step_kelvin`, `tg_stage_steps`, `metric`, `responses`, `budget` |
 | `run_research_workflow_plan` | `POST /api/research/workflows/{id}/autopilot/preview`, `…/autopilot`, `…/autopilot/stop` | `action: preview·start·stop`, `plan: {rows, max_attempts, max_failed_rows, optimize, model, objective, target, confirm, report, upload_report}`, start에는 `approved_budget`(미리보기 최대 계산 수 이상) |
 | `create_research_report` | `POST /api/research/reports`, 선택 시 `POST /api/research/reports/{id}/drive` | `kind: doe·workflow·lab`, `id`(doe·workflow), `upload_to_drive` |
+| `run_sheet` | `POST /api/research/sheets/preview`, `POST /api/research/sheets`, `GET /api/research/sheets[/{id}]`, `POST /api/research/sheets/{id}/cancel·resume`, `GET /api/research/sheets/templates` | `action: preview·run·status·list·cancel·resume·templates`, `text`(preview·run), `sheet_id`(status·cancel·resume) |
 
 두 도구는 `research/doe/{id}`에 불변 JSON과 설계 또는 측정 CSV를 저장하므로 `readOnlyHint=false`입니다. 결과의 `download_url`은 JSON, `csv_download_url`은 CSV입니다. 기록 목록은 `GET /api/research/doe`, 상세는 `GET /api/research/doe/{id}`로 읽습니다. CSV는 UTF-8 기준 1 MB 이하이며 누락된 행을 자동 제거하지 않습니다. 저장해도 검토 완료 측정값이 되지 않습니다.
 

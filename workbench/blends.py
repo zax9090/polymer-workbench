@@ -34,10 +34,9 @@ def kernel():
     return {"engine": "rust", "version": native.__version__} if native else {"engine": "numpy", "version": np.__version__}
 
 
-def prepare(smiles, cap="hydrogen", seed=1):
-    """3D conformer and GAFF2 nonbonded parameters (Gasteiger charges) of one component."""
+def capped(smiles, cap="hydrogen"):
+    """The neutral single molecule a component becomes once its attachment points are capped (with hydrogens)."""
     from rdkit import Chem
-    from rdkit.Chem import AllChem
     if cap not in ("hydrogen", "methyl"):
         raise ValueError("cap must be hydrogen or methyl")
     mol = Chem.MolFromSmiles(smiles)
@@ -59,6 +58,14 @@ def prepare(smiles, cap="hydrogen", seed=1):
     mol = Chem.AddHs(mol)
     if mol.GetNumAtoms() > MAX_ATOMS:
         raise ValueError(f"성분 하나는 원자 {MAX_ATOMS}개 이하여야 합니다.")
+    return mol
+
+
+def prepare(smiles, cap="hydrogen", seed=1):
+    """3D conformer and GAFF2 nonbonded parameters (Gasteiger charges) of one component."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    mol = capped(smiles, cap)
     params = AllChem.ETKDGv3()
     params.randomSeed = int(seed)
     if AllChem.EmbedMolecule(mol, params) != 0:

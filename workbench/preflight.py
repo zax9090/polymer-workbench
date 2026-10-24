@@ -153,3 +153,38 @@ def check(config):
     warnings.append("Run time is not estimated; it depends on the machine, thread count and stage lengths.")
     return {"valid": not errors, "errors": errors, "warnings": warnings, "estimate": estimate, "engines": engine_rows,
             "config": cfg.model_dump(exclude={"pdb_text", "a3m_text", "forcefield_itp_text", "mdp_text", "engine_input"})}
+
+
+def prepare_submission(manager, cfg):
+    """Resolve source-job files and reject what would fail in the worker; returns (config, report).
+
+    Shared by the job API and paste-to-run sheets so both apply identical checks. Raises ValueError
+    with a Korean message, or KeyError for an unknown source job.
+    """
+    if cfg.route == "polymer_atomistic" and cfg.atomistic_mode == "tg_scan":
+        from .glass_transition import required_files
+        source = manager.get(cfg.source_job_id)
+        files = required_files(source["config"])
+        directory = manager.directory(cfg.source_job_id)
+        if source["status"] != "completed" or any((directory / n).is_symlink() or not (directory / n).is_file() for n in files):
+            raise ValueError("완료된 벌크 셀 또는 가교 작업의 최종 구조 파일(" + ", ".join(files) + ")이 필요합니다.")
+        cfg.source_artifact = files[0]
+    elif cfg.source_job_id:
+        source = manager.get(cfg.source_job_id)
+        if cfg.route not in {"packmol", "mixture"} or source["status"] not in {"completed", "prepared"}:
+            raise ValueError("완료된 원자 구조 작업을 PACKMOL 또는 혼합계 브릿지로 이어갈 수 있습니다.")
+        if source["config"]["route"] in {"polymer_cg", "hoomd"}:
+            raise ValueError("조대화 비드 좌표는 원자 구조와 단위·모델이 달라 직접 연결할 수 없습니다.")
+        path = manager.directory(cfg.source_job_id) / cfg.source_artifact
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5000000:
+            raise ValueError("5 MB 이하의 PDB 구조 파일이 필요합니다.")
+        cfg.pdb_text = path.read_text()
+    # Chemistry that would only fail inside the worker is rejected before a job exists.
+    report = check(cfg.model_dump())
+    if report["errors"]:
+        message = " ".join(error["message"] for error in report["errors"])
+        candidates = ((report.get("estimate") or {}).get("repeat_unit") or {}).get("candidates")
+        if candidates:
+            message += " 반복단위 후보(화학 구조를 확인한 뒤 사용): " + ", ".join(candidates)
+        raise ValueError(message)
+    return cfg, report
