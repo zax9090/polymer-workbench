@@ -43,3 +43,9 @@
 .venv/bin/python -m pip install --target /tmp/xlsxlib --no-deps openpyxl==3.1.5 et_xmlfile==2.0.0
 PYTHONPATH=/tmp/xlsxlib .venv/bin/python scripts/crosscheck_report_xlsx_openpyxl.py . data/research/reports
 ```
+
+## 워크플로우 재현 입력
+
+워크플로우 보고서의 `inputs/`에는 흐름 스냅샷, 원본 설계 JSON/CSV, 행별 모든 시도·확인·Tg 원래 셀의 설정/seed/역할/상태, 저장된 결과 요약을 담습니다. 목표 계약과 승인한 자동 실행 계획은 저장돼 있을 때 포함하며 각 해시를 확인합니다. 결과 요약의 힘장·프로토콜·수렴·경고는 원래 값을 유지하고, 원래 기록에 엔진 버전이 없으면 `null/not_recorded`로 표시합니다. 현재 설치 버전으로 과거 버전을 채우지 않습니다.
+
+입력은 기존 manifest·ZIP 해시 대상이며 합계 20 MiB를 넘으면 게시하지 않습니다. 원본 해시 변경·심볼릭 링크는 거부하고, 사라진 과거 자료는 경고와 누락으로 보존합니다. 원시 MD 궤적·엔진·인증 설정을 포함하지 않고 자동 재실행도 하지 않습니다. 이 묶음으로 물리적 타당성이나 비트 단위 동일 결과를 보장하지 않습니다.

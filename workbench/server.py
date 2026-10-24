@@ -352,6 +352,8 @@ def create_app(data_root=None):
     app.include_router(workflow_router)
     from .sheet_api import router as sheet_router
     app.include_router(sheet_router)
+    from .target_api import router as target_router
+    app.include_router(target_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")
     app.mount("/", StaticFiles(directory=ROOT / "workbench" / "static", html=True), name="frontend")
     return app

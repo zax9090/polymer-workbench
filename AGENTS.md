@@ -22,6 +22,7 @@
 | `workbench/execution.py`, `native/src/execution.rs`, `compute_worker.py` | 실행 큐(MD·분석·통계 세 줄)와 별도 계산 프로세스. 새 계산은 이 경로로 연결하고 `LANES`에서 줄을 정함. HTTP 요청은 `request_wait`로 대기 시간 제한 |
 | `workbench/workflows.py`, `workflow_api.py` | 단계별 DOE→계산(GAFF2 자체 벌크, PCFF 벌크, 에폭시–아민 가교, 그 셀의 Tg 스캔 후속 흐름)→자유 부피·NPT 물성·전환율·Tg→추천(단일 반응 또는 만족도)·확인. 경로별 연결 설정(정수 설정은 반올림 확인), 행마다 여러 반응값, 입력 일치·예산·중복·출처(분석·결과 파일 해시) 검증. 검증 `docs/WORKFLOWS.md` |
 | `workbench/sheets.py`, `sheet_api.py`, `static/sheets.js` | 붙여넣어 실행하는 실행표(`# Polymer Lab 실행표 v1`). Blends χ 스크리닝과 작업 묶음, 줄 번호 한국어 오류, 작업은 `preflight.prepare_submission`(작업 API와 같은 검사). 코드로 실행되지 않음. 형식·검증 `docs/RUN_SHEETS.md`, MCP `run_sheet` |
+| `workbench/target_spec.py`, `target_api.py` | 목표·단위·독립 변수·예산 계약. 기존 Rust DOE·벌크 흐름을 준비하며 MD는 별도 승인. 예측 스크리닝 미지원 표시 |
 | `workbench/autopilot.py` | 사람이 한 번 승인한 계획·계산 수 안에서 연구 흐름을 끝까지 실행(같은 설정 재시도, 실패 한도, 제외 사유 기록, 확인 계산, 보고서). 설정은 바꾸지 않고 값은 모두 검토 전. 실행 중에는 직접 단계 실행을 막음 |
 | `workbench/doe.py`, `native/src/doe.rs`, `native/src/mixture.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, 혼합물 설계(심플렉스 격자·중심, 꼭짓점)와 Scheffé 모델(L-유사성분), QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색, Derringer–Suich 다중 반응 만족도. 검증 `docs/DOE_MIXTURE.md` |
 | `workbench/process.py`, `evaluation.py` | 공정 데이터 분석: 데이터 사전, I-MR·X̄-S 관리도와 신호 규칙, Cp·Cpk·Pp·Ppk, 균형 내포 분산 성분, 층별 불량률(Mantel–Haenszel). 모델 평가: 판정 기준별 놓침·오탐·비용, 가상계측 경계 오차, 무작위·로트·시간 분할 비교. 검증 기록 `docs/PROCESS.md` |

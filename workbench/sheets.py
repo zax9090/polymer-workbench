@@ -440,6 +440,7 @@ class SheetManager:
         self.manager, self.execution = manager, execution
         self.lock = threading.RLock()
         self.events, self.threads = {}, {}
+        self.submitting = set()
         self.closed = False
         for path in self.root.glob("*/record.json"):
             try:
@@ -476,6 +477,9 @@ class SheetManager:
 
     def create(self, text, submitted_via=None):
         plan = inspect(text, self.manager)
+        with self.lock:
+            if self.closed:
+                raise RuntimeError("서버가 종료 중입니다.")
         identifier = uuid.uuid4().hex
         folder = self.root / identifier
         folder.mkdir()
@@ -499,17 +503,46 @@ class SheetManager:
         return self.get(identifier)
 
     def _submit_jobs(self, identifier):
+        with self.lock:
+            if identifier in self.submitting:
+                raise RuntimeError("이 실행표의 작업 제출을 마무리하는 중입니다. 잠시 후 다시 시도하세요.")
+            self.submitting.add(identifier)
+        try:
+            self._submit_reserved_jobs(identifier)
+        finally:
+            with self.lock:
+                self.submitting.discard(identifier)
+
+    def _submit_reserved_jobs(self, identifier):
         from .preflight import prepare_submission
         record = self._read(identifier)
+        with self.lock:
+            event = self.events.setdefault(identifier, threading.Event())
+        stopped = lambda: event.is_set() or self.closed  # noqa: E731
         try:
             for item in record["items"]:
+                if stopped():
+                    break
                 # Source files are read again at submission; reserved job IDs make a resumed submission idempotent.
                 cfg, _ = prepare_submission(self.manager, JobConfig.model_validate(item["config"]))
+                if stopped():
+                    break
                 self.manager.create(cfg.model_dump(), submitted_via="sheet:" + identifier, job_id=item["job_id"])
+                # Cancellation can arrive while create() is publishing this reserved job ID.
+                if stopped():
+                    self.manager.cancel(item["job_id"])
+                    break
         except (ValueError, KeyError, RuntimeError) as exc:
-            self._update(identifier, lambda r: r.update(status="interrupted", error=str(exc), interrupted_at=now()))
-            raise
-        self._update(identifier, lambda r: r.update(status="submitted", submitted_at=now(), error=None))
+            with self.lock:
+                if not stopped():
+                    self._update(identifier, lambda r: r.update(status="interrupted", error=str(exc), interrupted_at=now()))
+                    raise
+        with self.lock:
+            if stopped():
+                self._update(identifier, lambda r: r.update(status="cancelled" if event.is_set() else "interrupted",
+                                                           finished_at=now()))
+            else:
+                self._update(identifier, lambda r: r.update(status="submitted", submitted_at=now(), error=None))
 
     def _start(self, identifier):
         with self.lock:
@@ -517,7 +550,9 @@ class SheetManager:
                 raise RuntimeError("서버가 종료 중입니다.")
             if identifier in self.threads and self.threads[identifier].is_alive():
                 raise RuntimeError("이 실행표는 이미 실행 중입니다.")
-            event = threading.Event()
+            event = self.events.setdefault(identifier, threading.Event())
+            if event.is_set():
+                return
             thread = threading.Thread(target=self._run_blends, args=(identifier, event), name=f"sheet-{identifier[:8]}", daemon=True)
             self.events[identifier], self.threads[identifier] = event, thread
             thread.start()
@@ -564,8 +599,16 @@ class SheetManager:
                 r["status"] = "failed" if all(s == "failed" for s in statuses) else "completed"
             r["finished_at"] = now()
             r["ranking"] = ranking(r["items"])
-        record = self._update(identifier, finish)
-        self._write_csv(record)
+        # Publish completion only after its export exists: clients stop polling at terminal states.
+        record = self._read(identifier)
+        finish(record)
+        try:
+            self._write_csv(record)
+        except (OSError, ValueError, RuntimeError, ImportError) as exc:
+            self._update(identifier, lambda r: r.update(status="failed", finished_at=now(),
+                error=f"결과 CSV 저장에 실패했습니다. 조합별 계산 결과는 보존됩니다: {exc}"))
+            return
+        self._update(identifier, finish)
 
     def _write_csv(self, record):
         from .reports import write_csv
@@ -599,9 +642,8 @@ class SheetManager:
                 item["status"], item["error"] = "not_created", None
             counts[item["status"]] = counts.get(item["status"], 0) + 1
         record["counts"] = counts
-        if record["status"] == "submitted":
-            active = any(item["status"] in {"queued", "running"} for item in record["items"])
-            record["progress"] = "running" if active else "finished"
+        active = any(item["status"] in {"queued", "running"} for item in record["items"])
+        record["progress"] = "running" if active or record["status"] == "submitting" else "finished"
         return record
 
     def get(self, identifier):
@@ -639,11 +681,13 @@ class SheetManager:
         return path
 
     def cancel(self, identifier):
-        record = self._read(identifier)
+        with self.lock:
+            record = self._read(identifier)
+            event = self.events.setdefault(identifier, threading.Event())
+            event.set()
+            if record["kind"] == "jobs" and record["status"] in {"interrupted", "submitting", "submitted"}:
+                self._update(identifier, lambda r: r.update(status="cancelled", finished_at=now()))
         if record["kind"] == "blends":
-            event = self.events.get(identifier)
-            if event is not None:
-                event.set()
             self.execution.cancel(owner="sheet:" + identifier)
             thread = self.threads.get(identifier)
             if thread is not None:
@@ -656,25 +700,31 @@ class SheetManager:
                     self.manager.cancel(item["job_id"])
                 except KeyError:
                     pass
-            if record["status"] in {"interrupted", "submitting"}:
-                self._update(identifier, lambda r: r.update(status="cancelled", finished_at=now()))
         return self.get(identifier)
 
     def resume(self, identifier):
         """Continue an interrupted or cancelled sheet: Blends pairs that never finished, or jobs never created."""
-        record = self._read(identifier)
-        if record["status"] not in {"interrupted", "cancelled"}:
-            raise RuntimeError("중단되었거나 취소된 실행표만 이어서 실행합니다.")
-        if record["kind"] == "blends":
-            if not any(item["status"] == "pending" for item in record["items"]):
-                raise RuntimeError("남은 조합이 없습니다.")
-            self._update(identifier, lambda r: r.update(status="queued", finished_at=None))
-            self._start(identifier)
-        else:
-            missing = [item for item in self._jobs_view(record)["items"] if item["status"] == "not_created"]
-            if not missing:
-                raise RuntimeError("만들지 못한 작업이 없습니다. 취소된 작업은 작업 화면에서 다시 실행하세요.")
-            self._update(identifier, lambda r: r.update(status="submitting"))
+        with self.lock:
+            if self.closed:
+                raise RuntimeError("서버가 종료 중입니다.")
+            if identifier in self.submitting:
+                raise RuntimeError("이 실행표의 작업 제출을 마무리하는 중입니다. 잠시 후 다시 시도하세요.")
+            record = self._read(identifier)
+            if record["status"] not in {"interrupted", "cancelled"}:
+                raise RuntimeError("중단되었거나 취소된 실행표만 이어서 실행합니다.")
+            if record["kind"] == "blends":
+                if not any(item["status"] == "pending" for item in record["items"]):
+                    raise RuntimeError("남은 조합이 없습니다.")
+                self.events[identifier] = threading.Event()
+                self._update(identifier, lambda r: r.update(status="queued", finished_at=None))
+                self._start(identifier)
+            else:
+                missing = [item for item in self._jobs_view(record)["items"] if item["status"] == "not_created"]
+                if not missing:
+                    raise RuntimeError("만들지 못한 작업이 없습니다. 취소된 작업은 작업 화면에서 다시 실행하세요.")
+                self.events[identifier] = threading.Event()
+                self._update(identifier, lambda r: r.update(status="submitting", finished_at=None))
+        if record["kind"] == "jobs":
             self._submit_jobs(identifier)
         return self.get(identifier)
 

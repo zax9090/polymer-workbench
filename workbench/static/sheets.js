@@ -1,12 +1,28 @@
 'use strict';
 (() => {
-  const statusLabels = { queued: '대기', running: '실행 중', completed: '완료', failed: '실패', cancelled: '취소됨', interrupted: '중단됨', submitting: '제출 중', submitted: '제출됨', pending: '남음', blocked: '엔진 없음', prepared: '입력 준비됨', not_created: '만들지 않음' };
+  const statusLabels = { queued: '대기', running: '실행 중', completed: '완료', finished: '작업 종료', failed: '실패', cancelled: '취소됨', interrupted: '중단됨', submitting: '제출 중', submitted: '제출됨', pending: '남음', blocked: '엔진 없음', prepared: '입력 준비됨', not_created: '만들지 않음' };
   const label = status => escape(statusLabels[status] || status);
   const fmt = value => Number.isFinite(value) ? escape(formatNumber(value)) : '—';
   const table = (head, rows) => `<div class="table-scroll"><table class="research-table"><thead><tr>${head.map(h => `<th>${escape(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   const features = items => `<div class="research-features">${items.map(([name, value, note]) => `<div class="research-feature"><span>${escape(name)}</span><strong>${value}</strong>${note ? `<small>${escape(note)}</small>` : ''}</div>`).join('')}</div>`;
   const warnings = list => list?.length ? `<div class="structure-warnings"><strong>주의</strong><ul>${list.map(w => `<li>${escape(w)}</li>`).join('')}</ul></div>` : '';
-  let templates = null, current = null, timer = null;
+  let templates = null, templateRequest = null, current = null, timer = null, actionPending = false;
+
+  async function formAction(action) {
+    if (actionPending) return;
+    actionPending = true;
+    const form = $('#sheet-form');
+    $$('button', form).forEach(button => { button.disabled = true; });
+    $('#sheet-text').readOnly = true;
+    form.setAttribute('aria-busy', 'true');
+    try { return await action(); }
+    finally {
+      actionPending = false;
+      $$('button', form).forEach(button => { button.disabled = false; });
+      $('#sheet-text').readOnly = false;
+      form.removeAttribute('aria-busy');
+    }
+  }
 
   function selectLine(number) {
     const area = $('#sheet-text'), lines = area.value.replace(/\r\n?/g, '\n').split('\n');
@@ -40,7 +56,7 @@
   }
   function actions(record) {
     const buttons = [];
-    if (['queued', 'running'].includes(record.status) || (record.kind === 'jobs' && record.progress === 'running')) buttons.push(`<button class="secondary-button" type="button" data-sheet-action="cancel">취소</button>`);
+    if (['queued', 'running', 'submitting'].includes(record.status) || (record.kind === 'jobs' && record.progress === 'running')) buttons.push(`<button class="secondary-button" type="button" data-sheet-action="cancel">취소</button>`);
     if (['interrupted', 'cancelled'].includes(record.status)) buttons.push(`<button class="secondary-button" type="button" data-sheet-action="resume">남은 것 이어서 실행</button>`);
     if (record.csv_url) buttons.push(`<a class="secondary-button" href="${escape(record.csv_url)}" download>결과 CSV</a>`);
     buttons.push(`<button class="text-button" type="button" data-sheet-load="${record.id}">실행표 다시 불러오기</button>`);
@@ -48,7 +64,7 @@
   }
   function recordHTML(record) {
     const counts = Object.entries(record.counts || {}).map(([s, n]) => `${statusLabels[s] || s} ${n}`).join(' · ');
-    let html = `<h3 class="research-subtitle">${escape(record.name)} <span class="research-tag ${record.status === 'failed' ? 'amber' : ''}">${label(record.kind === 'jobs' && record.status === 'submitted' ? (record.progress === 'running' ? 'running' : 'completed') : record.status)}</span></h3>`;
+    let html = `<h3 class="research-subtitle">${escape(record.name)} <span class="research-tag ${record.status === 'failed' ? 'amber' : ''}">${label(record.kind === 'jobs' && record.status === 'submitted' ? (record.progress === 'running' ? 'running' : 'finished') : record.status)}</span></h3>`;
     html += `<p class="research-footnote">${escape(counts)} · 실행표 SHA-256 <span class="mono">${escape(record.sheet_sha256.slice(0, 16))}…</span>${record.error ? ` · ${escape(record.error)}` : ''}</p>`;
     if (record.kind === 'blends') {
       const done = record.items.filter(i => i.status === 'completed'), rank = new Map(record.ranking.map(r => [r.index, r.rank]));
@@ -90,14 +106,17 @@
   }
   async function loadTemplates() {
     if (templates) return;
-    templates = (await api('/api/research/sheets/templates')).templates;
-    $('#sheet-templates').innerHTML = templates.map(t => `<button class="text-button" type="button" data-sheet-template="${escape(t.id)}">예제: ${escape(t.title)}</button>`).join('');
+    if (!templateRequest) templateRequest = api('/api/research/sheets/templates').then(result => {
+      templates = result.templates;
+      $('#sheet-templates').innerHTML = templates.map(t => `<button class="text-button" type="button" data-sheet-template="${escape(t.id)}">예제: ${escape(t.title)}</button>`).join('');
+    }).finally(() => { templateRequest = null; });
+    await templateRequest;
   }
-  async function check() {
+  async function check(text = $('#sheet-text').value) {
     const result = $('#sheet-result');
     result.setAttribute('aria-busy', 'true');
     try {
-      const plan = await api('/api/research/sheets/preview', { method: 'POST', body: JSON.stringify({ text: $('#sheet-text').value }) });
+      const plan = await api('/api/research/sheets/preview', { method: 'POST', body: JSON.stringify({ text }) });
       clearTimeout(timer);
       current = null;
       result.innerHTML = previewHTML(plan);
@@ -105,34 +124,52 @@
     } finally { result.removeAttribute('aria-busy'); }
   }
 
-  $('#sheet-check').addEventListener('click', () => check().catch(error => toast(error.message, true)));
+  $('#sheet-check').addEventListener('click', () => formAction(() => check()).catch(error => toast(error.message, true)));
+  $('#sheet-download').addEventListener('click', () => {
+    const text = $('#sheet-text').value;
+    if (!text.trim()) return toast('예제를 고르거나 실행표를 입력하세요.', true);
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'PolymerLab-sheet.txt'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
   $('#sheet-form').addEventListener('submit', async event => {
     event.preventDefault();
-    try {
-      const plan = await check();
+    formAction(async () => {
+      const text = $('#sheet-text').value;
+      const plan = await check(text);
       if (!plan.valid) return;
       const count = plan.kind === 'blends' ? `Blends 조합 ${plan.items.length}개` : `작업 ${plan.items.length}개`;
       if (!confirm(`${count}를 실행합니다. 계속할까요?`)) return;
-      const record = await api('/api/research/sheets', { method: 'POST', body: JSON.stringify({ text: $('#sheet-text').value }) });
+      const record = await api('/api/research/sheets', { method: 'POST', body: JSON.stringify({ text }) });
       toast('실행표를 시작했습니다.');
       await show(record.id);
-    } catch (error) { toast(error.message, true); }
+    }).catch(error => toast(error.message, true));
   });
   document.addEventListener('click', async event => {
     const target = event.target.closest('[data-sheet-template],[data-sheet-line],[data-sheet-open],[data-sheet-load],[data-sheet-action],[data-sheet-job]');
     if (!target || !target.closest('#view-sheets')) return;
+    if (actionPending) return;
     try {
-      if (target.dataset.sheetTemplate) { $('#sheet-text').value = templates.find(t => t.id === target.dataset.sheetTemplate).text; await check(); }
+      if (target.dataset.sheetTemplate) await formAction(async () => { $('#sheet-text').value = templates.find(t => t.id === target.dataset.sheetTemplate).text; await check(); });
       else if (target.dataset.sheetLine) selectLine(Number(target.dataset.sheetLine));
       else if (target.dataset.sheetOpen) await show(target.dataset.sheetOpen);
-      else if (target.dataset.sheetLoad) { $('#sheet-text').value = await (await fetch(`/api/research/sheets/${target.dataset.sheetLoad}/text`)).text(); toast('실행표를 입력 칸에 불러왔습니다.'); }
+      else if (target.dataset.sheetLoad) {
+        const response = await fetch(`/api/research/sheets/${target.dataset.sheetLoad}/text`);
+        if (!response.ok) throw new Error('저장된 실행표를 불러올 수 없습니다.');
+        $('#sheet-text').value = await response.text(); toast('실행표를 입력 칸에 불러왔습니다.');
+      }
       else if (target.dataset.sheetJob) openJob(target.dataset.sheetJob);
       else if (current) { await api(`/api/research/sheets/${current}/${target.dataset.sheetAction}`, { method: 'POST' }); await show(current); }
     } catch (error) { toast(error.message, true); }
   });
   $('#sheet-refresh').addEventListener('click', () => refreshHistory().catch(error => toast(error.message, true)));
+  function enterView() {
+    Promise.all([loadTemplates(), refreshHistory()]).then(() => current && show(current)).catch(error => toast(error.message, true));
+  }
   document.addEventListener('polymer:view', event => {
     if (event.detail !== 'sheets') { clearTimeout(timer); return; }
-    Promise.all([loadTemplates(), refreshHistory()]).then(() => current && show(current)).catch(error => toast(error.message, true));
+    enterView();
   });
+  if (state.view === 'sheets') enterView();
 })();

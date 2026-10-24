@@ -80,6 +80,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
 | `analyze_instrument_curve` | DSC·인장·TGA·GPC·IR·UV-vis·탁도 곡선(IR·UV-vis는 JCAMP-DX도)에서 저장하지 않는 측정값 초안 계산 |
 | `analyze_process_data` | 공정 CSV 하나를 저장 없이 분석: 데이터 사전(키·중복·균형), 관리도(I-MR·X̄-S, 신호 규칙), 공정 능력(Cp·Cpk·Pp·Ppk), 분산 성분(균형 내포 ANOVA), 층별 불량률(Mantel–Haenszel), 불량 판정 평가(기준별 놓침·오탐·비용, 모두 정상 판정 기준선), 가상계측 오차(규격 경계 구간), 검증 분할 비교(무작위·로트·시간). 통계 계산 줄에서 실행 |
+| `prepare_target_workflow` | 목표·단위·독립 변수·예산 계약을 미리 검사하고 기존 DOE·벌크 흐름을 준비. MD 실행·Drive 업로드 없음 |
 | `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
 | `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
 | `create_mixture_design` | 성분 비율 합이 1인 심플렉스 격자·심플렉스 중심·꼭짓점 설계(축 점검 배합·중심점 선택)를 만들고 저장. 하한은 L-유사성분 |
@@ -153,3 +154,11 @@ MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없
 ### 단계별 벌크 연구 연결
 
 `get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 계산 템플릿을 연결합니다. 경로는 템플릿으로 정해집니다(GAFF2 벌크·자체 셀 빌더, PCFF 벌크, 에폭시–아민 가교). `bindings`는 설계 인자마다 그 경로가 읽는 설정 하나(`/api/research/workflows/capabilities`의 `routes[].fields`, 허용 범위는 `fields[].bounds`)를 연결하며, 정수 설정은 설계점이 모두 정수여야 합니다. `metric`(대표 반응값)과 `responses`(함께 수집할 값)는 `final_frame_density`·`probe_accessible_fraction`(자유 부피 분석), `npt_density`·`bulk_modulus`·`volume_expansion`(NPT 표본 평균, RadonPy 수렴 판정 포함), 가교의 `epoxide_conversion` 중에서 고릅니다. `create_tg_scan_workflow`는 완료된 흐름의 셀마다 Tg 스캔을 만드는 후속 흐름을 저장합니다(반응값 `tg_kelvin`·`expansion_glass`·`expansion_melt`, 전이 미확인 행은 분석 실패, 확인 계산은 셀과 스캔 2개). 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`(선택 `response`), `optimize-desirability`(`goals`), `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 반응값의 출처와 검증은 `docs/WORKFLOWS.md`에 있습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.
+
+### 목표 계약
+
+`prepare_target_workflow`는 `action: preview 또는 prepare`, `spec`을 받습니다. `spec`의 전체 형식은 이 도구의 JSON Schema와 `/docs`에 있습니다. HTTP는 `POST /api/research/targets/preview`, `POST /api/research/targets/prepare`, 기능 조회는 `GET /api/research/targets/capabilities`입니다. 응답/계약의 `schema_version`은 1입니다.
+
+`variables`는 `{name,field,low,high,unit}`, `targets`는 `{name,unit,model,goal,lower?,target,upper?}`이며 단위는 자동 변환하지 않습니다. `template`은 GAFF2 자체 벌크 JobConfig, `mode`는 `exploratory`, 설계는 독립 변수용 `factorial` 또는 `central_composite`입니다. `max_calculations`에 모든 행의 시도와 확인 계산을 포함합니다. `preview.ready=false`의 `blockers`에는 `unsupported_target`, `variable_unit`, `target_unit`, `budget`, `missing_engines`, `design_or_model` 같은 안정된 분류와 한국어 설명이 나옵니다.
+
+`prepare` 뒤에도 작업 수는 0이며 `workflow`, `plan`, `cost`, 계약 해시를 반환합니다. 사용자가 계획과 최대 계산 수를 승인한 다음 기존 `run_research_workflow_plan`으로 실행합니다. 실패 재시도는 기존 허용 목록과 같은 설정을 따릅니다. 저비용 물성 스크리닝·검증된 물성 예측·Tg·출처 미확인 상관식은 이 첫 목표 계약 경로의 지원 기능이 아닙니다.

@@ -100,6 +100,64 @@ def test_backup_limit_does_not_publish_partial_archive(context, monkeypatch):
     assert not list((context.store.root / "drive-backups").glob(".staging-*"))
 
 
+def test_archive_includes_stopped_sheets_with_terminal_jobs_and_excludes_active_or_linked_sheets(context):
+    root = context.store.root / "sheets"
+
+    def sheet(identifier, kind, status, items):
+        folder = root / identifier
+        put(folder / "record.json", json.dumps({"id": identifier, "kind": kind, "status": status, "items": items}))
+        put(folder / "sheet.txt", "# Polymer Lab 실행표 v1\n종류: " + kind)
+        put(folder / "results.csv", "rank,chi\n1,0.1\n")
+        return folder
+
+    complete = sheet("1" * 32, "blends", "completed", [{"status": "completed"}])
+    cancelled = sheet("2" * 32, "blends", "cancelled", [{"status": "completed"}, {"status": "pending"}])
+    jobs = sheet("3" * 32, "jobs", "submitted", [{"job_id": context.finished}, {"job_id": context.failed}])
+    active = sheet("4" * 32, "blends", "running", [{"status": "running"}])
+    stopping = sheet("5" * 32, "jobs", "cancelled", [{"job_id": context.active}])
+    submitting = sheet("6" * 32, "jobs", "submitting", [{"job_id": context.finished}])
+    missing = sheet("7" * 32, "jobs", "interrupted", [{"job_id": "f" * 32}])
+    put(complete / "pairs/0.json", '{"chi":0.1}')
+    private = put(context.source.parent / "private-sheet.txt", "DO NOT EXPORT LINK")
+    (complete / "linked.txt").symlink_to(private)
+    (root / ("8" * 32)).symlink_to(complete, target_is_directory=True)
+    linked = root / ("9" * 32)
+    linked.mkdir()
+    (linked / "record.json").symlink_to(complete / "record.json")
+    archive, report = backup.create_archive(context.source, context.manager, context.store)
+    with zipfile.ZipFile(archive) as bundle:
+        names = set(bundle.namelist())
+        for folder in (complete, cancelled, jobs):
+            assert {f"research/sheets/{folder.name}/{name}" for name in ("record.json", "sheet.txt", "results.csv")} <= names
+        assert f"research/sheets/{complete.name}/pairs/0.json" in names
+        for folder in (active, stopping, submitting, missing, linked, root / ("8" * 32)):
+            assert not any(name.startswith(f"research/sheets/{folder.name}/") for name in names)
+        assert not any("linked.txt" in name for name in names)
+        manifest = json.loads(bundle.read("BACKUP_MANIFEST.json"))
+        assert report["counts"]["sheet_records"] == manifest["counts"]["sheet_records"] == 3
+        assert report["counts"]["excluded_active_sheets"] == 4
+        assert set(manifest["excluded_active_sheets"]) == {folder.name for folder in (active, stopping, submitting, missing)}
+
+
+def test_sheet_resumed_during_backup_does_not_publish_a_mixed_snapshot(context, monkeypatch):
+    identifier = "1" * 32
+    meta = put(context.store.root / "sheets" / identifier / "record.json", json.dumps({
+        "id": identifier, "kind": "blends", "status": "cancelled", "items": [{"status": "pending"}]}))
+    original_export = context.store.export_snapshot
+
+    def resume_then_export(path):
+        record = json.loads(meta.read_text())
+        record["status"] = "running"
+        meta.write_text(json.dumps(record))
+        return original_export(path)
+
+    monkeypatch.setattr(context.store, "export_snapshot", resume_then_export)
+    with pytest.raises(ValueError, match="실행표 상태가 변경"):
+        backup.create_archive(context.source, context.manager, context.store)
+    assert not list((context.store.root / "drive-backups").glob("*.zip"))
+    assert not list((context.store.root / "drive-backups").glob(".staging-*"))
+
+
 def test_drive_status_only_reads_remote_names_and_requires_explicit_drive_selection(monkeypatch):
     calls = []
     monkeypatch.setattr(backup.shutil, "which", lambda name: "/usr/bin/rclone")

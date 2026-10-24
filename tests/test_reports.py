@@ -182,6 +182,34 @@ def test_workflow_report_keeps_simulation_values_unverified(client):
     assert client.post(f"/api/research/workflows/{workflow['id']}/analyze", json={"rows": list(range(1, 12))}).status_code == 200
     optimized = client.post(f"/api/research/workflows/{workflow['id']}/optimize", json={})
     assert optimized.status_code == 200, optimized.text
+    from workbench.jobs import atomic_json
+    from workbench.workflows import digest
+    workflows = client.app.state.workflows
+    saved = workflows._read(workflow["id"])
+    earlier, confirm_id, scan_id = "a" * 32, "b" * 32, "c" * 32
+    configs = {earlier: dict(saved["rows"][0]["config"]), confirm_id: dict(saved["rows"][0]["config"])}
+    configs[confirm_id]["seed"] += 100
+    configs[scan_id] = {**configs[confirm_id], "atomistic_mode": "tg_scan", "source_job_id": confirm_id}
+    for identifier, config in configs.items():
+        folder = client.app.state.manager.root / identifier
+        folder.mkdir()
+        atomic_json(folder / "job.json", {"id": identifier, "name": config["name"], "config": config,
+                                          "created_at": "2026-10-24T00:00:00+00:00",
+                                          "status": "failed" if identifier == earlier else "completed"})
+        atomic_json(folder / "result.json", {"status": "failed" if identifier == earlier else "completed", "engine": "synthetic LAMMPS fixture",
+            "metadata": {"force_field": "fixture only", "protocol": {"stage_steps": 1000}, "radonpy_criteria_met": False},
+            "metrics": {"equilibrated": False}, "warnings": ["Synthetic result, not research evidence."],
+            **({"engine_versions": {"LAMMPS": "stored fixture version"}} if identifier == earlier else {})})
+    saved["rows"][0]["attempts"].insert(0, earlier)
+    saved["confirmations"] = [{"job_id": confirm_id, "config": configs[confirm_id], "scan_job_id": scan_id,
+                               "scan_config": configs[scan_id], "optimization_id": saved["optimizations"][-1]["id"], "validated": False}]
+    plan = {"rows": [1], "optimize": False, "confirm": False}
+    saved["autopilot"] = {"state": "completed", "plan": plan, "plan_sha256": digest(plan), "approved_budget": 1, "events": []}
+    saved["target_contract"] = {"mode": "exploratory", "design_id": saved["design_id"], "targets": []}
+    saved["target_contract_sha256"] = digest(saved["target_contract"])
+    workflows._save(saved)
+    workflow_file = client.app.state.research_root / "workflows" / workflow["id"] / "result.json"
+    unchanged = workflow_file.read_bytes()
     record, content = report(client, "workflow", workflow["id"])
     runs = read_csv(content / "tables" / "runs.csv")
     header = runs[0]
@@ -194,6 +222,61 @@ def test_workflow_report_keeps_simulation_values_unverified(client):
     assert any("No confirmation run has been analyzed" in w for w in record["warnings"])
     assert "측정값이 아니" in (content / "summary.md").read_text()
     assert client.get("/api/research/measurements").json() == []
+    inputs = content / "inputs"
+    snapshot = json.loads((inputs / "workflow.json").read_text())
+    assert snapshot["rows"][0]["attempts"] == saved["rows"][0]["attempts"]
+    assert snapshot["rows"][0]["observation"]["verified"] is False
+    entries = json.loads((inputs / "job-configs.json").read_text())["jobs"]
+    for identifier, config in configs.items():
+        entry = next(item for item in entries if item["job_id"] == identifier)
+        assert entry["config"] == config and entry["seed"] == config["seed"]
+        assert entry["config_sha256"] == digest(config)
+        assert entry["result_summary"]["metadata"]["radonpy_criteria_met"] is False
+        assert entry["result_summary"]["metrics"]["equilibrated"] is False
+        assert entry["result_summary"]["warnings"] == ["Synthetic result, not research evidence."]
+        assert entry["engine_versions"] == ({"LAMMPS": "stored fixture version"} if identifier == earlier else None)
+        assert entry["engine_versions_status"] == ("recorded" if identifier == earlier else "not_recorded")
+    assert next(item for item in entries if item["job_id"] == earlier)["role"] == "row_attempt"
+    assert next(item for item in entries if item["job_id"] == scan_id)["role"] == "confirmation_scan"
+    assert json.loads((inputs / "plan.json").read_text()) == saved["autopilot"]
+    assert json.loads((inputs / "target-contract.json").read_text()) == saved["target_contract"]
+    design = json.loads((inputs / "design.json").read_text())
+    assert hashlib.sha256((inputs / "design.csv").read_bytes()).hexdigest() == design["input"]["sha256"]
+    with zipfile.ZipFile(io.BytesIO(client.get(record["download_url"]).content)) as bundle:
+        for entry in record["files"]:
+            assert hashlib.sha256(bundle.read(f"{record['folder_name']}/{entry['path']}")).hexdigest() == entry["sha256"]
+    assert workflow_file.read_bytes() == unchanged
+
+
+def test_workflow_input_bundle_marks_reserved_and_missing_jobs_and_rejects_links(client, tmp_path, monkeypatch):
+    workflow = create_workflow(client)
+    builder = reports.Builder("reproduction fixture")
+    inputs = tmp_path / "inputs"
+    missing = "f" * 32
+    workflow["rows"][0]["attempts"] = [missing]
+    reports._workflow_inputs(builder, workflow, client.app.state.research_root, client.app.state.workflows, inputs, [])
+    entries = json.loads((inputs / "job-configs.json").read_text())["jobs"]
+    assert entries[0]["job_id"] == missing and entries[0]["config"] is None and entries[0]["status"] == "missing"
+    reserved = next(item for item in entries if item["job_id"] == workflow["rows"][1]["job_id"])
+    assert reserved["status"] == "reserved_unsubmitted" and reserved["config"] == workflow["rows"][1]["config"]
+    assert any(missing in warning for warning in builder.warnings)
+    csv_path = client.app.state.research_root / "doe" / workflow["design_id"] / "design.csv"
+    original = csv_path.read_bytes()
+    csv_path.write_bytes(original + b"\n")
+    with pytest.raises(ValueError, match="CSV"):
+        reports._workflow_inputs(reports.Builder("bad checksum"), workflow, client.app.state.research_root,
+                                 client.app.state.workflows, tmp_path / "bad", [])
+    csv_path.unlink()
+    outside = tmp_path / "outside.csv"
+    outside.write_bytes(original)
+    csv_path.symlink_to(outside)
+    with pytest.raises(ValueError, match="심볼릭"):
+        reports._workflow_inputs(reports.Builder("linked input"), workflow, client.app.state.research_root,
+                                 client.app.state.workflows, tmp_path / "linked", [])
+    monkeypatch.setattr(reports, "MAX_INPUT_BYTES", 20)
+    with pytest.raises(ValueError, match="20 MiB"):
+        reports._workflow_inputs(reports.Builder("oversized inputs"), workflow, client.app.state.research_root,
+                                 client.app.state.workflows, tmp_path / "oversized", [])
 
 
 def test_lab_report_separates_origin_and_review(client):

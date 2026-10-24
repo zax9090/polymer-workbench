@@ -245,11 +245,42 @@ def create_archive(source_root, manager, store):
         if root.is_dir() and not root.is_symlink():
             files.extend((p, "research/" + p.relative_to(research_root).as_posix())
                          for p in sorted(root.glob("*.json")) if IDENTIFIER.fullmatch(p.stem) and _safe_file(root, p))
+    sheet_records, excluded_sheets, sheet_versions = 0, [], {}
+    root = research_root / "sheets"
+    terminal_jobs = {job["id"] for job in jobs}
+    if root.is_dir() and not root.is_symlink():
+        for folder in sorted(root.iterdir()):
+            meta = folder / "record.json"
+            if not IDENTIFIER.fullmatch(folder.name) or folder.is_symlink() or not folder.is_dir() or not _safe_file(root, meta):
+                continue
+            try:
+                raw = meta.read_bytes()
+                record = json.loads(raw)
+            except (OSError, ValueError):
+                continue
+            if not isinstance(record, dict) or record.get("id") != folder.name or record.get("kind") not in {"blends", "jobs"}:
+                continue
+            items = record.get("items")
+            if not isinstance(items, list) or not items or any(not isinstance(item, dict) for item in items):
+                continue
+            stopped = record.get("status") in {"completed", "failed", "cancelled", "interrupted"}
+            if record["kind"] == "jobs":
+                # A cancelled sheet may still be stopping a child, or publishing a reserved job ID.
+                stopped = (stopped or record.get("status") == "submitted") and all(
+                    isinstance(item.get("job_id"), str) and item["job_id"] in terminal_jobs for item in items)
+            else:
+                stopped = stopped and all(item.get("status") in {"completed", "failed", "pending"} for item in items)
+            if not stopped:
+                excluded_sheets.append(folder.name)
+                continue
+            sheet_records += 1
+            sheet_versions[meta] = hashlib.sha256(raw).hexdigest()
+            files.extend((p, "research/" + p.relative_to(research_root).as_posix()) for p in _walk_files(folder))
     manifest = {"schema_version": 1, "id": identifier, "created_at": created.isoformat(), "git_head": git_head,
                 "source_scope": "Current working-tree bytes of allowlisted tracked and nonignored source files; no Git history or installed dependencies",
-                "jobs": jobs, "excluded_active_jobs": excluded_jobs, "files": [],
+                "jobs": jobs, "excluded_active_jobs": excluded_jobs, "excluded_active_sheets": excluded_sheets, "files": [],
                 "consistency": "Research tables use one transaction; other files are individually checked for changes while copying.",
-                "exclusions": ["active jobs", "symlinks", "credentials and environment files", "live DuckDB/WAL", "caches", "prior backups"]}
+                "exclusions": ["active jobs", "active sheets", "symlinks", "credentials and environment files", "live DuckDB/WAL", "caches", "prior backups"]}
     total_bytes = 0
     with tempfile.TemporaryDirectory(prefix=".staging-", dir=destination) as temp:
         temp = Path(temp)
@@ -280,8 +311,12 @@ def create_archive(source_root, manager, store):
                 if copied != before.st_size or (before.st_mtime_ns, before.st_ino) != (after.st_mtime_ns, after.st_ino):
                     raise ValueError("백업 중 원본 파일이 변경됐습니다. 다시 시도하세요.")
                 manifest["files"].append({"path": name, "bytes": copied, "sha256": digest.hexdigest()})
+            for path, expected in sheet_versions.items():
+                if not _safe_file(research_root / "sheets", path) or _hash_file(path) != expected:
+                    raise ValueError("백업 중 실행표 상태가 변경됐습니다. 계산을 멈춘 뒤 다시 시도하세요.")
             manifest["counts"] = {"files": len(files), "jobs": len(jobs), "doe_records": doe_records, "analysis_records": analysis_records,
-                                  "excluded_active_jobs": len(excluded_jobs), **snapshot["counts"]}
+                                  "sheet_records": sheet_records, "excluded_active_jobs": len(excluded_jobs),
+                                  "excluded_active_sheets": len(excluded_sheets), **snapshot["counts"]}
             bundle.writestr("BACKUP_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False))
         with zipfile.ZipFile(staged) as bundle:
             if bundle.testzip() is not None:

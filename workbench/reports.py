@@ -39,6 +39,7 @@ SCHEMA_VERSION = 1
 RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 POINT, MUTED, REFERENCE, INK = "#2a78d6", "#b9c3cc", "#c47f1a", "#33404b"
 TABLE_PREVIEW = 12
+MAX_INPUT_BYTES = 20 * 1024 * 1024
 _FIGURE_LOCK = threading.Lock()
 _UPLOAD_LOCK = threading.Lock()
 
@@ -791,6 +792,8 @@ def _render(b, report_id, kind, subject_id, created, sources, folder):
               *(f"- {s['type']} `{s['id']}` sha256 `{s['sha256']}`" for s in sources), "",
               "## 파일", "", "- `report.html`: 그림이 들어 있는 보고서", "- `figures/`: SVG(글자 유지)와 PNG", "- `tables/`: CSV(UTF-8, 엑셀용 BOM)와 `report.xlsx`",
               "- `manifest.json`: 모든 파일의 크기·SHA-256·MD5", ""]
+    if (folder / "inputs").is_dir():
+        footer += ["- `inputs/`: 원래 설정·시드·설계·저장된 실행 계획을 담은 로컬 재현 입력", ""]
     (folder / "summary.md").write_text("\n".join(header + b.markdown + footer), encoding="utf-8")
     body = []
     for fragment in b.html:
@@ -819,6 +822,129 @@ def _render(b, report_id, kind, subject_id, created, sources, folder):
 
 def _record_sha(path):
     return {"sha256": _sha256(path)} if path.is_file() else {"sha256": None}
+
+
+def _workflow_inputs(builder, record, research_root, workflows, folder, sources):
+    """Copy bounded reproduction inputs, never engines, raw trajectories or process environments."""
+    from .workflows import digest
+    folder.mkdir()
+    size = 0
+
+    def save(name, value, raw=False):
+        nonlocal size
+        encoded = value if raw else json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8")
+        size += len(encoded)
+        if size > MAX_INPUT_BYTES:
+            raise ValueError("보고서의 재현 입력이 20 MiB를 넘습니다. 결과를 나누어 보관하세요.")
+        (folder / name).write_bytes(encoded)
+
+    def read_input(path):
+        relative = path.relative_to(research_root)
+        if any(research_root.joinpath(*relative.parts[:i]).is_symlink() for i in range(1, len(relative.parts) + 1)):
+            raise ValueError("보고서 재현 입력에 심볼릭 링크를 사용할 수 없습니다.")
+        if not path.is_file():
+            return None
+        if path.stat().st_size > MAX_INPUT_BYTES:
+            raise ValueError("보고서의 재현 입력이 20 MiB를 넘습니다. 결과를 나누어 보관하세요.")
+        return path.read_bytes()
+
+    save("workflow.json", record)
+    design_id = record.get("design_id")
+    if isinstance(design_id, str) and IDENTIFIER.fullmatch(design_id):
+        design_folder = research_root / "doe" / design_id
+        raw = read_input(design_folder / "result.json")
+        if raw is None:
+            builder.warnings.append("The saved DOE design is missing; the reproduction bundle omits it rather than reconstructing it.")
+        else:
+            design = json.loads(raw)
+            if record.get("design_sha256") and digest(design) != record["design_sha256"]:
+                raise ValueError("연구 흐름의 실험 설계 기록이 저장 당시와 다릅니다.")
+            save("design.json", raw, raw=True)
+            metadata = design.get("input") or {}
+            name = metadata.get("file", "design.csv")
+            if not isinstance(name, str) or not name or Path(name).name != name or name in {".", ".."}:
+                raise ValueError("실험 설계의 입력 파일 이름이 올바르지 않습니다.")
+            csv_bytes = read_input(design_folder / name)
+            if csv_bytes is None:
+                builder.warnings.append("The original DOE design CSV is missing from the reproduction bundle.")
+            elif not metadata.get("sha256"):
+                builder.warnings.append("The original DOE design CSV has no saved checksum; it is omitted from the reproduction bundle.")
+            elif hashlib.sha256(csv_bytes).hexdigest() != metadata["sha256"]:
+                raise ValueError("실험 설계의 입력 CSV가 저장 당시와 다릅니다.")
+            else:
+                save("design.csv", csv_bytes, raw=True)
+                sources.append({"type": "doe_design_input", "id": design_id, "sha256": metadata["sha256"]})
+    else:
+        builder.warnings.append("The workflow has no valid saved DOE design ID; no design is reconstructed.")
+
+    entries, seen = [], set()
+
+    def job(identifier, role, saved=None, reserved=False, **context):
+        key = (identifier, role, context.get("run_order"), context.get("attempt"))
+        if not identifier or key in seen:
+            return
+        seen.add(key)
+        entry = {"job_id": identifier, "role": role, **context}
+        if isinstance(identifier, str) and IDENTIFIER.fullmatch(identifier):
+            job_root = workflows.jobs.root
+            if job_root.is_symlink() or (job_root / identifier).is_symlink() or (job_root / identifier / "job.json").is_symlink():
+                raise ValueError("보고서 재현 입력에 심볼릭 링크를 사용할 수 없습니다.")
+        try:
+            value = workflows.jobs.get(identifier)
+        except (KeyError, OSError, ValueError):
+            value = None
+        if value is not None:
+            entry.update(status=value["status"], config=value["config"], source="job")
+        elif reserved and saved is not None:
+            entry.update(status="reserved_unsubmitted", config=saved, source="saved_row")
+        else:
+            entry.update(status="missing", config=None, source="missing")
+            builder.warnings.append(f"Job {identifier} ({role}) is missing; its original configuration is not reconstructed.")
+        config = entry["config"]
+        entry.update(seed=config.get("seed") if config else None, config_sha256=digest(config) if config else None)
+        result = value.get("result") if value else None
+        entry["result_summary"] = ({name: result.get(name) for name in ("engine", "metadata", "metrics", "warnings", "status")}
+                                   if isinstance(result, dict) else None)
+        metadata = result.get("metadata") if isinstance(result, dict) else None
+        versions = result.get("engine_versions") if isinstance(result, dict) else None
+        if versions is None and isinstance(metadata, dict):
+            versions = metadata.get("engine_versions")
+        entry.update(engine_versions=versions, engine_versions_status="recorded" if versions is not None else "not_recorded")
+        entries.append(entry)
+        if config and config.get("source_job_id"):
+            # Tg inputs also need the original cell configuration, not another copy of its coordinates.
+            source = config["source_job_id"]
+            if not any(e["job_id"] == source for e in entries):
+                job(source, "source_cell", source_for=identifier)
+
+    for row in record["rows"]:
+        for attempt, identifier in enumerate(row["attempts"], 1):
+            job(identifier, "row_attempt", run_order=row["run_order"], attempt=attempt)
+        if row["job_id"] not in row["attempts"]:
+            job(row["job_id"], "row_reserved", row["config"], reserved=not row["attempts"], run_order=row["run_order"])
+    for confirmation in record["confirmations"]:
+        job(confirmation["job_id"], "confirmation", optimization_id=confirmation["optimization_id"])
+        if confirmation.get("scan_job_id"):
+            job(confirmation["scan_job_id"], "confirmation_scan", optimization_id=confirmation["optimization_id"])
+    save("job-configs.json", {"schema_version": 1, "workflow_id": record["id"], "jobs": entries,
+                              "checksum_convention": "SHA-256 of canonical sorted JSON including every saved configuration field"})
+    if record.get("autopilot"):
+        autopilot = record["autopilot"]
+        if autopilot.get("plan_sha256") and digest(autopilot.get("plan")) != autopilot["plan_sha256"]:
+            raise ValueError("저장된 자동 실행 계획의 해시가 일치하지 않습니다.")
+        save("plan.json", autopilot)
+    if record.get("target_contract") is not None:
+        contract = record["target_contract"]
+        if record.get("target_contract_sha256") and digest(contract) != record["target_contract_sha256"]:
+            raise ValueError("저장된 연구 목표의 해시가 일치하지 않습니다.")
+        save("target-contract.json", contract)
+    save("README.md", ("# 로컬 재현 입력\n\nworkflow.json은 보고서 생성 시점의 흐름 기록입니다. design.json과 design.csv는 저장된 설계와 원본 CSV입니다. "
+        "job-configs.json에는 행별 시도·확인·Tg 스캔의 원래 설정, 시드, 상태와 역할이 있습니다. 미제출 예약 행은 reserved_unsubmitted로, "
+        "사라진 작업은 missing으로 표시합니다. result_summary는 저장된 엔진·힘장·프로토콜·수렴 판정과 경고를 옮깁니다. "
+        "과거 엔진 버전이 저장되지 않았다면 engine_versions는 null/not_recorded이며 현재 환경의 버전으로 대체하지 않습니다. "
+        "plan.json과 target-contract.json은 저장돼 있을 때만 포함됩니다.\n\n"
+        "이 묶음은 로컬에서 입력을 검토하고 다시 설정하기 위한 자료입니다. 엔진·의존성·원본 MD 구조/궤적·환경 변수·로그인 정보는 포함하지 않으며, "
+        "파일을 열어도 계산은 자동 실행되지 않습니다. 같은 결과나 물리적 타당성을 보장하지 않습니다. 시뮬레이션 결과는 검토 전 상태로 유지됩니다.\n").encode("utf-8"), raw=True)
 
 
 def _reports_root(research_root):
@@ -882,6 +1008,8 @@ def create_report(research_root, kind, subject_id=None, store=None, workflows=No
         folder_name = f"{created.strftime('%Y%m%d-%H%M%S')}-{kind}-{(subject_id or 'all')[:8]}-{report_id[:8]}"
         content = temp / "content"
         content.mkdir()
+        if kind == "workflow":
+            _workflow_inputs(builder, record, research_root, workflows, content / "inputs", sources)
         manifest = _render(builder, report_id, kind, subject_id, created.isoformat(), sources, content)
         zip_name = f"PolymerLab-report-{folder_name}.zip"
         with zipfile.ZipFile(temp / zip_name, "w", zipfile.ZIP_DEFLATED) as bundle:

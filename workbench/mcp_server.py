@@ -421,6 +421,19 @@ class PolymerLabTools:
                    "options": {"type": "object", "description": "Column names and settings for the chosen kind; unknown keys are rejected"},
                    "detail": {"type": "string", "enum": ["summary", "full"], "default": "summary", "description": "summary replaces long numeric arrays with counts and ranges; full returns every value"}},
                   ["kind", "csv_text", "options"]), self.analyze_process_data, read_only=True, idempotent=True)
+        from .target_spec import TargetSpec
+        target_schema = TargetSpec.model_json_schema()
+        target_definitions = target_schema.pop("$defs", {})
+        target_tool_schema = _schema({"action": {"type": "string", "enum": ["preview", "prepare"], "default": "preview"},
+                                      "spec": target_schema}, ["spec"])
+        target_tool_schema["$defs"] = target_definitions
+        t("prepare_target_workflow", "Prepare an exploratory workflow from property targets",
+          "Validate target units, independent processing variables, chemistry, engines, estimable DOE models and the worst-case retry/confirmation budget. "
+          "preview writes no research records; prepare saves the target contract, DOE and connected workflow but starts no simulation. "
+          "The initial route is exploratory GAFF2 native bulk. Input feasibility is not predictive screening; no candidates are automatically discarded. "
+          "Unavailable Tg, unverified Bicerano models and validated-property claims are explicit blockers. "
+          "Review the returned plan and use run_research_workflow_plan only with a user-approved calculation budget; no Drive upload is included.",
+          target_tool_schema, self.prepare_target_workflow, read_only=False, idempotent=False)
         t("get_research_workflow", "Read connected bulk workflow",
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
@@ -706,6 +719,9 @@ class PolymerLabTools:
     def analyze_process_data(self, args):
         result = self.client.request("POST", "/api/research/process", {"kind": args["kind"], "text": args["csv_text"], "options": args["options"]}, timeout=120)
         return result if args.get("detail") == "full" else summarize(result)
+
+    def prepare_target_workflow(self, args):
+        return self.client.request("POST", "/api/research/targets/" + args.get("action", "preview"), args["spec"], timeout=300)
 
     def get_research_workflow(self, args):
         suffix = "/" + args["workflow_id"] if args.get("workflow_id") else ""

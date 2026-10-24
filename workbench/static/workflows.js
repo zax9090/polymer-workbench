@@ -43,6 +43,8 @@
   function goals() {
     return $$('#flow-goals [data-goal]').filter(row => row.querySelector('[data-key=goal]').value).map(row => {
       const goal = {name: row.dataset.goal, goal: row.querySelector('[data-key=goal]').value, model: row.querySelector('[data-key=model]').value};
+      const saved = current?.target_contract?.targets?.find(target => target.name === row.dataset.goal);
+      for (const key of ['lower_shape','upper_shape','importance']) if (saved?.[key] != null) goal[key] = saved[key];
       for (const key of ['lower', 'target', 'upper']) { const value = row.querySelector(`[data-key=${key}]`).value; if (value !== '') goal[key] = Number(value); }
       return goal;
     });
@@ -58,12 +60,40 @@
       if(current) $('#flow-history').value=current.id;
     } catch(error) { message(error.message,true); }
   }
+  function targetSummary(record) {
+    const contract = record.target_contract;
+    if (!contract) return '';
+    const directions = {maximize:'최대화',minimize:'최소화',target:'목표값'};
+    const goals = (contract.targets || []).map(goal => `${escape(metricLabels[goal.name] || goal.name)} · ${escape(directions[goal.goal])} · ${number(goal.target)} ${escape(goal.unit)}`).join('<br>');
+    return `<details class="doe-result-settings"><summary>목표 계약 · ${escape(contract.name)} · 탐색용</summary><p>${goals}</p><p class="research-footnote">화학 구조·입력·엔진 점검을 통과한 계획입니다. 저비용 물성 예측으로 후보를 탈락시키지 않습니다. 목표 달성·물성 정확도는 별도로 판단합니다.</p><p class="research-footnote">계약 SHA-256 ${escape(record.target_contract_sha256 || '')}</p></details>`;
+  }
   function render(record) {
-    const selected=new Set(selections()); current=record;
+    const changed = current?.id !== record.id;
+    const selected=new Set(changed ? [] : selections()); current=record;
     $('#flow-detail').classList.remove('hidden');
-    $('#flow-summary').innerHTML=`<h3>2. 계산 실행 · 결과 검토</h3><p>${escape(labels[record.state]||record.state)} · 사용 예산 ${record.submitted}/${record.budget} · ${escape(metricLabels[record.metric])} (${escape(record.unit)})</p><p class="research-footnote">설계 ${record.rows.length}행 · ${routeSummary(record)}</p>${(record.source_template||record.template).protocol_scale<1?'<p class="research-tag amber">단축 MD · 평형·물성 정확도 미검증</p>':''}${record.missing_engines.length?`<p class="error-message">필요 엔진: ${escape(record.missing_engines.join(', '))}</p>`:''}${record.error?`<p class="error-message">${escape(record.error)}</p>`:''}<div class="research-actions"><a class="secondary-button" href="${escape(safeURL(record.download_url))}" download>연결 기록 JSON ↓</a>${reportButton('workflow', record.id)}</div>`;
+    $('#flow-summary').innerHTML=`<h3>2. 계산 실행 · 결과 검토</h3><p>${escape(labels[record.state]||record.state)} · 사용 예산 ${record.submitted}/${record.budget} · ${escape(metricLabels[record.metric])} (${escape(record.unit)})</p><p class="research-footnote">설계 ${record.rows.length}행 · ${routeSummary(record)}</p>${(record.source_template||record.template).protocol_scale<1?'<p class="research-tag amber">단축 MD · 평형·물성 정확도 미검증</p>':''}${record.missing_engines.length?`<p class="error-message">필요 엔진: ${escape(record.missing_engines.join(', '))}</p>`:''}${record.error?`<p class="error-message">${escape(record.error)}</p>`:''}<div class="research-actions"><a class="secondary-button" href="${escape(safeURL(record.download_url))}" download>연결 기록 JSON ↓</a>${reportButton('workflow', record.id)}</div>${targetSummary(record)}`;
     $('#flow-rows').innerHTML=`<table class="research-table"><thead><tr><th>선택</th><th>행</th>${record.factors.map(f=>`<th>${escape(f.name)}</th>`).join('')}<th>시드</th><th>상태</th>${collected(record).map(name=>`<th>${escape(metricLabels[name]||name)}<small>${escape(unitOf(record,name))}</small></th>`).join('')}<th>작업</th></tr></thead><tbody>${record.rows.map(row=>`<tr><td><input type="checkbox" aria-label="${row.run_order}행 선택" data-run="${row.run_order}" ${selected.has(row.run_order)?'checked':''}></td><td>${row.run_order}</td>${record.factors.map(f=>`<td>${number(row.factors[f.name])}</td>`).join('')}<td>${row.config.seed}</td><td>${escape(labels[['observed','analysis_failed','interrupted'].includes(row.state)?row.state:row.job_status]||labels[row.state]||row.state)}${row.error?`<br><span class="error-message">${escape(row.error)}</span>`:''}</td>${collected(record).map((name,i)=>`<td>${number(valuesOf(record,row.observation)[name])}${i===0&&row.observation?.analysis_id?`<br><a href="/api/research/analyses/${escape(row.observation.analysis_id)}/download" download>분석 JSON ↓</a>`:''}${i===0&&row.observation&&row.observation.equilibrated===false?'<br><span class="research-tag amber">NPT 미수렴</span>':''}</td>`).join('')}<td>${row.attempts.length?`<button class="text-button" data-flow-job="${escape(row.job_id)}">열기 ↗</button>`:'미실행'}</td></tr>`).join('')}</tbody></table>`;
     goalRows(record);
+    if (changed && record.target_contract) {
+      const contract = record.target_contract, plan = contract.plan;
+      $('#pilot-attempts').value = plan.max_attempts;
+      $('#pilot-failures').value = plan.max_failed_rows;
+      $('#pilot-mode').value = plan.goals?.length ? 'desirability' : 'single';
+      for (const key of ['optimize','confirm','report','upload_report']) {
+        const id = key === 'upload_report' ? 'pilot-upload' : `pilot-${key}`;
+        $( '#' + id).checked = Boolean(plan[key]);
+      }
+      $('#flow-model').value = plan.model;
+      $('#flow-objective').value = plan.objective;
+      $('#flow-target').value = plan.target ?? '';
+      $('#flow-objective').dispatchEvent(new Event('change'));
+      for (const row of $$('#flow-goals [data-goal]')) {
+        const goal = (contract.targets || []).find(target => target.name === row.dataset.goal);
+        if (!goal) continue;
+        for (const key of ['goal','model','lower','target','upper']) row.querySelector(`[data-key=${key}]`).value = goal[key] ?? '';
+      }
+      $('#pilot-plan').innerHTML = '';
+    }
     $('#flow-tg').classList.toggle('hidden',(record.route||'gaff2_bulk')==='tg_scan');
     const result=record.optimizations.at(-1);
     const modelReview=result?.research_workflow;

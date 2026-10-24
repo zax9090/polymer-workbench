@@ -2,7 +2,9 @@
 import csv
 import io
 import json
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
@@ -115,6 +117,41 @@ def test_job_sheet_creates_the_checked_jobs_and_cancels_them(client):
     assert client.post(f"/api/research/sheets/{record['id']}/resume").status_code == 409
 
 
+@pytest.mark.parametrize("stop", ["cancel", "shutdown"])
+def test_stop_during_job_publication_does_not_submit_remaining_jobs(client, monkeypatch, stop):
+    manager = client.app.state.manager
+    sheets_manager = client.app.state.sheets
+    monkeypatch.setattr(manager.pool, "submit", lambda function, job_id: None)
+    entered, release = threading.Event(), threading.Event()
+    original = manager.create
+
+    def delayed_create(*args, **kwargs):
+        entered.set()
+        assert release.wait(10)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(manager, "create", delayed_create)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        submission = pool.submit(sheets_manager.create, JOBS)
+        try:
+            assert entered.wait(10)
+            identifier = sheets_manager.list()[0]["id"]
+            if stop == "cancel":
+                cancelled = sheets_manager.cancel(identifier)
+                assert cancelled["status"] == "cancelled"
+                assert cancelled["counts"] == {"not_created": 2}
+                with pytest.raises(RuntimeError, match="마무리"):
+                    sheets_manager.resume(identifier)
+            else:
+                sheets_manager.close()
+        finally:
+            release.set()
+        result = submission.result(timeout=10)
+    assert result["status"] == ("cancelled" if stop == "cancel" else "interrupted")
+    assert result["counts"] == {"cancelled": 1, "not_created": 1}
+    assert [job["status"] for job in manager.list()] == ["cancelled"]
+
+
 def test_blends_sheet_pairs_equal_direct_calls_and_rank_by_reference_chi(client):
     created = client.post("/api/research/sheets", json={"text": BLENDS})
     assert created.status_code == 201, created.text
@@ -155,6 +192,23 @@ class FakeExecution:
 
     def cancel(self, owner=None):
         pass
+
+
+def test_cancel_before_blend_thread_starts_preserves_the_stop(tmp_path, monkeypatch):
+    execution = FakeExecution()
+    manager = sheets.SheetManager(tmp_path, manager=None, execution=execution)
+    start = manager._start
+
+    def cancelled_start(identifier):
+        manager.cancel(identifier)
+        start(identifier)
+
+    monkeypatch.setattr(manager, "_start", cancelled_start)
+    record = manager.create(BLENDS)
+    assert record["status"] == "cancelled"
+    assert record["counts"] == {"pending": 2}
+    assert execution.calls == []
+    assert record["id"] not in manager.threads
 
 
 def test_interrupted_sheet_resumes_only_unfinished_pairs(tmp_path):
@@ -210,3 +264,30 @@ def test_mcp_run_sheet_previews_runs_and_reports(client):
     assert record["kind"] == "jobs" and len(record["items"]) == 2
     assert tool["handler"]({"action": "status", "sheet_id": record["id"]})["counts"] == {"queued": 2}
     assert tool["handler"]({"action": "list"})["records"][0]["id"] == record["id"]
+
+
+def test_completion_waits_for_csv_publication(tmp_path, monkeypatch):
+    import threading
+    entered, release = threading.Event(), threading.Event()
+    manager = sheets.SheetManager(tmp_path, manager=None, execution=FakeExecution())
+
+    def delayed_export(record):
+        entered.set()
+        assert release.wait(10)
+        (manager.root / record['id'] / 'results.csv').write_text('rank,screen\n1,test\n')
+
+    monkeypatch.setattr(manager, '_write_csv', delayed_export)
+    record = manager.create(BLENDS)
+    try:
+        assert entered.wait(10)
+        exporting = manager.get(record['id'])
+        assert exporting['status'] == 'running'
+        assert exporting['counts'] == {'completed': 2}
+        assert exporting['csv_url'] is None
+    finally:
+        release.set()
+        manager.threads[record['id']].join(10)
+    completed = manager.get(record['id'])
+    assert completed['status'] == 'completed'
+    assert completed['csv_url']
+    manager.close()
