@@ -112,7 +112,20 @@
     }).finally(() => { templateRequest = null; });
     await templateRequest;
   }
+  function inputError(message = '') {
+    const area = $('#sheet-text'), error = $('#sheet-input-error');
+    error.textContent = message;
+    error.hidden = !message;
+    if (message) { area.setAttribute('aria-invalid', 'true'); area.focus(); }
+    else area.removeAttribute('aria-invalid');
+  }
+  $('#sheet-text').addEventListener('input', () => inputError());
   async function check(text = $('#sheet-text').value) {
+    inputError();
+    if (!text.trim()) {
+      inputError('실행표를 붙여넣거나 위의 예제를 선택하세요.');
+      return { valid: false };
+    }
     const result = $('#sheet-result');
     result.setAttribute('aria-busy', 'true');
     try {

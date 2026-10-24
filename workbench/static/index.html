@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/static/research.css">
   <script defer src="/static/vendor/3Dmol-min.js"></script>
   <script defer src="/static/app.js"></script>
+  <script defer src="/static/sidebar.js"></script>
   <script defer src="/static/reports.js"></script>
   <script defer src="/static/research.js"></script>
   <script defer src="/static/screening.js"></script>
@@ -23,33 +24,41 @@
   <script defer src="/static/sheets.js"></script>
 </head>
 <body>
-  <aside class="sidebar">
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+  <aside class="sidebar" id="workspace-sidebar">
     <a class="brand" href="#workflow" aria-label="Polymer Lab 홈"><span class="brand-mark">p<span>·</span></span><span>polymer<span class="brand-light">lab</span><small>개인 연구 워크스페이스</small></span></a>
-    <div class="sidebar-label">WORKSPACE</div>
+    <div class="sidebar-tools"><span class="sidebar-label">WORKSPACE</span><button type="button" class="sidebar-reset" id="sidebar-reset" title="기본 폭으로 초기화 (경계에서 Home 또는 두 번 클릭)">폭 초기화</button></div>
     <nav aria-label="주 메뉴">
-      <button class="nav-item active" data-view="workflow"><span class="nav-icon">⌘</span>워크플로우 <span class="nav-arrow">↗</span></button>
-      <button class="nav-item" data-view="history"><span class="nav-icon">◷</span>실험 기록 <span class="nav-count" id="history-count">0</span></button>
-      <button class="nav-item" data-view="sheets"><span class="nav-icon">⎘</span>붙여넣어 실행</button>
-      <button class="nav-item" data-view="research"><span class="nav-icon">▤</span>연구 데이터</button>
-      <button class="nav-item" data-view="measurements"><span class="nav-icon">◈</span>실험 데이터</button>
-      <button class="nav-item" data-view="models"><span class="nav-icon">⌁</span>물성 학습 · 예측</button>
-      <button class="nav-item" data-view="screening"><span class="nav-icon">◎</span>빠른 예측 · 상용성</button>
-      <button class="nav-item" data-view="doe"><span class="nav-icon">▦</span>실험 설계·최적화</button>
-      <button class="nav-item" data-view="process"><span class="nav-icon">⫶</span>공정 데이터 분석</button>
-      <button class="nav-item" data-view="campaigns"><span class="nav-icon">↻</span>탐색 캠페인</button>
-      <button class="nav-item" data-view="bridges"><span class="nav-icon">⌬</span>혼합계 준비</button>
-      <button class="nav-item" data-view="evidence"><span class="nav-icon">⌕</span>REA 분석 근거</button>
-      <button class="nav-item" data-view="engines"><span class="nav-icon">⊞</span>계산 엔진</button>
-      <a class="nav-item manual-nav" href="/manual" target="_blank" rel="noopener"><span class="nav-icon">?</span>설명서 ↗</a>
+      <button class="nav-item active" data-view="workflow"><span class="nav-icon">⌘</span><span class="nav-label">워크플로우</span><span class="nav-arrow">↗</span></button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">◷</span><span class="nav-label">실험 기록</span><span class="nav-count" id="history-count">0</span></button>
+      <button class="nav-item" data-view="sheets"><span class="nav-icon">⎘</span><span class="nav-label">붙여넣어 실행</span></button>
+      <button class="nav-item" data-view="research"><span class="nav-icon">▤</span><span class="nav-label">연구 데이터</span></button>
+      <button class="nav-item" data-view="measurements"><span class="nav-icon">◈</span><span class="nav-label">실험 데이터</span></button>
+      <button class="nav-item" data-view="models"><span class="nav-icon">⌁</span><span class="nav-label">물성 학습 · 예측</span></button>
+      <button class="nav-item" data-view="screening"><span class="nav-icon">◎</span><span class="nav-label">빠른 예측 · 상용성</span></button>
+      <button class="nav-item" data-view="doe"><span class="nav-icon">▦</span><span class="nav-label">실험 설계·최적화</span></button>
+      <button class="nav-item" data-view="process"><span class="nav-icon">⫶</span><span class="nav-label">공정 데이터 분석</span></button>
+      <button class="nav-item" data-view="campaigns"><span class="nav-icon">↻</span><span class="nav-label">탐색 캠페인</span></button>
+      <button class="nav-item" data-view="bridges"><span class="nav-icon">⌬</span><span class="nav-label">혼합계 준비</span></button>
+      <button class="nav-item" data-view="evidence"><span class="nav-icon">⌕</span><span class="nav-label">REA 분석 근거</span></button>
+      <button class="nav-item" data-view="engines"><span class="nav-icon">⊞</span><span class="nav-label">계산 엔진</span></button>
+      <a class="nav-item manual-nav" href="/manual" target="_blank" rel="noopener"><span class="nav-icon">?</span><span class="nav-label">설명서 ↗</span></a>
     </nav>
 
     <div class="sidebar-bottom"><span class="connection-dot" id="connection-dot"></span><div><strong id="connection-text">연결 확인 중</strong><small>LOCAL WORKSPACE</small></div><span class="version">v0.3</span></div>
   </aside>
-  <main>
+  <div id="sidebar-resizer" role="separator" tabindex="0" aria-label="사이드바 너비 조절" aria-orientation="vertical" aria-controls="workspace-sidebar" aria-valuemin="184" aria-valuemax="360" aria-valuenow="224" aria-describedby="sidebar-resize-help" title="드래그 또는 ← → 키로 폭 조절 · Home/두 번 클릭으로 초기화"></div>
+  <span id="sidebar-resize-help" class="visually-hidden">좌우 방향키로 10픽셀, Shift와 함께 40픽셀씩 조절합니다. Home 또는 경계 두 번 클릭은 기본 폭으로 초기화합니다.</span>
+  <main id="main-content" tabindex="-1">
     <header class="topbar"><div class="breadcrumb">워크스페이스 <span>/</span> <strong id="breadcrumb-current">워크플로우</strong></div><div class="top-meta"><button class="text-button" id="drive-open" aria-haspopup="dialog">Drive 저장</button><span id="drive-status-label" class="drive-status">연결 확인 전</span><button class="icon-button" id="refresh-button" title="연결 상태 새로고침" aria-label="연결 상태 새로고침">↻</button></div></header>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <section class="view" id="view-workflow">
       <div class="page-heading"><div><h1>연구 워크스페이스</h1></div><span class="outline-pill"><span class="pulse-dot"></span> 연구 모드</span></div>
+      <nav class="workspace-start" aria-label="연구 시작 방법">
+        <button type="button" data-go="sheets"><strong>실행표로 시작</strong><span>설정 붙여넣기 → 검사 → 실행 확인</span></button>
+        <button type="button" data-go="doe"><strong>조건 설계와 최적화</strong><span>실험 설계 → 반응값 분석 → 확인 실험</span></button>
+        <button type="button" data-go="history"><strong>계산 진행·결과 확인</strong><span>실험 기록에서 로그와 결과 파일 열기</span></button>
+      </nav>
       <div class="workflow-strip" aria-label="워크플로우 진행 단계">
         <div class="flow-step active" data-step="input"><span class="step-number">01</span><div><strong>연구 입력</strong><small>모델 · 실행 조건</small></div><span class="step-check">↗</span></div><span class="flow-connector">→</span>
         <div class="flow-step" data-step="build"><span class="step-number">02</span><div><strong>구조 생성</strong><small>Build / Predict</small></div></div><span class="flow-connector">→</span>
@@ -202,7 +211,8 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
       <div class="research-grid research-input-grid">
         <section class="panel"><div class="panel-title"><h2>실행표</h2><span class="tiny-label">POLYMER LAB 실행표 V1</span></div><form id="sheet-form" class="research-body">
           <div class="research-actions" id="sheet-templates"></div>
-          <label class="field"><span>실행표 붙여넣기 <small>설정 목록일 뿐 코드로 실행되지 않습니다</small></span><textarea id="sheet-text" rows="16" class="mono" spellcheck="false" required placeholder="# Polymer Lab 실행표 v1&#10;종류: blends&#10;이름: PS 용매 스크리닝&#10;기준: 폴리스타이렌 | [*]CC([*])c1ccccc1&#10;대상: 톨루엔 | Cc1ccccc1"></textarea></label>
+          <label class="field"><span>실행표 붙여넣기 <small>설정 목록일 뿐 코드로 실행되지 않습니다</small></span><textarea id="sheet-text" aria-describedby="sheet-input-error" rows="16" class="mono" spellcheck="false" required placeholder="# Polymer Lab 실행표 v1&#10;종류: blends&#10;이름: PS 용매 스크리닝&#10;기준: 폴리스타이렌 | [*]CC([*])c1ccccc1&#10;대상: 톨루엔 | Cc1ccccc1"></textarea></label>
+          <p id="sheet-input-error" class="sheet-input-error" role="alert" hidden></p>
           <div class="research-actions"><button class="secondary-button" type="button" id="sheet-check">검사만 하기</button><button class="primary-button" type="submit"><span>검사 후 실행</span><span>↗</span></button><button class="text-button" type="button" id="sheet-download">실행표 TXT 저장 ↓</button></div>
           <p class="field-help">검사는 아무것도 만들지 않습니다. 실행하면 Blends 조합은 구조·접촉 분석 줄에서 하나씩, 작업은 MD 계산 줄에서 차례로 돕니다. 작업은 작업 화면에서 제출한 것과 같은 검사를 거칩니다. 결과는 측정값으로 등록되지 않습니다.</p>
         </form></section>
