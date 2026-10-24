@@ -34,3 +34,17 @@
 #research-snapshot-result+.research-copy{margin-top:22px}.report-action,.report-links{display:contents}.report-links .research-footnote{flex-basis:100%;margin:0}.report-links .error-message{flex-basis:100%}
 .flow-responses{border:1px solid #344b53;border-radius:6px;padding:10px 14px;margin:6px 0 14px;display:flex;flex-wrap:wrap;gap:4px 18px}.flow-responses legend{font-size:10px;color:#9bb5c0;padding:0 6px}.flow-responses .field-help{flex-basis:100%;margin:4px 0 0}#flow-goals input,#flow-goals select{width:100%;min-width:72px;box-sizing:border-box;background:#12212a;border:1px solid #3a525c;border-radius:4px;color:#c4dadb;padding:7px 6px;font-size:11px}#flow-goals td:first-child{min-width:120px}
 .flow-response-options{display:contents}
+
+/* Entry points and keyboard navigation; independent of result rendering. */
+.workspace-start{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 20px}
+.workspace-start button{display:flex;flex-direction:column;gap:7px;text-align:left;background:#172831;border:1px solid #344b53;border-radius:7px;padding:15px;color:#d5e7e2;cursor:pointer;font:inherit}
+.workspace-start button:hover{border-color:#85bca5;background:#1b302f}
+.workspace-start strong{font-size:13px;font-weight:500}
+.workspace-start span{font-size:11px;color:#a9c2c6;line-height:1.6}
+:where(button,a,input,select,textarea,summary):focus-visible{outline:2px solid #9ae2c9;outline-offset:3px}
+.skip-link{position:fixed;top:8px;left:8px;transform:translateY(-150%);z-index:1000;background:#a3e3ce;color:#10241e;padding:12px;border-radius:5px}
+.skip-link:focus{transform:translateY(0)}
+#sheet-text[aria-invalid="true"]{border-color:#e6b866}
+.sheet-input-error{color:#f0c889;font-size:13px;line-height:1.7;margin:0 0 14px}
+@media(max-width:760px){.workspace-start{grid-template-columns:1fr;gap:8px}.workspace-start button{padding:12px 14px;gap:4px}}
+@media(max-width:600px){#sheet-templates .text-button{font-size:12px;line-height:1.6;min-height:44px;text-align:left}#sheet-text{font-size:13px;min-height:220px}#sheet-form .field>span{font-size:12px}#sheet-form .field>span small{display:block;float:none;font-size:11px;line-height:1.6}#view-sheets .research-footnote{font-size:12px;line-height:1.7}}

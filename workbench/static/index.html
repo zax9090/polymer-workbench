@@ -21,6 +21,7 @@
   <script defer src="/static/sheets.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
   <aside class="sidebar">
     <a class="brand" href="#workflow" aria-label="Polymer Lab 홈"><span class="brand-mark">p<span>·</span></span><span>polymer<span class="brand-light">lab</span><small>개인 연구 워크스페이스</small></span></a>
     <div class="sidebar-label">WORKSPACE</div>
@@ -43,11 +44,16 @@
 
     <div class="sidebar-bottom"><span class="connection-dot" id="connection-dot"></span><div><strong id="connection-text">연결 확인 중</strong><small>LOCAL WORKSPACE</small></div><span class="version">v0.3</span></div>
   </aside>
-  <main>
+  <main id="main-content" tabindex="-1">
     <header class="topbar"><div class="breadcrumb">워크스페이스 <span>/</span> <strong id="breadcrumb-current">워크플로우</strong></div><div class="top-meta"><button class="text-button" id="drive-open" aria-haspopup="dialog">Drive 저장</button><span id="drive-status-label" class="drive-status">연결 확인 전</span><button class="icon-button" id="refresh-button" title="연결 상태 새로고침" aria-label="연결 상태 새로고침">↻</button></div></header>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <section class="view" id="view-workflow">
       <div class="page-heading"><div><h1>연구 워크스페이스</h1></div><span class="outline-pill"><span class="pulse-dot"></span> 연구 모드</span></div>
+      <nav class="workspace-start" aria-label="연구 시작 방법">
+        <button type="button" data-go="sheets"><strong>실행표로 시작</strong><span>설정 붙여넣기 → 검사 → 실행 확인</span></button>
+        <button type="button" data-go="doe"><strong>조건 설계와 최적화</strong><span>실험 설계 → 반응값 분석 → 확인 실험</span></button>
+        <button type="button" data-go="history"><strong>계산 진행·결과 확인</strong><span>실험 기록에서 로그와 결과 파일 열기</span></button>
+      </nav>
       <div class="workflow-strip" aria-label="워크플로우 진행 단계">
         <div class="flow-step active" data-step="input"><span class="step-number">01</span><div><strong>연구 입력</strong><small>모델 · 실행 조건</small></div><span class="step-check">↗</span></div><span class="flow-connector">→</span>
         <div class="flow-step" data-step="build"><span class="step-number">02</span><div><strong>구조 생성</strong><small>Build / Predict</small></div></div><span class="flow-connector">→</span>
@@ -200,7 +206,8 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
       <div class="research-grid research-input-grid">
         <section class="panel"><div class="panel-title"><h2>실행표</h2><span class="tiny-label">POLYMER LAB 실행표 V1</span></div><form id="sheet-form" class="research-body">
           <div class="research-actions" id="sheet-templates"></div>
-          <label class="field"><span>실행표 붙여넣기 <small>설정 목록일 뿐 코드로 실행되지 않습니다</small></span><textarea id="sheet-text" rows="16" class="mono" spellcheck="false" required placeholder="# Polymer Lab 실행표 v1&#10;종류: blends&#10;이름: PS 용매 스크리닝&#10;기준: 폴리스타이렌 | [*]CC([*])c1ccccc1&#10;대상: 톨루엔 | Cc1ccccc1"></textarea></label>
+          <label class="field"><span>실행표 붙여넣기 <small>설정 목록일 뿐 코드로 실행되지 않습니다</small></span><textarea id="sheet-text" aria-describedby="sheet-input-error" rows="16" class="mono" spellcheck="false" required placeholder="# Polymer Lab 실행표 v1&#10;종류: blends&#10;이름: PS 용매 스크리닝&#10;기준: 폴리스타이렌 | [*]CC([*])c1ccccc1&#10;대상: 톨루엔 | Cc1ccccc1"></textarea></label>
+          <p id="sheet-input-error" class="sheet-input-error" role="alert" hidden></p>
           <div class="research-actions"><button class="secondary-button" type="button" id="sheet-check">검사만 하기</button><button class="primary-button" type="submit"><span>검사 후 실행</span><span>↗</span></button><button class="text-button" type="button" id="sheet-download">실행표 TXT 저장 ↓</button></div>
           <p class="field-help">검사는 아무것도 만들지 않습니다. 실행하면 Blends 조합은 구조·접촉 분석 줄에서 하나씩, 작업은 MD 계산 줄에서 차례로 돕니다. 작업은 작업 화면에서 제출한 것과 같은 검사를 거칩니다. 결과는 측정값으로 등록되지 않습니다.</p>
         </form></section>
