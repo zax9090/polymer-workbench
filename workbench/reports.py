@@ -647,7 +647,10 @@ def build_workflow(b, record, measurements):
         states[row["state"]] = states.get(row["state"], 0) + 1
     collected = record.get("responses") or [record["metric"]]
     units = {name: (record.get("units") or {}).get(name, record["unit"] if name == record["metric"] else "") for name in collected}
-    b.facts([("상태", record["state"]), ("반응값", ", ".join(f"{name} ({units[name]})" for name in collected)), ("계산 예산", f"{record['submitted']} / {record['budget']}"),
+    from .workflows import ROUTES, route_of
+    route = route_of(record)
+    b.facts([("계산 경로", ROUTES[route]["label"] + (f" · 원래 흐름 {record['parent_workflow_id']}" if record.get("parent_workflow_id") else "")),
+             ("상태", record["state"]), ("반응값", ", ".join(f"{name} ({units[name]})" for name in collected)), ("계산 예산", f"{record['submitted']} / {record['budget']}"),
              ("행 상태", ", ".join(f"{k} {v}" for k, v in sorted(states.items()))), ("설계 기록", record["design_id"]), ("기록 판", record.get("revision"))])
     def value(observation, name):
         return (observation.get("values") or {record["metric"]: observation.get("value")}).get(name) if observation else None
@@ -676,16 +679,20 @@ def build_workflow(b, record, measurements):
         for item in record["confirmations"]:
             optimization = next((o for o in record["optimizations"] if o["id"] == item["optimization_id"]), {})
             rec, observation = optimization.get("recommendation", {}), item.get("observation") or {}
+            used = rec.get("rounded")
             if optimization.get("analysis") == "doe_desirability":
-                targets = [(n, rec["predicted"][n], rec["prediction_intervals"][n]) for n in rec.get("predicted", {})]
+                source = used or rec
+                targets = [(n, source["predicted"][n], source["prediction_intervals"][n]) for n in source.get("predicted", {})]
             else:
-                targets = [(optimization.get("metric", record["metric"]), rec.get("predicted_response"), rec.get("prediction_interval") or [None, None])]
+                metric = optimization.get("metric", record["metric"])
+                targets = [(metric, used["predicted"][metric], used["prediction_intervals"][metric]) if used
+                           else (metric, rec.get("predicted_response"), rec.get("prediction_interval") or [None, None])]
             for name, predicted, interval in targets:
                 observed_value = value(observation, name)
                 inside = None if observed_value is None or None in interval else interval[0] <= observed_value <= interval[1]
                 error = (observation.get("prediction_errors") or {name: observation.get("prediction_error")}).get(name)
-                rows.append([item["optimization_id"], item["job_id"], item.get("job_status"), name, observed_value, predicted, *interval, inside, error,
-                             bool(observation.get("verified", False))])
+                rows.append([item["optimization_id"], item.get("scan_job_id") or item["job_id"], item.get("final_status", item.get("job_status")), name,
+                             observed_value, predicted, *interval, inside, error, bool(observation.get("verified", False))])
                 if observed_value is not None and None not in interval:
                     charts.setdefault(name, []).append({"label": item["job_id"][:8], "observed": observed_value, "predicted": predicted, "prediction_interval": interval})
         b.table("confirmations", "확인 계산과 예측", ["최적화", "작업", "작업 상태", "반응", "관측값", "예측값", "예측구간 하한", "예측구간 상한", "예측구간 안", "예측 오차", "검토"], rows)

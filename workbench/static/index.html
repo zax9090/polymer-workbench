@@ -277,14 +277,25 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
           <label class="field"><span>저장한 연구 흐름</span><select id="flow-history"><option value="">흐름 선택</option></select></label>
           <p id="flow-start-note" class="research-footnote">설계 결과에서 ‘벌크 계산에 연결’을 선택하세요. 온도와 초기 패킹 밀도를 사용합니다.</p>
           <form id="flow-create" class="hidden">
-            <h3>1. 설계와 계산 설정 확인</h3><div id="flow-bindings" class="field-row"></div>
-            <div class="field-row"><label class="field"><span>반복단위 SMILES</span><input id="flow-smiles" value="[*]CC[*]" required></label><label class="field"><span>전하 모델</span><select id="flow-charge"><option value="gasteiger">Gasteiger</option><option value="xtb_cm5">xtb CM5 · 별도 엔진 필요</option></select></label></div>
-            <div class="field-row"><label class="field"><span>사슬당 반복단위</span><input id="flow-monomers" type="number" value="24" min="2" max="200" required></label><label class="field"><span>사슬 수</span><input id="flow-chains" type="number" value="2" min="2" max="16" required></label></div>
-            <div class="field-row"><label class="field"><span>프로토콜 길이 배율 · 1 = 전체 길이</span><input id="flow-scale" type="number" value="1" min="0.001" max="1" step="any" required></label><label class="field"><span>계산 예산 · 재시도와 확인 계산 포함</span><input id="flow-budget" type="number" value="50" min="1" max="50" required></label></div>
-            <div class="field-row"><label class="field"><span>반응값</span><select id="flow-metric"><option value="probe_accessible_fraction">탐침 접근 가능 부피 비율</option><option value="final_frame_density">최종 구조 밀도 · g/cm³</option><option value="npt_density">NPT 평균 밀도 · g/cm³</option><option value="bulk_modulus">체적 탄성률(부피 요동) · GPa</option><option value="volume_expansion">부피 팽창 계수 · 1/K</option></select></label><label class="field"><span>기본 시드 · 각 행은 별도 시드</span><input id="flow-seed" type="number" value="42" min="1" max="899999998" required></label></div>
-            <fieldset class="flow-responses"><legend>함께 수집할 반응값 · 선택</legend><label class="checkbox-field"><input type="checkbox" data-response value="final_frame_density"> 최종 구조 밀도</label><label class="checkbox-field"><input type="checkbox" data-response value="probe_accessible_fraction"> 탐침 접근 가능 부피 비율</label><label class="checkbox-field"><input type="checkbox" data-response value="npt_density"> NPT 평균 밀도</label><label class="checkbox-field"><input type="checkbox" data-response value="bulk_modulus"> 체적 탄성률</label><label class="checkbox-field"><input type="checkbox" data-response value="volume_expansion"> 부피 팽창 계수</label><p class="field-help">앞의 두 값은 최종 구조의 자유 부피 분석에서, 뒤의 세 값은 계산의 NPT 표본 평균에서 얻습니다. NPT 값에는 RadonPy의 수렴 판정이 함께 기록됩니다.</p></fieldset>
+            <h3>1. 설계와 계산 설정 확인</h3>
+            <div class="field-row"><label class="field"><span>계산 경로</span><select id="flow-route"><option value="gaff2_bulk">GAFF2 벌크 · 자체 셀 빌더</option><option value="pcff_bulk">PCFF 벌크 · EMC</option><option value="crosslink">에폭시–아민 가교</option></select></label></div>
+            <div id="flow-bindings" class="field-row"></div>
+            <div data-route-group="bulk">
+              <div class="field-row"><label class="field"><span>반복단위 SMILES</span><input id="flow-smiles" value="[*]CC[*]"></label><label class="field" data-route-only="gaff2_bulk"><span>전하 모델</span><select id="flow-charge"><option value="gasteiger">Gasteiger</option><option value="xtb_cm5">xtb CM5 · 별도 엔진 필요</option></select></label></div>
+              <div class="field-row"><label class="field"><span>사슬당 반복단위</span><input id="flow-monomers" type="number" value="24" min="2" max="200"></label><label class="field"><span>사슬 수</span><input id="flow-chains" type="number" value="2" min="2" max="16"></label></div>
+            </div>
+            <div data-route-group="crosslink" class="hidden">
+              <div class="field-row"><label class="field"><span>에폭시 수지 SMILES · 말단 글리시딜 2개 이상</span><input id="flow-resin" value="CC(C)(c1ccc(OCC2CO2)cc1)c1ccc(OCC2CO2)cc1"></label><label class="field"><span>1차 아민 경화제 SMILES</span><input id="flow-hardener" value="NCCN"></label></div>
+              <div class="field-row"><label class="field"><span>수지 분자 수</span><input id="flow-resin-count" type="number" value="16" min="2" max="400"></label><label class="field"><span>경화제 분자 수</span><input id="flow-hardener-count" type="number" value="8" min="1" max="400"></label></div>
+              <div class="field-row"><label class="field"><span>경화 온도 · K</span><input id="flow-cure-temperature" type="number" value="450" min="300" max="600" step="any"></label><label class="field"><span>목표 에폭시 전환율</span><input id="flow-target-conversion" type="number" value="0.85" min="0.05" max="0.99" step="any"></label></div>
+              <div class="field-row"><label class="field"><span>반응 거리 · Å</span><input id="flow-cutoff" type="number" value="4" min="3" max="6" step="any"></label><label class="field"><span>경화 스텝 상한</span><input id="flow-cure-steps" type="number" value="200000" min="1000" max="5000000"></label></div>
+            </div>
+            <div class="field-row"><label class="field"><span>물성 샘플링 온도 · K</span><input id="flow-temperature" type="number" value="300" min="100" max="500" step="any" required></label><label class="field"><span>프로토콜 길이 배율 · 1 = 전체 길이</span><input id="flow-scale" type="number" value="1" min="0.001" max="1" step="any" required></label></div>
+            <div class="field-row"><label class="field"><span>계산 예산 · 재시도와 확인 계산 포함</span><input id="flow-budget" type="number" value="50" min="1" max="50" required></label><label class="field"><span>기본 시드 · 각 행은 별도 시드</span><input id="flow-seed" type="number" value="42" min="1" max="899999998" required></label></div>
+            <div class="field-row"><label class="field"><span>대표 반응값</span><select id="flow-metric"></select></label></div>
+            <fieldset class="flow-responses"><legend>함께 수집할 반응값 · 선택</legend><span id="flow-response-options" class="flow-response-options"></span><p class="field-help">자유 부피 값은 최종 구조의 분석에서, NPT 값은 계산의 표본 평균에서, 에폭시 전환율은 가교 기록에서 얻습니다. NPT 값에는 RadonPy의 수렴 판정이 함께 기록됩니다.</p></fieldset>
             <div class="field-row"><label class="field"><span>탐침 반경 · Å</span><input id="flow-probe" type="number" value="1" min="0" max="5" step="any" required></label><label class="field"><span>격자 간격 · Å</span><input id="flow-spacing" type="number" value="0.25" min="0.05" max="1" step="any" required></label></div>
-            <p class="research-footnote">GAFF2 · 자체 셀 빌더. 초기 패킹 밀도는 계산 준비 조건이며 최종 밀도와 다릅니다. 전체 길이 계산은 오래 걸릴 수 있습니다.</p>
+            <p class="research-footnote" id="flow-route-note">설계에 연결한 설정은 행마다 설계값으로 바뀌고, 나머지는 위 값으로 고정됩니다. 정수 설정(반복단위·사슬·분자 수)은 모든 설계점이 정수여야 합니다. 전체 길이 계산은 오래 걸릴 수 있습니다.</p>
             <button class="primary-button" type="submit">설정 확인 · 연구 흐름 저장</button>
           </form>
           <div id="flow-message" aria-live="polite"></div>
@@ -301,6 +312,13 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
               <div id="pilot-plan" aria-live="polite"></div>
             </details>
             <div id="flow-autopilot-status" aria-live="polite"></div>
+            <details id="flow-tg"><summary>이 흐름의 셀로 Tg 스캔 흐름 만들기</summary>
+              <p class="research-footnote">계산이 끝난 행의 최종 셀을 단계 냉각 NPT로 다시 계산해, 같은 인자로 Tg를 반응값으로 맞춥니다. 전이가 확인되지 않은 행은 분석 실패로 남습니다. 확인 계산은 추천 조건의 셀 계산과 그 스캔, 2개를 씁니다. 냉각 속도는 약 10¹¹ K/s이며 실험값으로 환산하지 않습니다.</p>
+              <div class="field-row"><label class="field"><span>시작 온도 · K</span><input id="flow-tg-high" type="number" value="500" min="150" max="800" step="any"></label><label class="field"><span>끝 온도 · K</span><input id="flow-tg-low" type="number" value="200" min="50" max="700" step="any"></label></div>
+              <div class="field-row"><label class="field"><span>온도 간격 · K</span><input id="flow-tg-step" type="number" value="20" min="5" max="100" step="any"></label><label class="field"><span>온도당 스텝 · 1 fs</span><input id="flow-tg-steps" type="number" value="200000" min="1000" max="2000000"></label></div>
+              <div class="field-row"><label class="field"><span>계산 예산</span><input id="flow-tg-budget" type="number" value="50" min="1" max="50"></label></div>
+              <button class="secondary-button" type="button" id="flow-tg-create">Tg 스캔 흐름 저장</button>
+            </details>
             <details><summary>완료된 기존 작업 연결</summary><div class="field-row"><label class="field"><span>설계 행 번호</span><input id="flow-attach-row" type="number" min="1" max="50"></label><label class="field"><span>작업 ID · 설정과 시드가 일치해야 함</span><input id="flow-attach-job"></label></div><button class="secondary-button" id="flow-attach">기존 작업 연결</button></details>
             <form id="flow-optimize"><h3>3. 반응값 검토 · 조건 추천</h3>
               <div class="field-row"><label class="field"><span>최적화할 반응값</span><select id="flow-response"></select></label></div>

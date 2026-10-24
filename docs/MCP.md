@@ -92,6 +92,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `rank_solvents` · `fit_hsp_sphere` · `blend_compatibility` | Hansen 용매 순위(RED·χ·두 용매 혼합), 용해 시험으로 구 피팅(저장하지 않는 초안), 고분자 블렌드 χ와 임계 χ |
 | `blend_chi_contacts` | Blends 방식 분자 접촉 χ(T)·배위수·임계점(Rust 커널, 실험적, 엔탈피 χ만) |
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
+| `create_tg_scan_workflow` | 완료된 GAFF2·PCFF 벌크·가교 흐름의 셀마다 단계 냉각 Tg 스캔을 만드는 후속 흐름 저장(계산은 시작하지 않음) |
 | `run_research_workflow_plan` | 벌크 연구 흐름 계획의 최대 계산 수 미리보기, 사용자가 승인한 계획·예산으로 끝까지 실행(같은 설정 재시도·실패 한도·최적화·확인 계산·보고서), 멈추기 |
 | `create_research_report` | DoE 기록·연구 흐름·연구 데이터 마스터 표의 보고서 폴더(요약·그림·CSV·xlsx·해시) 저장, 요청할 때만 Drive 업로드 후 파일별 MD5 확인 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
@@ -122,6 +123,7 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `create_mixture_design` | `POST /api/research/doe/mixture-design` | `components: [{name, low, high}]`(비율 0~1), `kind: simplex_lattice·simplex_centroid·extreme_vertices`, `degree`, `axial`, `centroid`, `replicates`, `seed` |
 | `analyze_mixture_response` | `POST /api/research/doe/mixture-analyze` | `text`, `components`, `response`, `model: scheffe_linear·scheffe_quadratic·scheffe_special_cubic`, `objective`, 선택적 `target`, `prediction_points` |
 | `optimize_desirability` | `POST /api/research/doe/desirability` | `text`, `responses: [{name, model, goal, lower, target, upper, lower_shape, upper_shape, importance}]`, `factors` 또는 `components` 중 하나 |
+| `create_tg_scan_workflow` | `POST /api/research/workflows/{id}/tg-scan` | `tg_high_kelvin`, `tg_low_kelvin`, `tg_step_kelvin`, `tg_stage_steps`, `metric`, `responses`, `budget` |
 | `run_research_workflow_plan` | `POST /api/research/workflows/{id}/autopilot/preview`, `…/autopilot`, `…/autopilot/stop` | `action: preview·start·stop`, `plan: {rows, max_attempts, max_failed_rows, optimize, model, objective, target, confirm, report, upload_report}`, start에는 `approved_budget`(미리보기 최대 계산 수 이상) |
 | `create_research_report` | `POST /api/research/reports`, 선택 시 `POST /api/research/reports/{id}/drive` | `kind: doe·workflow·lab`, `id`(doe·workflow), `upload_to_drive` |
 
@@ -148,4 +150,4 @@ MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없
 
 ### 단계별 벌크 연구 연결
 
-`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 GAFF2 자체 벌크 템플릿을 연결합니다. `metric`(대표 반응값)과 `responses`(함께 수집할 값)는 `final_frame_density`·`probe_accessible_fraction`(자유 부피 분석)과 `npt_density`·`bulk_modulus`·`volume_expansion`(작업의 NPT 표본 평균, RadonPy 수렴 판정 포함) 중에서 고릅니다. 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`(선택 `response`), `optimize-desirability`(`goals`), `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 반응값의 출처와 검증은 `docs/WORKFLOWS.md`에 있습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.
+`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 계산 템플릿을 연결합니다. 경로는 템플릿으로 정해집니다(GAFF2 벌크·자체 셀 빌더, PCFF 벌크, 에폭시–아민 가교). `bindings`는 설계 인자마다 그 경로가 읽는 설정 하나(`/api/research/workflows/capabilities`의 `routes[].fields`, 허용 범위는 `fields[].bounds`)를 연결하며, 정수 설정은 설계점이 모두 정수여야 합니다. `metric`(대표 반응값)과 `responses`(함께 수집할 값)는 `final_frame_density`·`probe_accessible_fraction`(자유 부피 분석), `npt_density`·`bulk_modulus`·`volume_expansion`(NPT 표본 평균, RadonPy 수렴 판정 포함), 가교의 `epoxide_conversion` 중에서 고릅니다. `create_tg_scan_workflow`는 완료된 흐름의 셀마다 Tg 스캔을 만드는 후속 흐름을 저장합니다(반응값 `tg_kelvin`·`expansion_glass`·`expansion_melt`, 전이 미확인 행은 분석 실패, 확인 계산은 셀과 스캔 2개). 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`(선택 `response`), `optimize-desirability`(`goals`), `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 반응값의 출처와 검증은 `docs/WORKFLOWS.md`에 있습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.

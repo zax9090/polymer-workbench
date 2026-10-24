@@ -11,7 +11,7 @@ from __future__ import annotations
 import threading
 
 from .jobs import now
-from .workflows import LABELS, autopilot_context, digest, responses
+from .workflows import LABELS, autopilot_context, digest, responses, route_of
 
 RETRYABLE = {"failed", "interrupted"}
 FINAL = {"blocked", "cancelled", "missing"}
@@ -64,7 +64,8 @@ def normalize(record, plan):
                   "objective": objective, "target": target, "response": None if goals else response, "goals": goals or None,
                   "confirm": confirm, "report": bool(plan.get("report", True)), "upload_report": bool(plan.get("upload_report", False))}
     selected = [row for row in record["rows"] if row["run_order"] in rows and row["state"] != "observed"]
-    runs = sum(max(0, attempts - len(row["attempts"])) for row in selected) + (attempts if confirm else 0)
+    per_confirmation = 2 if route_of(record) == "tg_scan" else 1
+    runs = sum(max(0, attempts - len(row["attempts"])) for row in selected) + (attempts * per_confirmation if confirm else 0)
     outside = [row["run_order"] for row in record["rows"] if row["run_order"] not in rows and row["state"] != "observed"]
     return normalized, {"worst_case_runs": runs, "remaining_budget": record["budget"] - record["submitted"],
                         "rows_to_run": [row["run_order"] for row in selected], "excluded_by_plan": outside if optimize else [],
@@ -226,22 +227,31 @@ class Autopilot:
             raise StopRun("stopped", f"계산·분석에 실패한 행 {len(failed)}개가 허용 수 {plan['max_failed_rows']}개를 넘었습니다.")
         return failed
 
+    def _until_done(self, identifier, event, job_id, key="job_id", status_key="job_status"):
+        while True:
+            status = next(c for c in self.workflows.get(identifier)["confirmations"] if c[key] == job_id).get(status_key)
+            if status not in RUNNING:
+                return status
+            self._wait(event)
+
     def _confirm(self, identifier, event, plan, approved, optimization_id):
+        scan = route_of(self.workflows._read(identifier)) == "tg_scan"
         for attempt in range(plan["max_attempts"]):
-            if self._spent(identifier) + 1 > approved:
+            if self._spent(identifier) + (2 if scan else 1) > approved:
                 raise StopRun("stopped", "확인 계산에 쓸 승인 예산이 남지 않았습니다.")
             record = self.workflows.confirm(identifier, optimization_id, retry_failed=attempt > 0)
             job_id = [c for c in record["confirmations"] if c["optimization_id"] == optimization_id][-1]["job_id"]
-            self._log(identifier, "confirm", f"추천 조건 확인 계산 제출 · 시도 {attempt + 1}회")
-            while True:
-                status = next(c for c in self.workflows.get(identifier)["confirmations"] if c["job_id"] == job_id).get("job_status")
-                if status not in RUNNING:
-                    break
-                self._wait(event)
+            self._log(identifier, "confirm", f"추천 조건 확인 계산 제출 · 시도 {attempt + 1}회" + (" (셀 계산 후 Tg 스캔)" if scan else ""))
+            status = self._until_done(identifier, event, job_id)
+            if scan and status == "completed":
+                record = self.workflows.analyze_confirmation(identifier, job_id)
+                job_id = next(c for c in record["confirmations"] if c["job_id"] == job_id)["scan_job_id"]
+                self._log(identifier, "confirm", "확인용 셀 계산 완료 · Tg 스캔 제출")
+                status = self._until_done(identifier, event, job_id, "scan_job_id", "scan_job_status")
             if status == "completed":
                 record = self.workflows.analyze_confirmation(identifier, job_id)
                 self._check(event)
-                observation = next(c for c in record["confirmations"] if c["job_id"] == job_id)["observation"]
+                observation = next(c for c in record["confirmations"] if job_id in (c["job_id"], c.get("scan_job_id")))["observation"]
                 errors = " · ".join(f"{LABELS.get(name, name)} 차이 {value:.3g}" for name, value in observation["prediction_errors"].items())
                 self._log(identifier, "confirm", f"확인 계산 관측값 {observation['value']:.6g} · 예측과 {errors} (검토 전)")
                 return

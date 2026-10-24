@@ -99,4 +99,6 @@ def test_response_names_agree_across_module_api_and_mcp():
     from typing import get_args
     from workbench import mcp_server, workflow_api, workflows
     assert list(workflows.METRICS) == mcp_server.WORKFLOW_METRICS == list(get_args(workflow_api.Metric)) == list(workflows.LABELS)
-    assert set(workflows.FREE_VOLUME) | set(workflows.RESULT_PROPERTIES) == set(workflows.METRICS)
+    assert list(workflows.FIELDS) == mcp_server.WORKFLOW_FIELDS
+    assert set(workflows.FREE_VOLUME) | set(workflows.RESULT_PROPERTIES) | workflows.CURE_VALUES | set(workflows.TG_VALUES) == set(workflows.METRICS)
+    assert all(set(spec["responses"]) <= set(workflows.METRICS) and set(spec.get("fields", [])) <= set(workflows.FIELDS) for spec in workflows.ROUTES.values())

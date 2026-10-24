@@ -5,14 +5,15 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from .research_api import ResearchRoute
 from .models import JobConfig
-from .workflows import FIELDS, METRICS
+from .workflows import FIELDS, LABELS, METRICS, ROUTES, field_bounds
 
 router = APIRouter(prefix="/api/research/workflows", route_class=ResearchRoute)
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
-Metric = Literal["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion"]
+Metric = Literal["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion", "epoxide_conversion",
+                 "tg_kelvin", "expansion_glass", "expansion_melt"]
 
 class Create(Strict):
     design_id: str = Field(pattern=r"^[0-9a-f]{32}$")
@@ -22,6 +23,15 @@ class Create(Strict):
     responses: list[Metric] = Field(default_factory=list, max_length=5)
     probe: float = Field(default=1.0, ge=0, le=5)
     spacing: float = Field(default=0.25, ge=0.05, le=1)
+    budget: int = Field(default=50, ge=1, le=50)
+
+class TgScan(Strict):
+    tg_high_kelvin: float = Field(default=500, ge=150, le=800)
+    tg_low_kelvin: float = Field(default=200, ge=50, le=700)
+    tg_step_kelvin: float = Field(default=20, ge=5, le=100)
+    tg_stage_steps: int = Field(default=200000, ge=1000, le=2000000)
+    metric: Metric = "tg_kelvin"
+    responses: list[Metric] = Field(default_factory=list, max_length=3)
     budget: int = Field(default=50, ge=1, le=50)
 
 class Rows(Strict):
@@ -83,8 +93,9 @@ class Approval(Strict):
 
 @router.get("/capabilities")
 def capabilities():
-    return {"fields": FIELDS, "metrics": METRICS, "max_budget": 50,
-            "template_requirements": {"route": "polymer_atomistic", "atomistic_mode": "bulk", "atomistic_forcefield": "gaff2", "cell_builder": "native"}}
+    return {"fields": {name: {**spec, "bounds": field_bounds(name)} for name, spec in FIELDS.items()}, "metrics": METRICS, "labels": LABELS, "max_budget": 50,
+            "routes": {key: {"label": spec["label"], "template": {"route": "polymer_atomistic", **spec.get("match", {})},
+                             "fields": spec.get("fields", []), "responses": spec["responses"]} for key, spec in ROUTES.items()}}
 
 @router.get("")
 def list_workflows(request: Request):
@@ -103,6 +114,11 @@ def download_workflow(identifier: str, request: Request):
     manager = request.app.state.workflows
     manager.get(identifier)
     return FileResponse(manager.root / identifier / "result.json", media_type="application/json", filename=f"PolymerLab-workflow-{identifier}.json")
+
+@router.post("/{identifier}/tg-scan", status_code=201)
+def create_tg_scan(identifier: str, payload: TgScan, request: Request):
+    data = payload.model_dump()
+    return request.app.state.workflows.create_tg_scan(identifier, data, data.pop("metric"), data.pop("responses"), data.pop("budget"))
 
 @router.post("/{identifier}/submit")
 def submit_workflow(identifier: str, payload: Submit, request: Request):

@@ -281,7 +281,10 @@ def _compact_campaign(record):
 
 # ---------------------------------------------------------------- tools
 
-WORKFLOW_METRICS = ["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion"]
+WORKFLOW_FIELDS = ["temperature_kelvin", "build_density", "monomers", "chains", "cure_temperature_kelvin", "target_conversion",
+                   "reaction_cutoff_angstrom", "secondary_amine_probability", "resin_count", "hardener_count"]
+WORKFLOW_METRICS = ["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion", "epoxide_conversion",
+                    "tg_kelvin", "expansion_glass", "expansion_melt"]
 
 
 def _schema(properties, required=()):
@@ -422,9 +425,12 @@ class PolymerLabTools:
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
         t("create_research_workflow", "Connect DOE to bulk calculations",
-          "Save a reviewed two-factor DOE connection to GAFF2 native bulk jobs. Does not start calculations. Packing density is a preparation parameter. Templates, bindings and metrics follow /api/research/workflows/capabilities. "
-          "Responses: final_frame_density and probe_accessible_fraction from the free-volume analysis of the final frame; npt_density, bulk_modulus and volume_expansion from the job's NPT sampling, recorded with RadonPy's convergence verdict.",
-          _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": ["temperature_kelvin", "build_density"]}},
+          "Save a reviewed DOE connection to calculation jobs; the route follows the template: GAFF2 bulk with the native builder (temperature, initial packing density, monomers, chains), "
+          "PCFF bulk (temperature, monomers, chains) or epoxy-amine crosslink (cure temperature, target conversion, reaction cutoff, secondary-amine probability, sampling temperature, resin and hardener counts). "
+          "Each design factor binds one distinct setting; integer settings need integer design points. Does not start calculations. Capabilities: /api/research/workflows/capabilities. "
+          "Responses: final_frame_density and probe_accessible_fraction from the free-volume analysis; npt_density, bulk_modulus and volume_expansion from the NPT sampling with RadonPy's convergence verdict; "
+          "epoxide_conversion for crosslink flows.",
+          _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": WORKFLOW_FIELDS}},
                    "metric": {"type": "string", "enum": WORKFLOW_METRICS},
                    "responses": {"type": "array", "maxItems": 5, "items": {"type": "string", "enum": WORKFLOW_METRICS},
                                  "description": "extra responses collected per row with the primary metric"},
@@ -436,6 +442,15 @@ class PolymerLabTools:
           "Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
           _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "optimize-desirability", "confirm", "analyze-confirmation", "cancel"]},
                    "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, optimize-desirability requires goals [{name, model, goal, lower, target, upper}], confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+        t("create_tg_scan_workflow", "Tg follow-up of a finished flow",
+          "Create a flow that cools each finished cell of an earlier GAFF2/PCFF bulk or crosslink flow with the stepwise NPT Tg scan: same factors, responses tg_kelvin, expansion_glass, expansion_melt. "
+          "A row whose transition is not resolved fails analysis and must be excluded with its reason. A confirmation runs a new cell at the recommendation and then its scan (two calculations). "
+          "Cooling MD is about 1e11 K/s; Tg is never converted to a calorimetric value. Does not start calculations.",
+          _schema({"workflow_id": JOB_ID, "tg_high_kelvin": {"type": "number", "minimum": 150, "maximum": 800}, "tg_low_kelvin": {"type": "number", "minimum": 50, "maximum": 700},
+                   "tg_step_kelvin": {"type": "number", "minimum": 5, "maximum": 100}, "tg_stage_steps": {"type": "integer", "minimum": 1000, "maximum": 2000000},
+                   "metric": {"type": "string", "enum": ["tg_kelvin", "expansion_glass", "expansion_melt"]},
+                   "responses": {"type": "array", "items": {"type": "string", "enum": ["tg_kelvin", "expansion_glass", "expansion_melt"]}},
+                   "budget": {"type": "integer", "minimum": 1, "maximum": 50}}, ["workflow_id"]), self.create_tg_scan_workflow)
         t("run_research_workflow_plan", "Run an approved workflow plan",
           "preview: return the worst-case number of new calculations for a plan (rows, max_attempts 1-3 identical retries, max_failed_rows, optimize with model/objective/target, "
           "confirm, report, upload_report) and the rows the fit would exclude. start: run the plan to the end without per-stage approval: submit, retry failed or interrupted runs "
@@ -691,6 +706,10 @@ class PolymerLabTools:
 
     def control_research_workflow(self, args):
         return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/{args['action']}", args.get("parameters", {}), timeout=3600)
+
+    def create_tg_scan_workflow(self, args):
+        body = {key: value for key, value in args.items() if key != "workflow_id"}
+        return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/tg-scan", body, timeout=300)
 
     def run_research_workflow_plan(self, args):
         base = f"/api/research/workflows/{args['workflow_id']}/autopilot"
