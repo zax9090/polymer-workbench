@@ -4,7 +4,7 @@
 
 ## 프로젝트 한 줄 요약
 
-개인용 고분자·단백질 연구 워크벤치(Linux 데스크톱 + 로컬 웹 UI)입니다. 모든 계산은 "작업(job)"으로 실행되며 입력·로그·버전·해시가 함께 저장됩니다. 상용 프로그램(Materials Studio 등)의 기능은 **공개 문헌과 오픈소스로 새로 구현**합니다. 상용 파일이나 바이너리는 쓰지 않습니다.
+개인용 고분자·단백질 연구 워크벤치(Linux 데스크톱 + 로컬 웹 UI)입니다. 모든 계산은 "작업(job)"으로 실행되며 입력·로그·버전·해시가 함께 저장됩니다. 상용 프로그램(Materials Studio, Minitab 등)의 기능은 **공개 문헌의 식과 공개 데이터를 근거로 직접 새로 구현**합니다(계산 커널은 Rust 우선, 원칙 7). 상용 파일이나 바이너리는 쓰지 않습니다.
 
 ## 저장소 구조
 
@@ -15,20 +15,24 @@
 | `workbench/pcff.py`, `class2.py`, `crosslink.py` | PCFF 벌크 셀(EMC), msi2lmp 규칙 대조, 실행 전 계수 점검(`coefficient_check.json`), 에폭시–아민 가교(fix bond/react, 계단식 반응 거리·2차 아민 확률) |
 | `workbench/glass_transition.py` | `atomistic_mode: tg_scan`. 완료된 벌크·가교 셀을 단계 냉각 NPT로 다시 돌려 비부피 쌍곡선 Tg(프로파일 구간, 두 직선 비교)와 열팽창을 구함. 냉각 속도를 함께 보고하고 실험값으로 환산하지 않음. 검증 `docs/GLASS_TRANSITION.md` |
 | `workbench/bridges.py` | Martini 3 단백질–고분자 혼합계(martinize2, polyply, GROMACS). pLDDT 구간 탄성망(`-eunit`), 실험적 단백질–고분자 ε 배율(`martini_lambda.itp`) |
+| `workbench/correlations.py`, `native/src/topology.rs` | Synthia 방식(Bicerano) 물성 상관식의 기반. 반복단위를 고리로 닫은 연결성 지수(반복단위당 값)와 주쇄·곁사슬 구분. 상관식 계수는 원 출처를 확인한 뒤 넣음. 검증 `docs/PROPERTY_CORRELATIONS.md` |
 | `workbench/amorphous.py` | 자체 비정질 셀 빌더(배위 편향 성장). `cell_builder: "native"` |
 | `workbench/blends.py` | Blends 방식 χ(T) (Fan 1992), Rust 커널 사용, 실험적 |
 | `workbench/structure_analysis.py` | RDF·MSD·자유 부피·Widom 분석(Rust 커널). 작업 API·MCP·UI 연결, 입력·계산량 검증과 h/2h 격자 비교 |
 | `workbench/execution.py`, `native/src/execution.rs`, `compute_worker.py` | 실행 큐(MD·분석·통계 세 줄)와 별도 계산 프로세스. 새 계산은 이 경로로 연결하고 `LANES`에서 줄을 정함. HTTP 요청은 `request_wait`로 대기 시간 제한 |
-| `workbench/workflows.py`, `workflow_api.py` | 단계별 DOE→GAFF2 벌크→자유 부피→추천·확인. 입력 일치·예산·중복·출처 검증 |
-| `workbench/doe.py`, `native/src/doe.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색 |
+| `workbench/workflows.py`, `workflow_api.py` | 단계별 DOE→계산(GAFF2 자체 벌크, PCFF 벌크, 에폭시–아민 가교, 그 셀의 Tg 스캔 후속 흐름)→자유 부피·NPT 물성·전환율·Tg→추천(단일 반응 또는 만족도)·확인. 경로별 연결 설정(정수 설정은 반올림 확인), 행마다 여러 반응값, 입력 일치·예산·중복·출처(분석·결과 파일 해시) 검증. 검증 `docs/WORKFLOWS.md` |
+| `workbench/sheets.py`, `sheet_api.py`, `static/sheets.js` | 붙여넣어 실행하는 실행표(`# Polymer Lab 실행표 v1`). Blends χ 스크리닝과 작업 묶음, 줄 번호 한국어 오류, 작업은 `preflight.prepare_submission`(작업 API와 같은 검사). 코드로 실행되지 않음. 형식·검증 `docs/RUN_SHEETS.md`, MCP `run_sheet` |
+| `workbench/autopilot.py` | 사람이 한 번 승인한 계획·계산 수 안에서 연구 흐름을 끝까지 실행(같은 설정 재시도, 실패 한도, 제외 사유 기록, 확인 계산, 보고서). 설정은 바꾸지 않고 값은 모두 검토 전. 실행 중에는 직접 단계 실행을 막음 |
+| `workbench/doe.py`, `native/src/doe.rs`, `native/src/mixture.rs`, `native/src/statistics.rs` | 요인설계·면중심 중심합성설계, 혼합물 설계(심플렉스 격자·중심, 꼭짓점)와 Scheffé 모델(L-유사성분), QR 회귀·ANOVA·잔차/PRESS·t/F 추론·예측구간, 모델 비교·범위 내 조건 탐색, Derringer–Suich 다중 반응 만족도. 검증 `docs/DOE_MIXTURE.md` |
 | `workbench/process.py`, `evaluation.py` | 공정 데이터 분석: 데이터 사전, I-MR·X̄-S 관리도와 신호 규칙, Cp·Cpk·Pp·Ppk, 균형 내포 분산 성분, 층별 불량률(Mantel–Haenszel). 모델 평가: 판정 기준별 놓침·오탐·비용, 가상계측 경계 오차, 무작위·로트·시간 분할 비교. 검증 기록 `docs/PROCESS.md` |
 | `workbench/drive_backup.py`, `manual.py` | 소스·설명서·연구 결과 ZIP과 검증된 Drive 업로드, 단일 설명서 표시 |
+| `workbench/reports.py`, `static/reports.js` | DoE 기록·연구 흐름·마스터 표의 불변 보고서(요약·SVG/PNG 그림·CSV·자체 xlsx·해시)와 파일별 MD5를 확인하는 Drive 폴더 업로드. 숫자와 검토 표시는 옮기기만 함. 검증 `docs/REPORTS.md` |
 | `workbench/spectra.py`, `ingestion.py` | IR·UV-vis·탁도, DSC·TGA·GPC·인장 곡선 분석 |
 | `workbench/research_store.py`, `research_api.py`, `learning.py`, `campaigns.py` | DuckDB 연구 데이터, 검토 단계, GP 모델, BayBE 캠페인 |
 | `workbench/screening.py`, `compatibility.py` | PI1070 대리 모델 예측, Hansen 용해도·블렌드 |
 | `workbench/mcp_server.py`, `mcp_http.py` | MCP 서버(stdio, Streamable HTTP). 도구 목록은 `docs/MCP.md` |
 | `workbench/static/` | 웹 UI(`index.html`, `app.js`, `research.js`, `screening.js`) |
-| `native/` | Rust 크레이트(PyO3, 모듈 `workbench_native`): contacts, trajectory, volume, widom |
+| `native/` | Rust 크레이트(PyO3, 모듈 `workbench_native`): contacts, trajectory, volume, widom, doe, statistics, topology |
 | `scripts/` | 엔진 워커, 데스크톱 빌드, REA 감사, CI GROMACS 설치, Drive 백업 설정 |
 | `tests/` | pytest(약 165개 함수). 실제 엔진을 쓰는 테스트는 엔진이 없으면 이유를 남기고 건너뜀 |
 | `docs/` | 기능별 문서와 검증 기록. 진행 중 작업은 `docs/RUST_KERNELS.md` |
@@ -64,6 +68,11 @@ cargo test --release --locked --no-default-features --manifest-path native/Cargo
    - CI 토큰은 GitHub Secrets에만 둡니다. 쓰는 값은 `RCLONE_DRIVE_TOKEN`, `DRIVE_CLIENT_ID`, `DRIVE_CLIENT_SECRET`입니다. 개인 앱의 Drive 연결은 저장소 밖의 rclone 보안 설정 파일을 사용하며 환경 변수 `POLYMER_DRIVE_REMOTE`에는 원격 이름만 넣습니다.
    - 이 값들을 로그·커밋·문서에 쓰지 않습니다. MCP HTTP 토큰(`<데이터 폴더>/.mcp_http_token`)도 마찬가지입니다.
 6. **사용자 데이터를 건드리지 않습니다.** 테스트는 임시 폴더와 합성 데이터만 씁니다.
+7. **상용 기능은 직접 새로 구현합니다.**
+   - Materials Studio(Synthia, Blends, Amorphous Cell 등)·Minitab의 기능은 공개 논문·교재의 식과 공개 데이터를 근거로 이 저장소에서 직접 만듭니다. 계산 커널은 Rust(`native/`)를 우선합니다.
+   - 오픈소스 도구가 없다는 이유로 기능을 빼지 않습니다. 쓸 만한 오픈소스는 버전을 고정해 쓰고(원칙 4), 없으면 문헌을 보고 구현합니다.
+   - 상용 소프트웨어의 바이너리·파라미터 파일·매뉴얼 문장·출력 파일은 쓰거나 옮기지 않고, 디컴파일하지 않습니다.
+   - 쓴 식의 출처(저자, 문헌, 판, 식·표 번호)를 코드 주석과 `docs/`에 적습니다. 계수를 기억에 의존해 넣지 않습니다. 상용 제품과 같은 결과를 보장한다고 말하지 않으며, 도구·식별자 이름에 상표를 쓰지 않습니다(예: `minitab_*` 대신 `doe_*`).
 
 ## 코드 관례
 
@@ -82,9 +91,9 @@ cargo test --release --locked --no-default-features --manifest-path native/Cargo
   6. 문서
 - PyInstaller 배포(`packaging/polymer-lab.spec`)에 새 모듈이 들어가는지 확인합니다.
 
-## 지금 진행 중인 일 (2026-10-23 기준)
+## 지금 진행 중인 일 (2026-10-24 기준)
 
-`docs/RUST_KERNELS.md`에 자세히 있습니다.
+**먼저 `docs/HANDOFF.md`를 읽으세요.** 최근 작업 내역, 중간에 멈춘 실행표 작업, 남은 일과 사용자 할 일이 있습니다. 커널 쪽 세부는 `docs/RUST_KERNELS.md`에 있습니다.
 
 1. **자유 부피(`native/src/volume.rs`)**
    - 거리장을 주기 경계 상자 트리로 가속하고, h와 2h의 절대 차이·실제 격자 간격을 보고하도록 연결했습니다.

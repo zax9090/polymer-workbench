@@ -24,7 +24,8 @@ class ExecutionBusy(RuntimeError):
 
 
 # Hour-long simulations, minute-scale analyses and sub-second statistics never wait on each other.
-LANES = {"simulation": "batch", "doe_design": "quick", "doe_analyze": "quick", "process": "quick"}
+LANES = {"simulation": "batch", "doe_design": "quick", "doe_analyze": "quick", "doe_mixture_design": "quick",
+         "doe_mixture_analyze": "quick", "doe_desirability": "quick", "process": "quick"}
 LANE_LABELS = {"batch": "MD 계산", "analysis": "구조·접촉 분석", "quick": "통계 계산"}
 REQUEST_WAIT = 30.0
 

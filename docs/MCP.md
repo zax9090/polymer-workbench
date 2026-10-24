@@ -82,13 +82,20 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `analyze_process_data` | 공정 CSV 하나를 저장 없이 분석: 데이터 사전(키·중복·균형), 관리도(I-MR·X̄-S, 신호 규칙), 공정 능력(Cp·Cpk·Pp·Ppk), 분산 성분(균형 내포 ANOVA), 층별 불량률(Mantel–Haenszel), 불량 판정 평가(기준별 놓침·오탐·비용, 모두 정상 판정 기준선), 가상계측 오차(규격 경계 구간), 검증 분할 비교(무작위·로트·시간). 통계 계산 줄에서 실행 |
 | `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
 | `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
+| `create_mixture_design` | 성분 비율 합이 1인 심플렉스 격자·심플렉스 중심·꼭짓점 설계(축 점검 배합·중심점 선택)를 만들고 저장. 하한은 L-유사성분 |
+| `analyze_mixture_response` | Scheffé 1차·2차·특수 3차 적합(유사성분 기준), ANOVA·모델 비교, 성분 범위 안 추천 배합과 예측구간. 1차 혼합 계수는 검정하지 않음 |
+| `optimize_desirability` | 공정 인자 또는 혼합물 성분의 여러 반응을 각각 맞춘 뒤 Derringer–Suich 종합 만족도 D가 가장 큰 후보, 개별 d·예측구간·관측 최고 D 행 |
 | `add_measurement` | 측정값 저장. 항상 검토 전 상태로 저장 |
 | `train_property_model` · `predict_property` | 검토 완료 데이터로 GP 기준 모델 학습, 예측 |
 | `create_campaign` · `control_campaign` | 유한 후보 캠페인 생성, 한 배치 실행·자동 실행·중지·상태 확인 |
 | `screen_polymer` | 반복단위 최대 20개의 RadonPy PI1070 참조 MD 물성 예측(불확실성·적용 범위·최근접 참조·내 벌크 계산 비교, 선택 시 교차검증) |
 | `rank_solvents` · `fit_hsp_sphere` · `blend_compatibility` | Hansen 용매 순위(RED·χ·두 용매 혼합), 용해 시험으로 구 피팅(저장하지 않는 초안), 고분자 블렌드 χ와 임계 χ |
 | `blend_chi_contacts` | Blends 방식 분자 접촉 χ(T)·배위수·임계점(Rust 커널, 실험적, 엔탈피 χ만) |
+| `run_sheet` | `# Polymer Lab 실행표 v1` 실행표(Blends χ 스크리닝·작업 묶음)를 검사(줄 번호가 붙은 한국어 오류, 아무것도 만들지 않음)·실행·상태·취소·이어서 실행. 실행표는 코드로 실행되지 않음(`docs/RUN_SHEETS.md`) |
 | `rea_evidence` | 엔진별 REA 감사 저장소의 고정 커밋·라이선스·검증 상태 |
+| `create_tg_scan_workflow` | 완료된 GAFF2·PCFF 벌크·가교 흐름의 셀마다 단계 냉각 Tg 스캔을 만드는 후속 흐름 저장(계산은 시작하지 않음) |
+| `run_research_workflow_plan` | 벌크 연구 흐름 계획의 최대 계산 수 미리보기, 사용자가 승인한 계획·예산으로 끝까지 실행(같은 설정 재시도·실패 한도·최적화·확인 계산·보고서), 멈추기 |
+| `create_research_report` | DoE 기록·연구 흐름·연구 데이터 마스터 표의 보고서 폴더(요약·그림·CSV·xlsx·해시) 저장, 요청할 때만 Drive 업로드 후 파일별 MD5 확인 |
 | `export_research_snapshot` | Parquet 스냅샷 생성(설정된 동기화 폴더로 복사) |
 
 각 도구는 MCP `readOnlyHint`/`destructiveHint` 표시를 갖습니다. 큰 시계열은 요약하고 원본 파일은 `read_artifact`로 읽게 합니다. `analyze_job_structure`와 `analyze_process_data`는 기본으로 요약(`detail: "summary"`)을 돌려줍니다. 20개를 넘는 숫자 배열은 개수·최솟값·최댓값으로, 긴 기록 목록은 처음 몇 개로 줄입니다. 관리도는 3σ 밖 점을 먼저 최대 20개까지 남깁니다. 전체 배열은 `detail: "full"`이나 저장된 결과의 다운로드 링크로 받습니다.
@@ -114,6 +121,13 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 |---|---|---|
 | `create_experiment_design` | `POST /api/research/doe/design` | `factors: [{name, low, high}]`, `kind: factorial 또는 central_composite`, `center_points`, `replicates`, `seed` |
 | `analyze_response_surface` | `POST /api/research/doe/analyze` | `text: 측정 CSV`, `factors`, `response: 반응값 열`, `model: linear·interaction·quadratic`, `objective: maximize·minimize·target`, 선택적 `target`, `prediction_points: [{인자명: 실제값}]`(최대 50개) |
+| `create_mixture_design` | `POST /api/research/doe/mixture-design` | `components: [{name, low, high}]`(비율 0~1), `kind: simplex_lattice·simplex_centroid·extreme_vertices`, `degree`, `axial`, `centroid`, `replicates`, `seed` |
+| `analyze_mixture_response` | `POST /api/research/doe/mixture-analyze` | `text`, `components`, `response`, `model: scheffe_linear·scheffe_quadratic·scheffe_special_cubic`, `objective`, 선택적 `target`, `prediction_points` |
+| `optimize_desirability` | `POST /api/research/doe/desirability` | `text`, `responses: [{name, model, goal, lower, target, upper, lower_shape, upper_shape, importance}]`, `factors` 또는 `components` 중 하나 |
+| `create_tg_scan_workflow` | `POST /api/research/workflows/{id}/tg-scan` | `tg_high_kelvin`, `tg_low_kelvin`, `tg_step_kelvin`, `tg_stage_steps`, `metric`, `responses`, `budget` |
+| `run_research_workflow_plan` | `POST /api/research/workflows/{id}/autopilot/preview`, `…/autopilot`, `…/autopilot/stop` | `action: preview·start·stop`, `plan: {rows, max_attempts, max_failed_rows, optimize, model, objective, target, confirm, report, upload_report}`, start에는 `approved_budget`(미리보기 최대 계산 수 이상) |
+| `create_research_report` | `POST /api/research/reports`, 선택 시 `POST /api/research/reports/{id}/drive` | `kind: doe·workflow·lab`, `id`(doe·workflow), `upload_to_drive` |
+| `run_sheet` | `POST /api/research/sheets/preview`, `POST /api/research/sheets`, `GET /api/research/sheets[/{id}]`, `POST /api/research/sheets/{id}/cancel·resume`, `GET /api/research/sheets/templates` | `action: preview·run·status·list·cancel·resume·templates`, `text`(preview·run), `sheet_id`(status·cancel·resume) |
 
 두 도구는 `research/doe/{id}`에 불변 JSON과 설계 또는 측정 CSV를 저장하므로 `readOnlyHint=false`입니다. 결과의 `download_url`은 JSON, `csv_download_url`은 CSV입니다. 기록 목록은 `GET /api/research/doe`, 상세는 `GET /api/research/doe/{id}`로 읽습니다. CSV는 UTF-8 기준 1 MB 이하이며 누락된 행을 자동 제거하지 않습니다. 저장해도 검토 완료 측정값이 되지 않습니다.
 
@@ -138,4 +152,4 @@ MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없
 
 ### 단계별 벌크 연구 연결
 
-`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 GAFF2 자체 벌크 템플릿을 연결합니다. 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`, `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.
+`get_research_workflow`는 연결 기록을 조회하고, `create_research_workflow`는 DOE 설계와 계산 템플릿을 연결합니다. 경로는 템플릿으로 정해집니다(GAFF2 벌크·자체 셀 빌더, PCFF 벌크, 에폭시–아민 가교). `bindings`는 설계 인자마다 그 경로가 읽는 설정 하나(`/api/research/workflows/capabilities`의 `routes[].fields`, 허용 범위는 `fields[].bounds`)를 연결하며, 정수 설정은 설계점이 모두 정수여야 합니다. `metric`(대표 반응값)과 `responses`(함께 수집할 값)는 `final_frame_density`·`probe_accessible_fraction`(자유 부피 분석), `npt_density`·`bulk_modulus`·`volume_expansion`(NPT 표본 평균, RadonPy 수렴 판정 포함), 가교의 `epoxide_conversion` 중에서 고릅니다. `create_tg_scan_workflow`는 완료된 흐름의 셀마다 Tg 스캔을 만드는 후속 흐름을 저장합니다(반응값 `tg_kelvin`·`expansion_glass`·`expansion_melt`, 전이 미확인 행은 분석 실패, 확인 계산은 셀과 스캔 2개). 생성은 계산을 시작하지 않습니다. `control_research_workflow`는 사용자가 확인한 단계 하나(`submit`, `attach`, `analyze`, `optimize`(선택 `response`), `optimize-desirability`(`goals`), `confirm`, `analyze-confirmation`, `cancel`)만 실행합니다. 다음 단계를 자동 호출하지 않습니다. 반응값의 출처와 검증은 `docs/WORKFLOWS.md`에 있습니다. 모든 값은 미검증 시뮬레이션 결과로 유지됩니다. REST 경로는 `/api/research/workflows`, 실행 상태는 `/api/execution`입니다. 단계별 입력 형식은 `/docs`의 OpenAPI를 따릅니다.

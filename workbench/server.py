@@ -108,7 +108,13 @@ def create_app(data_root=None):
             initialize_research(app, app.state.manager)
             from .workflows import WorkflowManager
             app.state.workflows = WorkflowManager(app.state.research_root, app.state.manager)
+            from .autopilot import Autopilot
+            app.state.autopilot = Autopilot(app.state.workflows, app.state.research_root, app.state.research_store)
+            from .sheets import SheetManager
+            app.state.sheets = SheetManager(app.state.research_root, app.state.manager, app.state.execution)
             yield
+            app.state.sheets.close()
+            app.state.autopilot.close()
             app.state.workflows.close()
             app.state.execution.close()
             app.state.campaigns.close()
@@ -231,38 +237,12 @@ def create_app(data_root=None):
 
     @app.post("/api/jobs", status_code=201)
     def new_job(config: JobConfig, request: Request):
+        from .preflight import prepare_submission
         manager = request.app.state.manager
-        if config.route == "polymer_atomistic" and config.atomistic_mode == "tg_scan":
-            from .glass_transition import required_files
-            source = manager.get(config.source_job_id)
-            try:
-                files = required_files(source["config"])
-            except ValueError as exc:
-                raise HTTPException(422, str(exc)) from exc
-            directory = manager.directory(config.source_job_id)
-            if source["status"] != "completed" or any((directory / n).is_symlink() or not (directory / n).is_file() for n in files):
-                raise HTTPException(422, "완료된 벌크 셀 또는 가교 작업의 최종 구조 파일(" + ", ".join(files) + ")이 필요합니다.")
-            config.source_artifact = files[0]
-        elif config.source_job_id:
-            source = manager.get(config.source_job_id)
-            if config.route not in {"packmol", "mixture"} or source["status"] not in {"completed", "prepared"}:
-                raise HTTPException(422, "완료된 원자 구조 작업을 PACKMOL 또는 혼합계 브릿지로 이어갈 수 있습니다.")
-            if source["config"]["route"] in {"polymer_cg", "hoomd"}:
-                raise HTTPException(422, "조대화 비드 좌표는 원자 구조와 단위·모델이 달라 직접 연결할 수 없습니다.")
-            directory = manager.directory(config.source_job_id)
-            path = directory / config.source_artifact
-            if path.is_symlink() or not path.is_file() or path.suffix.lower() != ".pdb" or path.stat().st_size > 5000000:
-                raise HTTPException(422, "5 MB 이하의 PDB 구조 파일이 필요합니다.")
-            config.pdb_text = path.read_text()
-        from .preflight import check
-        # Chemistry that would only fail inside the worker is rejected before a job exists.
-        report = check(config.model_dump())
-        if report["errors"]:
-            message = " ".join(error["message"] for error in report["errors"])
-            candidates = ((report.get("estimate") or {}).get("repeat_unit") or {}).get("candidates")
-            if candidates:
-                message += " 반복단위 후보(화학 구조를 확인한 뒤 사용): " + ", ".join(candidates)
-            raise HTTPException(422, message)
+        try:
+            config, _ = prepare_submission(manager, config)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
         return manager.create(config.model_dump(), submitted_via=client_label(request))
 
     @app.post("/api/jobs/preflight")
@@ -366,8 +346,12 @@ def create_app(data_root=None):
     app.include_router(research_router)
     from .drive_backup import router as drive_router
     app.include_router(drive_router)
+    from .reports import router as report_router
+    app.include_router(report_router)
     from .workflow_api import router as workflow_router
     app.include_router(workflow_router)
+    from .sheet_api import router as sheet_router
+    app.include_router(sheet_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")
     app.mount("/", StaticFiles(directory=ROOT / "workbench" / "static", html=True), name="frontend")
     return app

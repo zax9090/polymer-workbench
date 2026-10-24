@@ -71,7 +71,7 @@
     return `${status.length ? `<div class="research-actions">${status.map(item => `<span class="research-tag amber">${escape(item)}</span>`).join('')}</div>` : ''}<details class="structure-warnings"><summary>계산 주의사항 (${result.warnings.length})</summary><ul>${result.warnings.map(item => `<li>${escape(translations.find(([prefix]) => item.startsWith(prefix))?.[1] || item)}</li>`).join('')}</ul></details>`;
   }
   function downloads(result) {
-    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}</div>`;
+    return `<div class="research-actions">${result.csv_download_url ? `<a class="secondary-button" href="${escape(safeURL(result.csv_download_url))}" download>CSV 저장 ↓</a>` : ''}${result.download_url ? `<a class="secondary-button" href="${escape(safeURL(result.download_url))}" download>결과 JSON ↓</a>` : ''}${result.id ? reportButton('doe', result.id) : ''}</div>`;
   }
   function resultHeader(result, isDesign) {
     const parameters = result.parameters || {}, method = isDesign ? result.kind || parameters.kind : result.model || parameters.model;
@@ -138,10 +138,82 @@
     if (!result.predictions?.length) return '';
     return `<section class="doe-assessment-section"><h3>지정 조건 예측</h3><div class="table-scroll"><table class="research-table"><thead><tr><th>조건</th><th>예측값</th><th>평균의 95% 신뢰구간</th><th>개별 결과의 95% 예측구간</th></tr></thead><tbody>${result.predictions.map(prediction => `<tr><td>${Object.entries(prediction.settings || {}).map(([key,value]) => `${escape(key)}: ${fmt(value)}`).join('<br>')}</td><td>${fmt(prediction.predicted_response)}</td><td>${interval(prediction.confidence_interval)}</td><td>${interval(prediction.prediction_interval)}</td></tr>`).join('')}</tbody></table></div></section>`;
   }
+  // Single-hue teal ramp for the dark chart surface (#12212a): low response dark, high light; the darkest step clears 2:1.
+  const RAMP = ['#21615a', '#2a7568', '#358a78', '#46a08a', '#62b69d', '#88cbb3', '#b4e0cd', '#e0f5ec'];
+  function rampColor(t) {
+    const s = Math.min(1, Math.max(0, t)) * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(s)), f = s - i;
+    const rgb = hex => [1, 3, 5].map(k => parseInt(hex.slice(k, k + 2), 16)), [a, b] = [rgb(RAMP[i]), rgb(RAMP[i + 1])];
+    return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`;
+  }
+  function rampLegend(id, x, top, bottom, low, high) {
+    const stops = RAMP.map((c, i) => `<stop offset="${(i / (RAMP.length - 1)).toFixed(3)}" stop-color="${c}"/>`).join('');
+    return `<defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0">${stops}</linearGradient></defs><rect x="${x}" y="${top}" width="12" height="${bottom - top}" rx="2" style="fill:url(#${id});stroke:none"/><text x="${x + 18}" y="${top + 8}">${fmt(high)}</text><text x="${x + 18}" y="${bottom}">${fmt(low)}</text>`;
+  }
+  // Dark outer ring keeps the white marker visible on the light end of the ramp.
+  const rampMarker = (cx, cy, title) => `<g><circle cx="${cx}" cy="${cy}" r="9" style="fill:none;stroke:#0b161c;stroke-width:5;opacity:1"/><circle cx="${cx}" cy="${cy}" r="9" style="fill:none;stroke:#fff;stroke-width:2;opacity:1"/><title>${title}</title></g>`;
+  window.doeColorScale = { color: rampColor, legend: rampLegend, marker: rampMarker };
+  function paretoHTML(result) {
+    const rows = (result.coefficients || []).filter(c => c.term !== 'Intercept' && Number.isFinite(c.t_statistic));
+    if (!rows.length) return '';
+    const reference = rows.find(c => c.standard_error > 0 && Array.isArray(c.confidence_interval));
+    const critical = reference ? (reference.confidence_interval[1] - reference.estimate) / reference.standard_error : null;
+    const sorted = [...rows].sort((a, b) => Math.abs(b.t_statistic) - Math.abs(a.t_statistic)), longest = Math.max(...sorted.map(c => Math.abs(c.t_statistic)), critical || 0) || 1;
+    const height = 34 + sorted.length * 22, x = value => 150 + value / longest * 300;
+    const bars = sorted.map((c, i) => `<text x="142" y="${40 + i * 22}" text-anchor="end">${escape(c.term)}</text><rect x="150" y="${28 + i * 22}" width="${Math.max(1, x(Math.abs(c.t_statistic)) - 150).toFixed(1)}" height="15" rx="2" style="fill:${critical && Math.abs(c.t_statistic) >= critical ? '#8cd7be' : '#4d6670'}"><title>${escape(c.term)} · t = ${formatNumber(c.t_statistic)} · p = ${formatNumber(c.p_value)}</title></rect>`).join('');
+    const right = critical && x(critical) > 330;
+    const line = critical ? `<line x1="${x(critical)}" y1="20" x2="${x(critical)}" y2="${height - 4}" style="stroke:#d7b98c;stroke-dasharray:4 3"/><text x="${x(critical) + (right ? -4 : 4)}" y="14" text-anchor="${right ? 'end' : 'start'}">t = ${formatNumber(critical)} (α = 0.05)</text>` : '';
+    return `<section class="doe-assessment-section"><h3>표준화 효과 파레토 차트 <small>|t| 크기 순 · 기준선을 넘는 항(밝은 막대)이 5% 수준에서 유의</small></h3><svg class="curve-chart doe-chart" viewBox="0 0 480 ${height}" style="aspect-ratio:480/${height};max-width:640px" role="img" aria-label="표준화 효과 파레토 차트">${bars}${line}</svg><p class="research-footnote">효과 크기 순서이며 원인 판단이 아닙니다. 계층 구조(주효과가 빠진 상호작용 등)와 잔차 진단을 함께 보세요. 수치는 아래 모델 계수 표에 있습니다.</p></section>`;
+  }
+  // Coded polynomial in the order the Rust kernel uses: 1, x_i, x_i x_j (i<j), x_i^2.
+  function codedModel(point, coefficients, model) {
+    const terms = [1, ...point];
+    if (model !== 'linear') for (let i = 0; i < point.length; i++) for (let j = i + 1; j < point.length; j++) terms.push(point[i] * point[j]);
+    if (model === 'quadratic') terms.push(...point.map(v => v * v));
+    return terms.reduce((sum, term, i) => sum + term * coefficients[i], 0);
+  }
+  function surfaceHTML(result) {
+    const factors = result.factors || [], beta = (result.coefficients || []).map(c => c.estimate);
+    if (factors.length < 2 || result.model === 'linear' && factors.length > 2 || !beta.length) return '';
+    const [a, b] = [0, 1], n = 40, cells = [], held = result.recommendation?.coded || {};
+    let low = Infinity, high = -Infinity;
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+      const point = factors.map((f, k) => k === a ? -1 + 2 * i / n : k === b ? -1 + 2 * j / n : (held[f.name] ?? 0));
+      const y = codedModel(point, beta, result.model);
+      low = Math.min(low, y); high = Math.max(high, y); cells.push([i, j, y]);
+    }
+    const span = high - low || 1, size = 360 / (n + 1), left = 70, bottom = 380;
+    const real = (f, coded) => f.low + (coded + 1) / 2 * (f.high - f.low);
+    const rects = cells.map(([i, j, y]) => `<rect x="${(left + i * size).toFixed(1)}" y="${(bottom - (j + 1) * size).toFixed(1)}" width="${(size + .4).toFixed(1)}" height="${(size + .4).toFixed(1)}" style="fill:${rampColor((y - low) / span)};stroke:none"><title>${escape(factors[a].name)} ${formatNumber(real(factors[a], -1 + 2 * i / n))} · ${escape(factors[b].name)} ${formatNumber(real(factors[b], -1 + 2 * j / n))} → ${formatNumber(y)}</title></rect>`).join('');
+    const best = result.recommendation?.coded;
+    const mark = best ? rampMarker(left + size / 2 + (best[factors[a].name] + 1) / 2 * (360 - size), bottom - size / 2 - (best[factors[b].name] + 1) / 2 * (360 - size), '추천 조건') : '';
+    const others = factors.slice(2).map(f => `${escape(f.name)} = ${formatNumber(real(f, held[f.name] ?? 0))}`).join(', ');
+    const axes = `<text x="${left}" y="396">${formatNumber(factors[a].low)}</text><text x="${left + 360}" y="396" text-anchor="end">${formatNumber(factors[a].high)}</text><text x="${left + 180}" y="420" text-anchor="middle">${escape(factors[a].name)}</text>`
+      + `<text x="${left - 6}" y="${bottom}" text-anchor="end">${formatNumber(factors[b].low)}</text><text x="${left - 6}" y="${bottom - 352}" text-anchor="end">${formatNumber(factors[b].high)}</text><text x="24" y="200" text-anchor="middle" transform="rotate(-90 24 200)">${escape(factors[b].name)}</text>`;
+    return `<section class="doe-assessment-section"><h3>반응표면 색 지도 · ${escape(factors[a].name)} × ${escape(factors[b].name)} <small>밝을수록 큰 예측값 · 고리 = 추천 조건</small></h3>
+      <svg class="curve-chart doe-chart" viewBox="0 0 520 430" style="aspect-ratio:520/430;max-width:560px" role="img" aria-label="두 인자 반응표면 색 지도"><g shape-rendering="crispEdges">${rects}</g>${mark}${rampLegend('doe-surface-ramp', 448, 20, bottom, low, high)}${axes}</svg>
+      <p class="research-footnote">모델 예측값입니다.${others ? ` 나머지 인자는 추천 조건 값(${others})에 고정했습니다.` : ''}</p></section>`;
+  }
+  // One panel per factor on a shared y-scale; the other factors stay at the recommended coded setting.
+  function profileHTML(result) {
+    const factors = result.factors || [], beta = (result.coefficients || []).map(c => c.estimate), held = result.recommendation?.coded;
+    if (!factors.length || !beta.length || !held) return '';
+    const n = 40, at = (k, coded) => codedModel(factors.map((f, m) => m === k ? coded : held[f.name] ?? 0), beta, result.model);
+    const curves = factors.map((f, k) => Array.from({ length: n + 1 }, (_, i) => at(k, -1 + 2 * i / n)));
+    const all = curves.flat(), low = Math.min(...all), high = Math.max(...all), span = high - low || 1;
+    const real = (f, coded) => f.low + (coded + 1) / 2 * (f.high - f.low);
+    const x = i => 60 + i / n * 340, y = v => 170 - (v - low) / span * 136;
+    const panels = factors.map((f, k) => {
+      const line = curves[k].map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const hits = curves[k].filter((_, i) => i % 4 === 0).map((v, s) => `<circle cx="${x(s * 4).toFixed(1)}" cy="${y(v).toFixed(1)}" r="8" style="opacity:0"><title>${escape(f.name)} ${formatNumber(real(f, -1 + 2 * s * 4 / n))} → ${formatNumber(v)}</title></circle>`).join('');
+      const best = held[f.name], bx = 60 + (best + 1) / 2 * 340, by = y(at(k, best));
+      return `<svg class="curve-chart doe-chart" viewBox="0 0 420 200" style="aspect-ratio:420/200" role="img" aria-label="${escape(f.name)} 예측 프로파일"><text x="60" y="18">${escape(f.name)}</text><line x1="60" y1="170" x2="400" y2="170"/><line x1="60" y1="34" x2="60" y2="170"/><line x1="${bx.toFixed(1)}" y1="34" x2="${bx.toFixed(1)}" y2="170" style="stroke:#d7b98c;stroke-dasharray:3 3"/><polyline points="${line}"/>${hits}<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="4" style="fill:#fff;stroke:#0b161c;stroke-width:2;opacity:1"><title>추천 ${formatNumber(real(f, best))} → ${formatNumber(at(k, best))}</title></circle><text x="54" y="38" text-anchor="end">${fmt(high)}</text><text x="54" y="170" text-anchor="end">${fmt(low)}</text><text x="60" y="188">${formatNumber(f.low)}</text><text x="400" y="188" text-anchor="end">${formatNumber(f.high)}</text></svg>`;
+    }).join('');
+    return `<section class="doe-assessment-section"><h3>인자별 예측 프로파일 <small>세로축 공통 · 점선 = 추천 조건 · 다른 인자는 추천 조건 값에 고정</small></h3><div class="doe-chart-grid">${panels}</div><p class="research-footnote">모델 예측값입니다. 곡선의 기울기가 다른 인자의 고정값에 따라 바뀌면(상호작용) 반응표면 색 지도와 함께 보세요.</p></section>`;
+  }
   function analysisHTML(result) {
     const fit = result.fit || {}, recommendation = result.recommendation;
     let html = `${resultHeader(result, false)}<div class="research-features doe-fit-summary"><div class="research-feature"><span>R²</span><strong>${fmt(fit.r_squared)}</strong></div><div class="research-feature"><span>조정 R²</span><strong>${fmt(fit.adjusted_r_squared)}</strong></div><div class="research-feature"><span>예측 R² · PRESS</span><strong>${fmt(fit.predicted_r_squared)}</strong></div><div class="research-feature"><span>RMSE</span><strong>${fmt(fit.rmse)}</strong></div></div>`;
-    html += researchSteps(result) + modelComparison(result) + anovaHTML(result) + diagnosticsHTML(result);
+    html += researchSteps(result) + modelComparison(result) + anovaHTML(result) + paretoHTML(result) + surfaceHTML(result) + profileHTML(result) + diagnosticsHTML(result);
     html += `<details class="doe-assessment-section"><summary>모델 계수 · 인자 범위 −1~1로 환산</summary><div class="table-scroll"><table class="research-table"><thead><tr><th>항</th><th>계수</th><th>표준 오차</th><th>t</th><th>p</th><th>95% 신뢰구간</th></tr></thead><tbody>${(result.coefficients || []).map(coefficient => `<tr><td>${escape(coefficient.term)}</td><td>${fmt(coefficient.estimate)}</td><td>${fmt(coefficient.standard_error)}</td><td>${fmt(coefficient.t_statistic)}</td><td>${fmt(coefficient.p_value)}</td><td>${interval(coefficient.confidence_interval)}</td></tr>`).join('')}</tbody></table></div></details>`;
     if (recommendation) html += `<section class="doe-recommendation"><h3>추천 조건 <span class="research-tag amber">확인 실험 필요</span></h3>${Object.entries(recommendation.settings || {}).map(([name,value]) => `<div class="research-kv"><span>${escape(name)}</span><strong>${fmt(value)}</strong></div>`).join('')}<div class="research-kv"><span>${escape(result.response)} 예측값</span><strong>${fmt(recommendation.predicted_response)}</strong></div>${recommendation.mean_confidence_interval ? `<div class="research-kv"><span>평균의 95% 신뢰구간</span><strong>${interval(recommendation.mean_confidence_interval)}</strong></div><div class="research-kv"><span>개별 결과의 95% 예측구간</span><strong>${interval(recommendation.prediction_interval)}</strong></div>` : ''}${result.confirmation_csv ? '<button type="button" class="secondary-button" id="doe-confirmation-download">추천 조건의 확인 실험표 CSV ↓</button>' : ''}</section>`;
     return html + predictionsHTML(result) + warnings(result) + downloads(result);

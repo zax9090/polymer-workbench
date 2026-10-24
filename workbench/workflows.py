@@ -9,8 +9,10 @@ from pathlib import Path
 import re
 import threading
 import uuid
+from contextlib import contextmanager
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from .jobs import TERMINAL, atomic_json, now
 from .models import JobConfig
@@ -18,8 +20,110 @@ from .execution import ExecutionCancelled
 
 ID = re.compile(r"[0-9a-f]{32}\Z")
 FIELDS = {"temperature_kelvin": {"label": "온도", "unit": "K", "role": "physical_condition"},
-          "build_density": {"label": "초기 패킹 밀도", "unit": "g/cm^3", "role": "preparation_condition"}}
-METRICS = {"final_frame_density": "g/cm^3", "probe_accessible_fraction": "1"}
+          "build_density": {"label": "초기 패킹 밀도", "unit": "g/cm^3", "role": "preparation_condition"},
+          "monomers": {"label": "사슬당 반복단위 수", "unit": "1", "role": "composition", "integer": True},
+          "chains": {"label": "사슬 수", "unit": "1", "role": "cell_size", "integer": True},
+          "cure_temperature_kelvin": {"label": "경화 온도", "unit": "K", "role": "process_condition"},
+          "target_conversion": {"label": "목표 에폭시 전환율", "unit": "1", "role": "process_condition"},
+          "reaction_cutoff_angstrom": {"label": "반응 거리", "unit": "angstrom", "role": "model_parameter"},
+          "secondary_amine_probability": {"label": "2차 아민 반응 확률", "unit": "1", "role": "model_parameter"},
+          "resin_count": {"label": "수지 분자 수", "unit": "1", "role": "composition", "integer": True},
+          "hardener_count": {"label": "경화제 분자 수", "unit": "1", "role": "composition", "integer": True}}
+METRICS = {"final_frame_density": "g/cm^3", "probe_accessible_fraction": "1",
+           "npt_density": "g/cm^3", "bulk_modulus": "GPa", "volume_expansion": "1/K", "epoxide_conversion": "1",
+           "tg_kelvin": "K", "expansion_glass": "1/K", "expansion_melt": "1/K"}
+LABELS = {"final_frame_density": "최종 구조 밀도", "probe_accessible_fraction": "탐침 접근 가능 부피 비율",
+          "npt_density": "NPT 평균 밀도", "bulk_modulus": "체적 탄성률", "volume_expansion": "부피 팽창 계수",
+          "epoxide_conversion": "에폭시 전환율", "tg_kelvin": "Tg (냉각 MD)", "expansion_glass": "유리 쪽 팽창 계수", "expansion_melt": "고무 쪽 팽창 계수"}
+FREE_VOLUME = {"final_frame_density", "probe_accessible_fraction"}
+# NPT-sampling averages that bulk_complete.json and cure_complete.json share, with RadonPy's convergence verdict.
+RESULT_PROPERTIES = {"npt_density": "density", "bulk_modulus": "bulk_modulus", "volume_expansion": "volume_expansion"}
+CURE_VALUES = {"epoxide_conversion"}
+TG_VALUES = {"tg_kelvin": "tg_kelvin", "expansion_glass": "expansion_glass_per_kelvin", "expansion_melt": "expansion_melt_per_kelvin"}
+# Factors are limited to settings each route actually reads (pcff.bulk, crosslink.cure, the native builder).
+ROUTES = {"gaff2_bulk": {"label": "GAFF2 벌크 · 자체 셀 빌더", "match": {"atomistic_mode": "bulk", "atomistic_forcefield": "gaff2", "cell_builder": "native"},
+                         "fields": ["temperature_kelvin", "build_density", "monomers", "chains"], "result": "bulk_complete.json",
+                         "responses": [*FREE_VOLUME, *RESULT_PROPERTIES]},
+          "pcff_bulk": {"label": "PCFF 벌크 · EMC", "match": {"atomistic_mode": "bulk", "atomistic_forcefield": "pcff"},
+                        "fields": ["temperature_kelvin", "monomers", "chains"], "result": "bulk_complete.json",
+                        "responses": [*FREE_VOLUME, *RESULT_PROPERTIES]},
+          "crosslink": {"label": "에폭시–아민 가교", "match": {"atomistic_mode": "crosslink"},
+                        "fields": ["cure_temperature_kelvin", "target_conversion", "reaction_cutoff_angstrom", "secondary_amine_probability",
+                                   "temperature_kelvin", "resin_count", "hardener_count"], "result": "cure_complete.json",
+                        "responses": [*FREE_VOLUME, *RESULT_PROPERTIES, *CURE_VALUES]},
+          "tg_scan": {"label": "Tg 스캔 · 앞 흐름의 셀", "result": "tg_complete.json", "responses": list(TG_VALUES)}}
+TG_SETTINGS = ("tg_high_kelvin", "tg_low_kelvin", "tg_step_kelvin", "tg_stage_steps")
+
+
+def field_bounds(name):
+    """Allowed range of a bindable setting: JobConfig limits, with the 100-500 K window and two-chain minimum the bulk and cure routes enforce."""
+    if name == "temperature_kelvin":
+        return [100.0, 500.0]
+    if name == "chains":
+        return [2.0, 16.0]
+    metadata = JobConfig.model_fields[name].metadata
+    return [next(float(m.ge) for m in metadata if hasattr(m, "ge")), next(float(m.le) for m in metadata if hasattr(m, "le"))]
+
+
+def validated(config, row):
+    try:
+        return JobConfig.model_validate(config).model_dump()
+    except ValidationError as exc:
+        problems = []
+        for error in exc.errors():
+            if not error["loc"]:
+                problems.append(str(error["msg"]).removeprefix("Value error, "))
+                continue
+            field = str(error["loc"][0])
+            label = FIELDS.get(field, {}).get("label", field or "설정")
+            limits = f" (허용 {field_bounds(field)[0]:g}~{field_bounds(field)[1]:g})" if field in FIELDS else ""
+            problems.append(f"{label} 값 {error.get('input')}{limits}")
+        raise ValueError(f"{row}행의 계산 설정이 허용 범위를 벗어났습니다: {', '.join(problems)}. 인자와 계산 설정의 연결과 설계 범위를 확인하세요.") from None
+
+
+def route_of(record):
+    return record.get("route", "gaff2_bulk")
+
+
+def detect_route(template):
+    if template["route"] != "polymer_atomistic":
+        return None
+    for key, spec in ROUTES.items():
+        if "match" in spec and all(template[name] == value for name, value in spec["match"].items()):
+            return key
+    return None
+
+
+def result_values(route, complete, names):
+    """Response values from a route's result file; the same reader serves observation and validation."""
+    values = {}
+    for name in names:
+        if name in RESULT_PROPERTIES:
+            values[name] = float(complete["properties"][RESULT_PROPERTIES[name]]["value"])
+        elif name == "epoxide_conversion":
+            values[name] = float(complete["conversion"]["epoxide"])
+        elif name in TG_VALUES:
+            if not complete.get("transition_resolved"):
+                raise ValueError("Tg 전이가 확인되지 않았습니다(transition_resolved=false). 이 행은 사유와 함께 제외하거나 스캔 조건·셀을 바꾸세요.")
+            values[name] = float(complete[TG_VALUES[name]])
+    return values
+
+
+def responses(record):
+    return record.get("responses") or [record["metric"]]
+
+
+_ACTIVE = threading.local()
+
+
+@contextmanager
+def autopilot_context(identifier):
+    # Stage calls made by the approved-plan runner pass the gate that blocks people and agents meanwhile.
+    _ACTIVE.identifier = identifier
+    try:
+        yield
+    finally:
+        _ACTIVE.identifier = None
 
 
 def digest(value):
@@ -68,11 +172,19 @@ class WorkflowManager:
         self.lock = threading.RLock()
         self.cancel_events = {}
         self.closed = False
+        self.on_cancel = None
         for path in self.root.glob("*/result.json"):
             try:
                 record = self._read(path.parent.name)
+                changed = False
                 if record.get("busy"):
                     record.update(busy=False, state="interrupted", error="서버가 종료됐습니다. 확인 후 해당 단계를 다시 실행하세요.")
+                    changed = True
+                if (record.get("autopilot") or {}).get("state") == "running":
+                    record["autopilot"].update(state="interrupted", stopped_reason="서버가 종료되어 자동 실행이 멈췄습니다. 계획을 다시 승인하면 이어서 진행합니다.")
+                    record["autopilot"].setdefault("events", []).append({"time": now(), "stage": "interrupted", "message": record["autopilot"]["stopped_reason"]})
+                    changed = True
+                if changed:
                     self._save(record)
             except (KeyError, ValueError, OSError):
                 continue
@@ -97,44 +209,98 @@ class WorkflowManager:
         atomic_json(history / f"{revision:08}.json", record)
         atomic_json(folder / "result.json", record)
 
-    def create(self, design_id, template, bindings, metric, probe=1.0, spacing=0.25, budget=50):
+    def _responses(self, route, metric, responses):
+        collected = list(dict.fromkeys([metric, *(responses or [])]))
+        if any(name not in ROUTES[route]["responses"] for name in collected):
+            raise ValueError(f"{ROUTES[route]['label']} 흐름에서 수집할 수 있는 반응값을 선택하세요: {', '.join(ROUTES[route]['responses'])}")
+        return collected
+
+    def create(self, design_id, template, bindings, metric, probe=1.0, spacing=0.25, budget=50, responses=None):
         design = read_record(self.research_root / "doe", design_id)
         if design.get("record_type") != "doe_design":
             raise ValueError("저장된 DOE 설계 기록을 선택하세요.")
-        names = [f["name"] for f in design["factors"]]
-        if len(names) != 2 or set(bindings) != set(names) or set(bindings.values()) != set(FIELDS):
-            raise ValueError("두 인자를 온도와 초기 패킹 밀도에 각각 한 번 연결하세요.")
         template = JobConfig.model_validate(template).model_dump()
-        if (template["route"], template["atomistic_mode"], template["atomistic_forcefield"], template["cell_builder"]) != ("polymer_atomistic", "bulk", "gaff2", "native"):
-            raise ValueError("초기 패킹 밀도가 실제 적용되는 GAFF2 벌크·자체 셀 빌더를 선택하세요.")
+        route = detect_route(template)
+        if route is None:
+            raise ValueError("연구 흐름은 GAFF2 벌크(자체 셀 빌더), PCFF 벌크, 에폭시–아민 가교 작업을 연결합니다.")
         if template["engine_input"] or template["source_job_id"]:
             raise ValueError("연구 흐름에는 임의 엔진 입력이나 이전 구조 연결을 사용할 수 없습니다.")
-        if metric not in METRICS:
-            raise ValueError("지원하는 반응값을 선택하세요.")
+        names = [f["name"] for f in design["factors"]]
+        allowed = ROUTES[route]["fields"]
+        if set(bindings) != set(names) or len(set(bindings.values())) != len(names) or not set(bindings.values()) <= set(allowed):
+            raise ValueError("설계의 인자마다 서로 다른 계산 설정을 하나씩 연결하세요. "
+                             f"{ROUTES[route]['label']}에서 쓸 수 있는 설정: {', '.join(FIELDS[f]['label'] for f in allowed)}")
+        collected = self._responses(route, metric, responses)
         if not 1 <= len(design["runs"]) <= budget <= 50:
             raise ValueError("전체 설계와 재시도·확인 계산을 포함해 계산 예산은 최대 50개입니다.")
         rows = []
         for run in design["runs"]:
             config = dict(template)
-            config.update({bindings[name]: run["values"][name] for name in names})
+            for name in names:
+                value, field = run["values"][name], bindings[name]
+                if FIELDS[field].get("integer"):
+                    if abs(value - round(value)) > 1e-9:
+                        raise ValueError(f"{name}은(는) 정수 설정({FIELDS[field]['label']})에 연결됩니다. 모든 설계점이 정수가 되도록 하한과 상한의 합을 짝수로 정하세요.")
+                    value = int(round(value))
+                config[field] = value
             config["seed"] = (template["seed"] + run["run_order"] - 1) % 899999998 + 1
             config["name"] = f"DOE {run['run_order']} · {template['name']}"[:120]
-            config = JobConfig.model_validate(config).model_dump()
+            config = validated(config, run["run_order"])
             rows.append({"run_order": run["run_order"], "factors": run["values"], "config": config,
                          "config_sha256": config_digest(config), "job_id": uuid.uuid4().hex,
                          "attempts": [], "observation": None, "state": "planned", "error": None})
+        warnings = ["Every recommendation requires independent confirmation runs. Simulation results are not verified experimental measurements."]
+        if "build_density" in bindings.values():
+            warnings.append("Initial packing density is a preparation parameter, not an equilibrium material property.")
+        if set(collected) & FREE_VOLUME:
+            warnings.append("Final-frame density and geometric probe accessibility do not establish equilibrium or transport connectivity.")
+        if set(collected) & set(RESULT_PROPERTIES):
+            warnings.append("NPT density, bulk modulus and volume expansion are averages of one sampling run; each observation records RadonPy's convergence verdict.")
+        if route == "crosslink":
+            warnings.append("Bonds form on contact within the reaction cutoff: conversion and network structure, not cure kinetics; etherification is not modelled.")
+        if any(FIELDS[f].get("integer") for f in bindings.values()):
+            warnings.append("Integer settings are fitted as continuous factors; confirmation runs use the recommendation rounded to integers, with predictions at that rounded point.")
+        return self._store({"route": route, "design_id": design_id, "design_sha256": digest(design), "factors": design["factors"],
+                            "bindings": bindings, "template": template, "metric": metric, "responses": collected, "budget": budget,
+                            "analysis_parameters": {"probes": [float(probe)], "spacing": float(spacing), "frame": "last"},
+                            "rows": rows, "warnings": warnings})
+
+    def _store(self, fields):
         identifier = uuid.uuid4().hex
-        record = {"id": identifier, "schema_version": 1, "record_type": "bulk_workflow", "created_at": now(),
-                  "design_id": design_id, "design_sha256": digest(design), "factors": design["factors"], "bindings": bindings,
-                  "template": template, "metric": metric, "unit": METRICS[metric], "budget": budget, "submitted": 0,
-                  "analysis_parameters": {"probes": [float(probe)], "spacing": float(spacing), "frame": "last"},
-                  "rows": rows, "optimizations": [], "confirmations": [], "busy": False, "state": "planned",
-                  "warnings": ["Initial packing density is a preparation parameter, not an equilibrium material property.",
-                               "Final-frame density and geometric probe accessibility do not establish equilibrium or transport connectivity.",
-                               "Every recommendation requires independent confirmation runs. Simulation results are not verified experimental measurements."]}
+        record = {"id": identifier, "schema_version": 1, "record_type": "bulk_workflow", "created_at": now(), **fields,
+                  "unit": METRICS[fields["metric"]], "units": {name: METRICS[name] for name in fields["responses"]},
+                  "submitted": 0, "optimizations": [], "confirmations": [], "busy": False, "state": "planned"}
         with self.lock:
             self._save(record)
         return self.get(identifier)
+
+    def create_tg_scan(self, parent_id, settings, metric="tg_kelvin", responses=None, budget=50):
+        """A follow-up flow that cools each finished cell of an earlier flow: same factors, Tg as the response."""
+        parent = self.get(parent_id)
+        if route_of(parent) == "tg_scan":
+            raise ValueError("Tg 스캔 흐름에서 다시 Tg 스캔 흐름을 만들 수 없습니다.")
+        collected = self._responses("tg_scan", metric, responses)
+        scan = {key: settings[key] for key in TG_SETTINGS if key in settings}
+        rows, skipped = [], {}
+        for row in parent["rows"]:
+            if not row["attempts"] or row.get("job_status") != "completed" or config_digest(self._job(row["job_id"])["config"]) != row["config_sha256"]:
+                skipped[str(row["run_order"])] = "원래 흐름의 계산이 완료되지 않았거나 설정이 다릅니다."
+                continue
+            config = JobConfig.model_validate({"name": f"Tg {row['run_order']} · {parent['template']['name']}"[:120], "route": "polymer_atomistic",
+                                               "atomistic_mode": "tg_scan", "source_job_id": row["job_id"], "seed": row["config"]["seed"], **scan}).model_dump()
+            rows.append({"run_order": row["run_order"], "factors": row["factors"], "config": config, "config_sha256": config_digest(config),
+                         "source_job_id": row["job_id"], "job_id": uuid.uuid4().hex, "attempts": [], "observation": None, "state": "planned", "error": None})
+        if not rows:
+            raise ValueError("원래 흐름에 완료된 계산이 없습니다. 계산을 마친 뒤 Tg 스캔 흐름을 만드세요.")
+        if not len(rows) <= budget <= 50:
+            raise ValueError("Tg 스캔 행 수 이상, 50개 이하로 계산 예산을 정하세요. 확인 계산은 셀 계산과 스캔 2개를 씁니다.")
+        template = {key: rows[0]["config"][key] for key in TG_SETTINGS}
+        return self._store({"route": "tg_scan", "parent_workflow_id": parent_id, "design_id": parent["design_id"], "design_sha256": parent["design_sha256"],
+                            "factors": parent["factors"], "bindings": parent["bindings"], "template": template, "source_template": parent["template"],
+                            "source_route": route_of(parent), "metric": metric, "responses": collected, "budget": budget, "skipped_rows": skipped,
+                            "rows": rows, "warnings": ["Each row cools the finished cell of the parent flow; Tg is reported only when the transition is resolved.",
+                                                       "Cooling MD runs about 1e11 K/s; Tg is not converted to a calorimetric rate.",
+                                                       "Every recommendation requires independent confirmation runs. Simulation results are not verified experimental measurements."]})
 
     def _job(self, identifier):
         with self.jobs.lock:
@@ -150,13 +316,28 @@ class WorkflowManager:
                 except KeyError:
                     row["job_status"] = "missing"
         for confirmation in record["confirmations"]:
-            try:
-                confirmation["job_status"] = self._job(confirmation["job_id"])["status"]
-            except KeyError:
-                confirmation["job_status"] = "missing"
-        record["missing_engines"] = preflight(record["template"])
+            confirmation["job_status"] = self._status(confirmation["job_id"])
+            if confirmation.get("scan_job_id"):
+                confirmation["scan_job_status"] = self._status(confirmation["scan_job_id"])
+            confirmation["final_status"] = self._final_status(confirmation)
+        record["missing_engines"] = preflight(record.get("source_template", record["template"]))
         record["download_url"] = f"/api/research/workflows/{identifier}/download"
         return record
+
+    def _status(self, job_id):
+        try:
+            return self._job(job_id)["status"]
+        except KeyError:
+            return "missing"
+
+    def _final_status(self, confirmation):
+        # A Tg confirmation is a cell job and then a scan of it; the scan decides once it exists.
+        if "scan_job_id" not in confirmation:
+            return self._status(confirmation["job_id"])
+        if confirmation["scan_job_id"]:
+            return self._status(confirmation["scan_job_id"])
+        status = self._status(confirmation["job_id"])
+        return "scan_pending" if status == "completed" else status
 
     def list(self):
         with self.lock:
@@ -164,7 +345,7 @@ class WorkflowManager:
             for path in self.root.glob("*/result.json"):
                 try:
                     record = self._read(path.parent.name)
-                    records.append({key: record[key] for key in ("id", "created_at", "state", "metric", "revision")})
+                    records.append({**{key: record[key] for key in ("id", "created_at", "state", "metric", "revision")}, "route": route_of(record)})
                 except (KeyError, ValueError, OSError):
                     continue
             return sorted(records, key=lambda r: r["created_at"], reverse=True)
@@ -172,6 +353,8 @@ class WorkflowManager:
     def _available(self, record):
         if self.closed or record["busy"]:
             raise RuntimeError("이 연구 흐름의 단계가 진행 중입니다. 완료하거나 취소한 후 실행하세요.")
+        if (record.get("autopilot") or {}).get("state") == "running" and getattr(_ACTIVE, "identifier", None) != record["id"]:
+            raise RuntimeError("이 연구 흐름은 승인된 계획으로 자동 실행 중입니다. 자동 실행을 멈춘 뒤 직접 진행하세요.")
 
     @staticmethod
     def _rows(record, selected):
@@ -186,7 +369,7 @@ class WorkflowManager:
         with self.lock:
             record = self._read(identifier)
             self._available(record)
-            missing = preflight(record["template"])
+            missing = preflight(record.get("source_template", record["template"]))
             if missing:
                 raise RuntimeError("계산 엔진이 필요합니다: " + ", ".join(missing))
             rows = self._rows(record, selected)
@@ -254,10 +437,45 @@ class WorkflowManager:
             self._save(record)
             self.cancel_events.pop(record["id"], None)
 
+    def _observe(self, record, job_id, owner, cancelled):
+        wanted = responses(record)
+        values, warnings, observation = {}, [], {"job_id": job_id}
+        if FREE_VOLUME & set(wanted):
+            from .analysis_service import analyze_structure
+            result = analyze_structure(self.jobs, self.research_root, job_id, "free_volume", record["analysis_parameters"],
+                                       owner=owner, cancelled=cancelled, bounded=False)
+            measured = {"final_frame_density": result["density_g_cm3"], "probe_accessible_fraction": result["probes"][0]["accessible_fraction"]}
+            values.update({name: measured[name] for name in wanted if name in FREE_VOLUME})
+            observation.update(analysis_id=result["record_id"], analysis_sha256=digest(result))
+            warnings += result["warnings"]
+        from_result = [name for name in wanted if name not in FREE_VOLUME]
+        if from_result:
+            route, name = route_of(record), ROUTES[route_of(record)]["result"]
+            path = self.jobs.directory(job_id) / name
+            if path.is_symlink() or not path.is_file():
+                raise ValueError(f"계산 결과 파일({name})이 없습니다.")
+            raw = path.read_bytes()
+            complete = json.loads(raw)
+            values.update(result_values(route, complete, from_result))
+            observation.update(result_file=name, result_sha256=hashlib.sha256(raw).hexdigest())
+            if route == "tg_scan":
+                warnings += complete.get("warnings", [])
+            else:
+                observation["equilibrated"] = bool(complete.get("equilibrated"))
+                if set(from_result) & set(RESULT_PROPERTIES) and not complete.get("equilibrated"):
+                    warnings.append("RadonPy did not judge this cell equilibrated; NPT properties are not converged values.")
+                if route == "crosslink" and not complete["conversion"].get("target_reached"):
+                    warnings.append("The cure stopped before the target epoxide conversion.")
+        if any(not math.isfinite(value) for value in values.values()):
+            raise ValueError("반응값이 유한하지 않습니다.")
+        primary = record["metric"]
+        observation.update(value=values[primary], unit=METRICS[primary], method=primary, values={name: values[name] for name in wanted},
+                           units={name: METRICS[name] for name in wanted}, warnings=warnings, verified=False)
+        return observation
+
     def analyze(self, identifier, selected):
         record, event = self._begin(identifier, "analyzing")
         try:
-            from .analysis_service import analyze_structure
             for row in self._rows(record, selected):
                 if event.is_set():
                     break
@@ -267,15 +485,9 @@ class WorkflowManager:
                         raise ValueError("완료된 계산이 필요합니다.")
                     if config_digest(job["config"]) != row["config_sha256"]:
                         raise ValueError("설계와 계산 설정이 다릅니다.")
-                    result = analyze_structure(self.jobs, self.research_root, row["job_id"], "free_volume",
-                        record["analysis_parameters"], owner="workflow:" + identifier, cancelled=event.is_set, bounded=False)
-                    value = result["density_g_cm3"] if record["metric"] == "final_frame_density" else result["probes"][0]["accessible_fraction"]
-                    if not math.isfinite(value):
-                        raise ValueError("반응값이 유한하지 않습니다.")
+                    observation = self._observe(record, row["job_id"], "workflow:" + identifier, event.is_set)
                     simulation = self.jobs.get(row["job_id"]).get("result") or {}
-                    observation = {"value": value, "unit": record["unit"], "method": record["metric"],
-                        "analysis_id": result["record_id"], "analysis_sha256": digest(result), "job_id": row["job_id"],
-                        "config_sha256": row["config_sha256"], "warnings": result["warnings"] + simulation.get("warnings", []), "verified": False}
+                    observation.update(config_sha256=row["config_sha256"], warnings=observation["warnings"] + simulation.get("warnings", []))
                     row.setdefault("observation_history", []).append(observation)
                     row.update(observation=observation, state="observed", error=None)
                 except ExecutionCancelled:
@@ -296,63 +508,132 @@ class WorkflowManager:
         observation = row["observation"]
         if observation is None or row["state"] != "observed":
             raise ValueError(f"{row['run_order']}행 반응값이 없습니다. 제외 사유를 명시하거나 계산·분석을 완료하세요.")
-        result = read_record(self.research_root / "analyses", observation["analysis_id"])
-        expected_value = result["density_g_cm3"] if record["metric"] == "final_frame_density" else result["probes"][0]["accessible_fraction"]
-        if (digest(result) != observation["analysis_sha256"] or result["provenance"]["job_id"] != row["job_id"]
-                or not result["provenance"].get("kernel_sha256") or not result["provenance"].get("analysis_code_sha256")
-                or observation["value"] != expected_value or observation["job_id"] != row["job_id"]
-                or result["analysis"] != "free_volume"
-                or result["provenance"]["parameters"] != record["analysis_parameters"]
+        changed = ValueError("연결된 분석의 출처·단위·방법·작업 설정이 변경됐습니다.")
+        values = observation.get("values") or {record["metric"]: observation["value"]}
+        if (set(values) != set(responses(record)) or observation["value"] != values.get(record["metric"])
                 or observation["unit"] != METRICS[record["metric"]] or observation["method"] != record["metric"]
-                or config_digest(self._job(row["job_id"])["config"]) != row["config_sha256"]):
-            raise ValueError("연결된 분석의 출처·단위·방법·작업 설정이 변경됐습니다.")
+                or observation.get("units", {name: METRICS[name] for name in values}) != {name: METRICS[name] for name in values}
+                or observation["job_id"] != row["job_id"] or config_digest(self._job(row["job_id"])["config"]) != row["config_sha256"]):
+            raise changed
         directory = self.jobs.directory(row["job_id"])
-        for name, expected in result["provenance"]["source_sha256"].items():
-            path = directory / name
-            if path.is_symlink() or path.parent != directory or not path.is_file():
+        if FREE_VOLUME & set(values):
+            result = read_record(self.research_root / "analyses", observation["analysis_id"])
+            measured = {"final_frame_density": result["density_g_cm3"], "probe_accessible_fraction": result["probes"][0]["accessible_fraction"]}
+            if (digest(result) != observation["analysis_sha256"] or result["provenance"]["job_id"] != row["job_id"]
+                    or not result["provenance"].get("kernel_sha256") or not result["provenance"].get("analysis_code_sha256")
+                    or any(values[name] != measured[name] for name in values if name in FREE_VOLUME)
+                    or result["analysis"] != "free_volume" or result["provenance"]["parameters"] != record["analysis_parameters"]):
+                raise changed
+            for name, expected in result["provenance"]["source_sha256"].items():
+                path = directory / name
+                if path.is_symlink() or path.parent != directory or not path.is_file():
+                    raise ValueError("원본 계산 파일을 확인할 수 없습니다.")
+                with path.open("rb") as stream:
+                    if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
+                        raise ValueError("원본 계산 파일이 변경됐습니다. 다시 분석하세요.")
+        from_result = [name for name in values if name not in FREE_VOLUME]
+        if from_result:
+            path = directory / ROUTES[route_of(record)]["result"]
+            if path.is_symlink() or not path.is_file():
                 raise ValueError("원본 계산 파일을 확인할 수 없습니다.")
-            with path.open("rb") as stream:
-                if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
-                    raise ValueError("원본 계산 파일이 변경됐습니다. 다시 분석하세요.")
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != observation.get("result_sha256"):
+                raise ValueError("원본 계산 파일이 변경됐습니다. 다시 분석하세요.")
+            if result_values(route_of(record), json.loads(raw), from_result) != {name: values[name] for name in from_result}:
+                raise changed
         return observation
 
-    def optimize(self, identifier, model, objective, target, exclusions):
-        record, event = self._begin(identifier, "optimizing")
-        try:
-            excluded = {int(number): reason.strip() for number, reason in exclusions.items()}
-            known = {row["run_order"] for row in record["rows"]}
-            if not set(excluded) <= known or any(not reason for reason in excluded.values()):
-                raise ValueError("제외할 행과 제외 사유를 모두 명시하세요.")
-            stream = io.StringIO()
-            names = [factor["name"] for factor in record["factors"]]
-            writer = csv.writer(stream)
-            writer.writerow([*names, "response"])
-            observations = []
-            analysis_versions = set()
-            for row in record["rows"]:
-                if row["run_order"] in excluded:
-                    continue
-                observation = self._validate_observation(record, row)
-                analysis_record = read_record(self.research_root / "analyses", observation["analysis_id"])
-                provenance = analysis_record["provenance"]
+    def _table(self, record, exclusions, columns, headers):
+        excluded = {int(number): reason.strip() for number, reason in exclusions.items()}
+        known = {row["run_order"] for row in record["rows"]}
+        if not set(excluded) <= known or any(not reason for reason in excluded.values()):
+            raise ValueError("제외할 행과 제외 사유를 모두 명시하세요.")
+        stream = io.StringIO()
+        names = [factor["name"] for factor in record["factors"]]
+        writer = csv.writer(stream)
+        writer.writerow([*names, *headers])
+        observations, analysis_versions = [], set()
+        for row in record["rows"]:
+            if row["run_order"] in excluded:
+                continue
+            observation = self._validate_observation(record, row)
+            if observation.get("analysis_id"):
+                provenance = read_record(self.research_root / "analyses", observation["analysis_id"])["provenance"]
                 analysis_versions.add((provenance["kernel_sha256"], provenance["analysis_code_sha256"]))
                 if len(analysis_versions) > 1:
                     raise ValueError("분석 코드·커널 버전이 다른 결과를 섞을 수 없습니다. 같은 버전으로 다시 분석하세요.")
-                observations.append({"run_order": row["run_order"], **observation})
-                writer.writerow([*(row["factors"][name] for name in names), observation["value"]])
-            text = stream.getvalue()
+            values = observation.get("values") or {record["metric"]: observation["value"]}
+            observations.append({"run_order": row["run_order"], **observation})
+            writer.writerow([*(row["factors"][name] for name in names), *(values[name] for name in columns)])
+        return stream.getvalue(), observations, excluded
+
+    def _rounded(self, record, identifier, event, result, text, models):
+        """Nearest-integer recommendation for integer settings, refitted to predict at that point."""
+        integer = {f["name"] for f in record["factors"] if FIELDS[record["bindings"][f["name"]]].get("integer")}
+        settings = result["recommendation"]["settings"]
+        if not integer:
+            return None
+        rounded = {name: float(round(value)) if name in integer else value for name, value in settings.items()}
+        predicted, intervals = {}, {}
+        for name, (column, model) in models.items():
+            fit = self.jobs.execution.compute("doe_analyze", {"text": text, "factors": record["factors"], "response": column, "model": model,
+                                                              "prediction_points": [rounded]}, owner="workflow:" + identifier, cancelled=event.is_set)
+            predicted[name], intervals[name] = fit["predictions"][0]["predicted_response"], fit["predictions"][0]["prediction_interval"]
+        return {"settings": rounded, "predicted": predicted, "prediction_intervals": intervals,
+                "method": "nearest-integer rounding of integer settings; predictions from the same fitted models at the rounded point"}
+
+    def _publish(self, record, identifier, result):
+        folder = self.root / identifier / "optimizations"
+        folder.mkdir(exist_ok=True)
+        atomic_json(folder / (result["id"] + ".json"), result)
+        record["optimizations"].append(result)
+
+    def optimize(self, identifier, model, objective, target, exclusions, response=None):
+        record, event = self._begin(identifier, "optimizing")
+        try:
+            response = response or record["metric"]
+            if response not in responses(record):
+                raise ValueError("이 흐름에서 수집하는 반응값 중에서 고르세요.")
+            text, observations, excluded = self._table(record, exclusions, [response], ["response"])
             result = self.jobs.execution.compute("doe_analyze", {"text": text, "factors": record["factors"],
                 "response": "response", "model": model, "objective": objective, "target": target},
                 owner="workflow:" + identifier, cancelled=event.is_set)
             if event.is_set():
                 raise ExecutionCancelled("최적화가 취소되었습니다.")
-            result.update(id=uuid.uuid4().hex, created_at=now(), workflow_id=identifier, unit=record["unit"],
-                          metric=record["metric"], observations=observations, exclusions=excluded,
+            result.update(id=uuid.uuid4().hex, created_at=now(), workflow_id=identifier, unit=METRICS[response],
+                          metric=response, observations=observations, exclusions=excluded,
                           input_sha256=hashlib.sha256(text.encode()).hexdigest())
-            folder = self.root / identifier / "optimizations"
-            folder.mkdir(exist_ok=True)
-            atomic_json(folder / (result["id"] + ".json"), result)
-            record["optimizations"].append(result)
+            rounded = self._rounded(record, identifier, event, result, text, {response: ("response", model)})
+            if rounded:
+                result["recommendation"]["rounded"] = rounded
+            self._publish(record, identifier, result)
+            self._finish(record, event, "recommendation_ready")
+        except Exception as exc:
+            self._finish(record, event, "review_results", str(exc))
+            raise
+        return self.get(identifier)
+
+    def optimize_desirability(self, identifier, goals, exclusions):
+        record, event = self._begin(identifier, "optimizing")
+        try:
+            names = [goal.get("name") for goal in goals] if isinstance(goals, list) else []
+            if not names or len(set(names)) != len(names) or not set(names) <= set(responses(record)):
+                raise ValueError("만족도 목표는 이 흐름에서 수집하는 반응값마다 한 번씩만 지정하세요.")
+            text, observations, excluded = self._table(record, exclusions, names, names)
+            result = self.jobs.execution.compute("doe_desirability", {"text": text, "responses": goals, "factors": record["factors"]},
+                owner="workflow:" + identifier, cancelled=event.is_set)
+            if event.is_set():
+                raise ExecutionCancelled("최적화가 취소되었습니다.")
+            # Confirmation reads settings and predictions from "recommendation" for both kinds of optimization.
+            result["recommendation"] = {"settings": result["optimum"]["settings"], "composite_desirability": result["optimum"]["composite_desirability"],
+                                        "predicted": {row["name"]: row["predicted"] for row in result["responses"]},
+                                        "prediction_intervals": {row["name"]: row["prediction_interval"] for row in result["responses"]}, "validated": False}
+            result.update(id=uuid.uuid4().hex, created_at=now(), workflow_id=identifier, units={name: METRICS[name] for name in names},
+                          metrics=names, observations=observations, exclusions=excluded, input_sha256=hashlib.sha256(text.encode()).hexdigest())
+            rounded = self._rounded(record, identifier, event, result, text, {goal["name"]: (goal["name"], goal.get("model", "quadratic")) for goal in goals})
+            if rounded:
+                result["recommendation"]["rounded"] = rounded
+            self._publish(record, identifier, result)
             self._finish(record, event, "recommendation_ready")
         except Exception as exc:
             self._finish(record, event, "review_results", str(exc))
@@ -365,49 +646,83 @@ class WorkflowManager:
             self._available(record)
             previous = [item for item in record["confirmations"] if item["optimization_id"] == optimization_id]
             if previous:
-                try:
-                    status = self._job(previous[-1]["job_id"])["status"]
-                except KeyError:
-                    status = "missing"
+                status = self._final_status(previous[-1])
                 if not retry_failed or status not in {"failed", "blocked", "cancelled", "interrupted", "missing"}:
                     return self.get(identifier)
             result = next((r for r in record["optimizations"] if r["id"] == optimization_id), None)
             if not result:
                 raise KeyError(optimization_id)
-            if record["submitted"] >= record["budget"]:
-                raise ValueError("확인 계산을 위한 예산이 남아 있지 않습니다.")
-            missing = preflight(record["template"])
+            scan = route_of(record) == "tg_scan"
+            if record["submitted"] + (2 if scan else 1) > record["budget"]:
+                raise ValueError("확인 계산을 위한 예산이 남아 있지 않습니다." + (" Tg 확인에는 셀 계산과 스캔 2개가 필요합니다." if scan else ""))
+            missing = preflight(record.get("source_template", record["template"]))
             if missing:
                 raise RuntimeError("계산 엔진이 필요합니다: " + ", ".join(missing))
-            config = dict(record["template"])
-            for name, value in result["recommendation"]["settings"].items():
-                config[record["bindings"][name]] = value
+            settings = (result["recommendation"].get("rounded") or result["recommendation"])["settings"]
+            config = dict(record.get("source_template", record["template"]))
+            for name, value in settings.items():
+                field = record["bindings"][name]
+                config[field] = int(round(value)) if FIELDS[field].get("integer") else value
             config["seed"] = (config["seed"] + len(record["rows"]) + len(record["confirmations"])) % 899999998 + 1
             config["name"] = "DOE 추천 확인 · " + identifier[:8]
             config = JobConfig.model_validate(config).model_dump()
             job_id = uuid.uuid4().hex
-            record["confirmations"].append({"optimization_id": optimization_id, "job_id": job_id, "config": config, "validated": False})
+            confirmation = {"optimization_id": optimization_id, "job_id": job_id, "config": config, "settings": settings, "validated": False}
+            if scan:
+                confirmation.update(scan_job_id=None, scan_config=None)
+            record["confirmations"].append(confirmation)
             record["submitted"] += 1
             self._save(record)
             self.jobs.create(config, submitted_via="workflow-confirm:" + identifier, job_id=job_id)
         return self.get(identifier)
 
-    def analyze_confirmation(self, identifier, job_id):
-        record, event = self._begin(identifier, "analyzing")
-        try:
-            confirmation = next((item for item in record["confirmations"] if item["job_id"] == job_id), None)
+    def _submit_scan(self, identifier, job_id):
+        with self.lock:
+            record = self._read(identifier)
+            self._available(record)
+            confirmation = next((c for c in record["confirmations"] if c["job_id"] == job_id), None)
             if not confirmation:
                 raise KeyError(job_id)
-            if config_digest(self._job(job_id)["config"]) != config_digest(confirmation["config"]):
+            if self._status(job_id) != "completed" or config_digest(self._job(job_id)["config"]) != config_digest(confirmation["config"]):
+                raise ValueError("확인용 셀 계산이 완료되지 않았거나 설정이 바뀌었습니다.")
+            if record["submitted"] >= record["budget"]:
+                raise ValueError("Tg 확인 스캔에 쓸 예산이 남아 있지 않습니다.")
+            scan = JobConfig.model_validate({"name": "DOE 추천 확인 Tg · " + identifier[:8], "route": "polymer_atomistic", "atomistic_mode": "tg_scan",
+                                             "source_job_id": job_id, "seed": confirmation["config"]["seed"], **record["template"]}).model_dump()
+            confirmation.update(scan_job_id=uuid.uuid4().hex, scan_config=scan)
+            record["submitted"] += 1
+            self._save(record)
+            self.jobs.create(scan, submitted_via="workflow-confirm:" + identifier, job_id=confirmation["scan_job_id"])
+        return self.get(identifier)
+
+    def analyze_confirmation(self, identifier, job_id):
+        record = self._read(identifier)
+        pending = next((c for c in record["confirmations"] if c["job_id"] == job_id and "scan_job_id" in c and not c["scan_job_id"]), None)
+        if pending:
+            return self._submit_scan(identifier, job_id)
+        record, event = self._begin(identifier, "analyzing")
+        try:
+            confirmation = next((item for item in record["confirmations"] if job_id in (item["job_id"], item.get("scan_job_id"))), None)
+            if not confirmation:
+                raise KeyError(job_id)
+            expected = confirmation["scan_config"] if confirmation.get("scan_job_id") == job_id else confirmation["config"]
+            if "scan_job_id" in confirmation and confirmation["scan_job_id"] != job_id:
+                raise ValueError("Tg 확인은 스캔 작업을 분석하세요.")
+            if config_digest(self._job(job_id)["config"]) != config_digest(expected):
                 raise ValueError("확인 계산의 설정이 변경됐습니다.")
-            from .analysis_service import analyze_structure
-            result = analyze_structure(self.jobs, self.research_root, job_id, "free_volume", record["analysis_parameters"],
-                owner="workflow:" + identifier, cancelled=event.is_set, bounded=False)
-            value = result["density_g_cm3"] if record["metric"] == "final_frame_density" else result["probes"][0]["accessible_fraction"]
+            observation = self._observe(record, job_id, "workflow:" + identifier, event.is_set)
             optimization = next(item for item in record["optimizations"] if item["id"] == confirmation["optimization_id"])
-            observation = {"value": value, "unit": record["unit"], "analysis_id": result["record_id"],
-                           "analysis_sha256": digest(result), "prediction_error": value - optimization["recommendation"]["predicted_response"],
-                           "warnings": result["warnings"], "verified": False}
+            recommendation = optimization["recommendation"]
+            rounded = recommendation.get("rounded")
+            if optimization.get("analysis") == "doe_desirability":
+                predicted = rounded["predicted"] if rounded else recommendation["predicted"]
+                errors = {name: observation["values"][name] - value for name, value in predicted.items()}
+                single = None
+            else:
+                fitted = optimization.get("metric", record["metric"])
+                errors = {fitted: observation["values"][fitted] - (rounded["predicted"][fitted] if rounded else recommendation["predicted_response"])}
+                single = errors[fitted]
+            observation.update(prediction_errors=errors, prediction_error=single)
             confirmation.setdefault("observation_history", []).append(observation)
             confirmation["observation"] = observation
             self._finish(record, event, "confirmation_review")
@@ -417,6 +732,8 @@ class WorkflowManager:
         return self.get(identifier)
 
     def cancel(self, identifier):
+        if self.on_cancel:
+            self.on_cancel(identifier)
         with self.lock:
             record = self._read(identifier)
             event = self.cancel_events.get(identifier)

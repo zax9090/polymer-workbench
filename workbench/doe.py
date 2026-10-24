@@ -114,6 +114,18 @@ def design(factors, kind="factorial", center_points=3, replicates=1, seed=1):
 
 
 def _data(text, factors, response):
+    values, ignored = _table(text, factors, response)
+    coded = np.empty((len(values), len(factors)))
+    for j, factor in enumerate(factors):
+        coded[:, j] = 2.0 * ((values[:, j] - factor["low"]) / (factor["high"] - factor["low"])) - 1.0
+        invalid = np.flatnonzero(np.abs(coded[:, j]) > 1.0 + 1e-12)
+        if invalid.size:
+            raise ValueError(f"CSV {int(invalid[0]) + 2}행 {factor['name']}: 지정한 실험 범위를 벗어났습니다.")
+    coded = np.clip(coded, -1.0, 1.0)
+    return coded, np.ascontiguousarray(values[:, -1]), ignored
+
+
+def _table(text, factors, response):
     if not isinstance(text, str) or not text.strip() or len(text.encode("utf-8")) > MAX_CSV_BYTES:
         raise ValueError("측정 CSV는 비어 있지 않은 2 MiB 이하의 텍스트여야 합니다.")
     if not isinstance(response, str) or not response.strip() or response in {f["name"] for f in factors}:
@@ -147,15 +159,7 @@ def _data(text, factors, response):
         raise ValueError("CSV 형식을 읽을 수 없습니다.") from exc
     if not rows:
         raise ValueError("CSV에 측정 행이 없습니다.")
-    values = np.asarray(rows, dtype=float)
-    coded = np.empty((len(rows), len(factors)))
-    for j, factor in enumerate(factors):
-        coded[:, j] = 2.0 * ((values[:, j] - factor["low"]) / (factor["high"] - factor["low"])) - 1.0
-        invalid = np.flatnonzero(np.abs(coded[:, j]) > 1.0 + 1e-12)
-        if invalid.size:
-            raise ValueError(f"CSV {int(invalid[0]) + 2}행 {factor['name']}: 지정한 실험 범위를 벗어났습니다.")
-    coded = np.clip(coded, -1.0, 1.0)
-    return coded, np.ascontiguousarray(values[:, -1]), [name for name in header if name not in names]
+    return np.asarray(rows, dtype=float), [name for name in header if name not in names]
 
 
 
@@ -329,3 +333,302 @@ def analyze(text, factors, response, model="quadratic", objective="maximize", ta
                     "kernel": {"engine": "rust", "version": kernel.__version__, "solver": "Column-pivoted Householder QR with column scaling",
                                "inference": "Rust Student-t/F distributions, QR covariance, pure error, PRESS"},
                     "warnings": warnings})
+
+
+MIXTURE_MODELS = ("scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic")
+MIXTURE_KINDS = ("simplex_lattice", "simplex_centroid", "extreme_vertices")
+
+
+def _mixture_kernel():
+    kernel = _kernel()
+    if not all(hasattr(kernel, name) for name in ("mixture_design", "mixture_region", "mixture_optimize", "desirability_optimize")):
+        raise ValueError("혼합물 실험 Rust 커널이 없습니다. `.venv/bin/python -m pip install ./native`로 다시 빌드하세요.")
+    return kernel
+
+
+def _components(components):
+    """Proportion bounds of 2-6 components; returns the declared bounds and the ones implied by Σx = 1."""
+    out = _factors(components, 6)
+    for item in out:
+        if not 0.0 <= item["low"] < item["high"] <= 1.0:
+            raise ValueError(f"{item['name']}: 성분 비율의 하한·상한은 0 이상 1 이하의 비율로 입력하세요.")
+    try:
+        lower, upper, simplex = _mixture_kernel().mixture_region([c["low"] for c in out], [c["high"] for c in out])
+    except ValueError as exc:
+        raise ValueError("성분 하한의 합은 1보다 작고 상한의 합은 1보다 커야 합니다(실행 가능한 배합 영역이 없습니다).") from exc
+    region = {"lower": list(lower), "upper": list(upper), "simplex": bool(simplex), "pseudo_scale": 1.0 - sum(lower)}
+    return out, region
+
+
+def _pseudo(x, region):
+    return (np.asarray(x, dtype=float) - np.asarray(region["lower"])) / region["pseudo_scale"]
+
+
+def mixture_design(components, kind="simplex_lattice", degree=2, axial=False, centroid=True, replicates=1, seed=1):
+    """Randomized simplex-lattice, simplex-centroid or extreme-vertices mixture design in proportions."""
+    if kind not in MIXTURE_KINDS:
+        raise ValueError("혼합물 설계는 simplex_lattice, simplex_centroid 또는 extreme_vertices를 선택하세요.")
+    components, region = _components(components)
+    degree = _integer(degree, "차수", 1, 4 if kind == "simplex_lattice" else 2)
+    replicates = _integer(replicates, "반복 수", 1, 10)
+    seed = _integer(seed, "시드", 0, 2 ** 63 - 1)
+    if not isinstance(axial, bool) or not isinstance(centroid, bool):
+        raise ValueError("axial과 centroid는 true 또는 false입니다.")
+    if kind != "extreme_vertices" and not region["simplex"]:
+        raise ValueError("상한이 배합 영역을 자르므로 simplex 설계를 쓸 수 없습니다. extreme_vertices를 선택하세요.")
+    kernel = _mixture_kernel()
+    try:
+        raw = kernel.mixture_design([c["low"] for c in components], [c["high"] for c in components], kind, degree, axial, centroid, replicates, seed)
+    except ValueError as exc:
+        raise ValueError(f"혼합물 설계를 만들 수 없습니다: {exc}") from exc
+    names = [c["name"] for c in components]
+    runs = [{"run_order": i + 1, "point_type": point_type, "values": dict(zip(names, point)),
+             "pseudo": dict(zip(names, _pseudo(point, region).tolist()))}
+            for i, (point, point_type) in enumerate(zip(raw["points"], raw["types"]))]
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(["run_order", "point_type", *names, "response"])
+    for run in runs:
+        writer.writerow([run["run_order"], run["point_type"], *(format(run["values"][name], ".17g") for name in names), ""])
+    labels = {"simplex_lattice": f"Simplex-lattice {{{len(names)}, {degree}}}", "simplex_centroid": "Simplex-centroid",
+              "extreme_vertices": "Extreme vertices" + (" with edge midpoints" if degree == 2 else "")}
+    warnings = ["This is an experimental plan, not executed or verified measurements. Proportions are fractions of the whole mixture and sum to one.",
+                "Runs are randomized without blocks. Replicates should be independent mixtures prepared separately."]
+    if any(c["low"] > 0 for c in components):
+        warnings.append("Lower bounds are handled with L-pseudocomponents; models are fitted in pseudocomponents and reported as such.")
+    if kind == "simplex_lattice" and degree == 2 and not axial and not centroid:
+        warnings.append("A {q, 2} lattice alone has no interior blends and no degrees of freedom to check a quadratic model; add the centroid or axial check blends.")
+    return _finite({"analysis": "doe_mixture_design", "kind": kind, "degree": degree, "components": components, "region": region,
+                    "axial": axial, "centroid": centroid, "replicates": replicates, "seed": seed, "total_runs": len(runs), "runs": runs,
+                    "csv": output.getvalue(), "method": labels[kind] + (" + axial check blends" if axial else ""),
+                    "coding": "values are proportions; pseudo = (x - L) / (1 - ΣL) with L the lower bounds implied by Σx = 1",
+                    "kernel": {"engine": "rust", "version": kernel.__version__}, "warnings": warnings})
+
+
+def _mixture_data(text, components, region, response):
+    values, ignored = _table(text, components, response)
+    x = values[:, :-1]
+    for row, total in enumerate(x.sum(axis=1)):
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(f"CSV {row + 2}행: 성분 비율의 합이 1이 아닙니다(합 {total:.6g}). 각 성분을 전체에 대한 비율로 입력하세요.")
+    for j, component in enumerate(components):
+        low, high = region["lower"][j], region["upper"][j]
+        bad = np.flatnonzero((x[:, j] < low - 1e-9) | (x[:, j] > high + 1e-9))
+        if bad.size:
+            raise ValueError(f"CSV {int(bad[0]) + 2}행 {component['name']}: 지정한 성분 범위를 벗어났습니다.")
+    z = np.clip(_pseudo(x, region), 0.0, 1.0)
+    return np.ascontiguousarray(z), np.ascontiguousarray(values[:, -1]), ignored
+
+
+def _mixture_terms(names, model):
+    terms = list(names)
+    if model != "scheffe_linear":
+        terms += [f"{a}:{b}" for i, a in enumerate(names) for b in names[i + 1:]]
+    if model == "scheffe_special_cubic":
+        terms += [f"{a}:{b}:{c}" for i, a in enumerate(names) for j, b in enumerate(names[i + 1:], i + 1) for c in names[j + 1:]]
+    return terms
+
+
+def _mixture_points(points, components, region):
+    if points is None:
+        return [], []
+    if not isinstance(points, list) or len(points) > 50:
+        raise ValueError("예측 조건은 성분별 비율로 된 목록이며 최대 50개입니다.")
+    names = [c["name"] for c in components]
+    settings, pseudo = [], []
+    for index, point in enumerate(points, 1):
+        if not isinstance(point, dict) or set(point) != set(names):
+            raise ValueError(f"예측 조건 {index}: 모든 성분의 비율을 하나씩 입력하세요.")
+        x = [_number(point[name], f"예측 조건 {index} {name}") for name in names]
+        if abs(sum(x) - 1.0) > 1e-6 or any(not region["lower"][j] - 1e-9 <= v <= region["upper"][j] + 1e-9 for j, v in enumerate(x)):
+            raise ValueError(f"예측 조건 {index}: 비율의 합이 1이고 각 성분이 범위 안에 있어야 합니다.")
+        settings.append(dict(zip(names, x)))
+        pseudo.append(np.clip(_pseudo(x, region), 0.0, 1.0).tolist())
+    return settings, pseudo
+
+
+def analyze_mixture(text, components, response, model="scheffe_quadratic", objective="maximize", target=None, prediction_points=None):
+    """Scheffé fit in L-pseudocomponents, ANOVA and a bounded, unvalidated blend recommendation."""
+    if model not in MIXTURE_MODELS:
+        raise ValueError("혼합물 모델은 scheffe_linear, scheffe_quadratic 또는 scheffe_special_cubic을 선택하세요.")
+    if objective not in {"maximize", "minimize", "target"}:
+        raise ValueError("목표는 maximize, minimize 또는 target을 선택하세요.")
+    if objective == "target":
+        target = _number(target, "목표 반응값")
+    elif target is not None:
+        raise ValueError("target 값은 목표값 맞추기에서만 지정하세요.")
+    components, region = _components(components)
+    names = [c["name"] for c in components]
+    if model == "scheffe_special_cubic" and len(names) < 3:
+        raise ValueError("special cubic 모델에는 성분이 3개 이상 필요합니다.")
+    z, observed, ignored = _mixture_data(text, components, region, response)
+    terms = _mixture_terms(names, model)
+    n, p = len(observed), len(terms)
+    if n <= p:
+        raise ValueError(f"{p}개 계수를 추정하려면 {p + 1}개 이상의 독립 관측 행이 필요합니다.")
+    kernel = _mixture_kernel()
+    lower, upper = [c["low"] for c in components], [c["high"] for c in components]
+    try:
+        fit = kernel.doe_fit(z, observed, model)
+        candidate = kernel.mixture_optimize(lower, upper, list(fit["coefficients"]), model, objective, target)
+    except ValueError as exc:
+        raise ValueError(f"혼합물 모델을 추정할 수 없습니다. 독립된 배합을 추가하거나 단순한 모델을 선택하세요: {exc}") from exc
+    linear = set(names)
+    coefficients = []
+    for term, estimate, error, inference in zip(terms, fit["coefficients"], fit["standard_errors"], fit["coefficients_inference"]):
+        row = {"term": term, "estimate": estimate, "standard_error": error, **inference}
+        if term in linear:
+            # A linear blending coefficient is the fitted response of the pure pseudocomponent, not an effect.
+            row.update(t_statistic=None, p_value=None)
+        coefficients.append(row)
+    comparisons = []
+    for other in MIXTURE_MODELS:
+        if other == "scheffe_special_cubic" and len(names) < 3:
+            continue
+        try:
+            fitted = fit if other == model else kernel.doe_fit(z, observed, other)
+        except ValueError:
+            comparisons.append({"model": other, "status": "unavailable", "reason": "현재 배합 점으로 추정할 수 없습니다. 독립된 배합을 추가하세요."})
+            continue
+        comparisons.append({"model": other, "status": "available", "terms": len(fitted["coefficients"]), "df_residual": fitted["degrees"],
+                            "rmse": fitted["rmse"], "r_squared": fitted["r_squared"], "adjusted_r_squared": fitted["adjusted_r_squared"],
+                            "predicted_r_squared": fitted["diagnostics"]["predicted_r_squared"],
+                            "lack_of_fit_p_value": fitted["anova"]["lack_of_fit"]["p_value"]})
+    settings, user_pseudo = _mixture_points(prediction_points, components, region)
+    best_pseudo = np.clip(np.asarray(candidate["pseudo"], dtype=float), 0.0, 1.0)
+    predicted = kernel.doe_predict(z, observed, model, np.asarray([best_pseudo, *user_pseudo], dtype=float))
+    outside = [name for j, name in enumerate(names) if best_pseudo[j] < z[:, j].min() - 1e-10 or best_pseudo[j] > z[:, j].max() + 1e-10]
+    recommendation = dict(zip(names, candidate["point"]))
+    warnings = ["The recommended blend is a model candidate, not a validated experiment or a guaranteed global optimum. Confirm with new independent mixtures.",
+                "Scheffé models have no intercept; coefficients are in L-pseudocomponents. Linear blending coefficients estimate pure-pseudocomponent responses, so their tests against zero are omitted.",
+                "R-squared and the regression F test compare the model with the mean response, as for any model containing a constant through Σx = 1.",
+                "Effects of individual components are not separable in a mixture: changing one proportion changes the others."]
+    if fit["degrees"] < 5:
+        warnings.append("Fewer than five residual degrees of freedom: uncertainty estimates are fragile; add independent replicate blends.")
+    if fit["condition_indicator"] > 1e6:
+        warnings.append("The model matrix is poorly conditioned; coefficient estimates are sensitive to small measurement changes.")
+    if outside:
+        warnings.append("The candidate extrapolates beyond observed pseudocomponent ranges for: " + ", ".join(outside) + ".")
+    if objective == "target" and abs(candidate["predicted_response"] - target) > 1e-6 * max(float(np.max(np.abs(observed))), abs(target)):
+        warnings.append("The search did not reach the requested target; this is the closest blend found, not proof that the target is unattainable.")
+    if fit["anova"]["pure_error"]["df"] == 0:
+        warnings.append("No exactly replicated blends: pure error and lack-of-fit significance cannot be estimated. Add independent replicate mixtures.")
+    return _finite({"analysis": "doe_mixture_response", "components": components, "region": region, "response": response, "model": model,
+                    "objective": objective, "confidence": 0.95, "coefficients": coefficients,
+                    "fit": {"n": n, "terms": p, "df_residual": fit["degrees"], "r_squared": fit["r_squared"],
+                            "adjusted_r_squared": fit["adjusted_r_squared"], "predicted_r_squared": fit["diagnostics"]["predicted_r_squared"],
+                            "press": fit["diagnostics"]["press"], "rmse": fit["rmse"], "sse": fit["sse"], "sst": fit["sst"],
+                            "condition_indicator": fit["condition_indicator"]},
+                    "recommendation": {"settings": recommendation, "pseudo": dict(zip(names, best_pseudo.tolist())),
+                                       "predicted_response": candidate["predicted_response"], "objective": objective, "target": target,
+                                       "mean_confidence_interval": predicted[0]["confidence_interval"],
+                                       "prediction_interval": predicted[0]["prediction_interval"], "validated": False,
+                                       "extrapolated_components": outside,
+                                       "search": {"method": "Multi-start pairwise proportion exchange with line searches", "starts": candidate["starts"],
+                                                  "domain": "Declared component bounds with Σx = 1", "global_optimum_guaranteed": False}},
+                    "predictions": [{"settings": s, **r} for s, r in zip(settings, predicted[1:])],
+                    "diagnostics": {"observed": observed.tolist(), "fitted": fit["fitted"], "residuals": fit["residuals"], **fit["diagnostics"]},
+                    "anova": fit["anova"], "model_comparison": comparisons, "research_workflow": _research_steps(fit, outside),
+                    "confirmation_csv": _confirmation_csv(recommendation, components, response),
+                    "coding": "Coefficients use L-pseudocomponents z = (x - L) / (1 - ΣL); response units remain those of the input CSV.",
+                    "ignored_columns": ignored, "rows_dropped": 0,
+                    "kernel": {"engine": "rust", "version": kernel.__version__, "solver": "Column-pivoted Householder QR with column scaling"},
+                    "warnings": warnings})
+
+
+GOAL_KEYS = {"name", "model", "goal", "lower", "target", "upper", "lower_shape", "upper_shape", "importance"}
+
+
+def _goals(responses, mixture):
+    if not isinstance(responses, list) or not 1 <= len(responses) <= 10:
+        raise ValueError("만족도 최적화에는 반응을 1~10개 지정하세요.")
+    out, names = [], set()
+    allowed = MIXTURE_MODELS if mixture else ("linear", "interaction", "quadratic")
+    for item in responses:
+        if not isinstance(item, dict) or not {"name", "model", "goal"} <= set(item) or not set(item) <= GOAL_KEYS:
+            raise ValueError("각 반응은 name, model, goal과 goal에 맞는 lower/target/upper로 지정하세요.")
+        name, model, goal = item["name"], item["model"], item["goal"]
+        if not isinstance(name, str) or not name.strip() or name in names:
+            raise ValueError("반응 이름은 비어 있지 않고 서로 달라야 합니다.")
+        if model not in allowed:
+            raise ValueError(f"{name}: 모델은 {', '.join(allowed)} 중에서 선택하세요.")
+        if goal not in {"maximize", "minimize", "target"}:
+            raise ValueError(f"{name}: goal은 maximize, minimize 또는 target입니다.")
+        needed = {"maximize": ("lower", "target"), "minimize": ("target", "upper"), "target": ("lower", "target", "upper")}[goal]
+        values = {key: _number(item.get(key), f"{name} {key}") for key in needed}
+        shapes = {key: _number(item.get(key, 1.0), f"{name} {key}") for key in ("lower_shape", "upper_shape", "importance")}
+        if any(not 0.1 <= v <= 10 for v in shapes.values()):
+            raise ValueError(f"{name}: 모양 지수와 중요도는 0.1~10 사이입니다.")
+        out.append({"name": name, "model": model, "goal": goal, "lower": values.get("lower"), "target": values["target"],
+                    "upper": values.get("upper"), **shapes})
+        names.add(name)
+    return out
+
+
+def _goal_spec(goal):
+    return (goal["goal"], goal["lower"] if goal["lower"] is not None else 0.0, goal["target"],
+            goal["upper"] if goal["upper"] is not None else 0.0, goal["lower_shape"], goal["upper_shape"], goal["importance"])
+
+
+def optimize_desirability(text, responses, factors=None, components=None):
+    """Fit each response on the same runs and maximize the Derringer-Suich composite desirability D."""
+    if (factors is None) == (components is None):
+        raise ValueError("공정 인자(factors) 또는 혼합물 성분(components) 중 하나만 지정하세요.")
+    mixture = components is not None
+    goals = _goals(responses, mixture)
+    kernel = _mixture_kernel()
+    if mixture:
+        variables, region = _components(components)
+        bounds = {"lower": [c["low"] for c in variables], "upper": [c["high"] for c in variables]}
+    else:
+        variables, region, bounds = _factors(factors, 6), None, {}
+    names = [v["name"] for v in variables]
+    if any(goal["name"] in names for goal in goals):
+        raise ValueError("반응 이름은 인자·성분 이름과 달라야 합니다.")
+    fits, points, observed_all = [], None, []
+    for goal in goals:
+        if mixture:
+            points, observed, _ = _mixture_data(text, variables, region, goal["name"])
+        else:
+            if goal["model"] == "quadratic" and len(names) > 4:
+                raise ValueError("2차 모델은 인자 4개까지입니다.")
+            points, observed, _ = _data(text, variables, goal["name"])
+        try:
+            fits.append(kernel.doe_fit(points, observed, goal["model"]))
+        except ValueError as exc:
+            raise ValueError(f"{goal['name']} 모델을 추정할 수 없습니다: {exc}") from exc
+        observed_all.append(observed)
+    specs = [_goal_spec(goal) for goal in goals]
+    models = [(list(fit["coefficients"]), goal["model"]) for fit, goal in zip(fits, goals)]
+    try:
+        best = kernel.desirability_optimize("mixture" if mixture else "cube", models, specs, len(names), bounds.get("lower", []), bounds.get("upper", []))
+    except ValueError as exc:
+        raise ValueError(f"만족도 최적화를 할 수 없습니다: {exc}") from exc
+    point = np.asarray(best["point"], dtype=float)
+    model_point = np.clip(_pseudo(point, region), 0.0, 1.0) if mixture else np.clip(point, -1.0, 1.0)
+    settings = dict(zip(names, point.tolist())) if mixture else _real(point, variables)
+    rows = []
+    for goal, fit, observed, value, d in zip(goals, fits, observed_all, best["values"], best["individual"]):
+        interval = kernel.doe_predict(points, observed, goal["model"], np.asarray([model_point], dtype=float))[0]
+        rows.append({**goal, "predicted": value, "desirability": d, "mean_confidence_interval": interval["confidence_interval"],
+                     "prediction_interval": interval["prediction_interval"],
+                     "fit": {"r_squared": fit["r_squared"], "adjusted_r_squared": fit["adjusted_r_squared"],
+                             "predicted_r_squared": fit["diagnostics"]["predicted_r_squared"], "rmse": fit["rmse"], "df_residual": fit["degrees"]}})
+    observed_matrix = np.column_stack(observed_all)
+    run_scores = [kernel.desirability(specs, row.tolist())[1] for row in observed_matrix]
+    best_run = int(np.argmax(run_scores))
+    warnings = ["The optimum is a model candidate, not a validated experiment or a guaranteed global optimum. Confirm with new independent runs.",
+                "Desirability bounds, shapes and importances are the user's choices; D ranks settings under those choices and has no physical meaning.",
+                "Each response is fitted on its own; correlation between responses and the uncertainty of D are not propagated."]
+    if best["composite"] == 0:
+        warnings.insert(0, "No setting gives every response a nonzero desirability; widen the acceptable ranges or reconsider the goals.")
+    return _finite({"analysis": "doe_desirability", "domain": "mixture" if mixture else "coded factors",
+                    "factors": None if mixture else variables, "components": variables if mixture else None, "region": region,
+                    "optimum": {"settings": settings, "model_coordinates": dict(zip(names, model_point.tolist())),
+                                "composite_desirability": best["composite"], "validated": False,
+                                "search": {"method": "Multi-start line searches on the fitted models", "starts": best["starts"],
+                                           "global_optimum_guaranteed": False}},
+                    "responses": rows, "best_observed_run": {"row": best_run + 2, "composite_desirability": run_scores[best_run]},
+                    "observed_composite_desirability": run_scores,
+                    "method": "Derringer & Suich (1980) individual desirabilities, importance-weighted geometric mean D",
+                    "kernel": {"engine": "rust", "version": kernel.__version__}, "warnings": warnings})

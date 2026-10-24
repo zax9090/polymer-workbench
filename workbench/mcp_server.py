@@ -33,6 +33,9 @@ INSTRUCTIONS = """Polymer Lab is a local polymer/protein research workbench. Eve
 - Status meanings: completed = the route finished; prepared = structures/topologies/inputs only; blocked = an engine or input is missing. None certifies scientific validity.
 - Short simulations never establish equilibrium, Tg, modulus or binding free energy. Report results with their units, method and stated limitations.
 - analyze_job_structure saves a separate immutable analysis record from a completed atomistic bulk/crosslink job without changing its artifacts. RDF and free volume support final structures; MSD needs an unwrapped trajectory; Widom only supports GAFF2 12-6 LJ cells. Report grid comparisons as sensitivity, not error bounds, and keep non-diffusive MSD and single-site gas limitations with every result.
+- create_mixture_design, analyze_mixture_response and optimize_desirability cover mixture experiments (proportions summing to one, Scheffé models in L-pseudocomponents) and multi-response Derringer-Suich desirability. Desirability bounds and importances come from the user; never invent them. Present D with every individual d and the predicted values with intervals, and treat the optimum as a candidate for confirmation runs.
+- run_research_workflow_plan runs a bulk workflow to its end inside one plan the user approved (rows, identical retries, failure limit, fit, confirmation, report) and a calculation budget at least the previewed worst case. Preview first, show the user the plan and the number, and start only after they approve it. It never changes physical settings, and its values stay unreviewed simulations.
+- create_research_report saves a report folder (summary, figures, tables, xlsx, hashes) from a DoE record, a workflow or the lab master table. It copies saved numbers and verified flags and never reviews anything; recommendations stay unconfirmed candidates and simulation values stay distinct from measurements. Upload to Drive only when the user asks.
 - create_experiment_design saves a randomized factorial or face-centered central composite design with explicit factor bounds. analyze_response_surface saves a fitted linear, interaction or quadratic model and a bounded candidate setting from the supplied experimental CSV. These are local immutable records, not reviewed measurements. An optimum is a model recommendation, not experimentally validated; run confirmation experiments and retain model diagnostics and warnings.
 - analyze_process_data reads one fab-style CSV and saves nothing: dictionary (keys, duplicates, reused child IDs, balance), control_chart (I-MR or Xbar-S, Western Electric rules), capability (Cp/Cpk within, Pp/Ppk overall), variance_components (balanced nested ANOVA, e.g. run > zone with wafers as residual) and stratified_rates (crude vs stratum rates, Mantel-Haenszel). Run-rule signals and pooled comparisons point to records worth checking; they never establish a cause. Report units, sigma method and warnings. For classifiers report recall and false alarms beside accuracy, and prefer lot- or time-separated estimates when split_validation flags the random split as optimistic.
 - Call validate_job before submit_job: it reports chemistry errors, repeat-unit candidates for monomer SMILES, atom counts and missing engines without creating anything. analyze_job_structure and analyze_process_data return summaries (counts and ranges instead of long arrays) unless detail is full; full results stay downloadable.
@@ -278,11 +281,22 @@ def _compact_campaign(record):
 
 # ---------------------------------------------------------------- tools
 
+WORKFLOW_FIELDS = ["temperature_kelvin", "build_density", "monomers", "chains", "cure_temperature_kelvin", "target_conversion",
+                   "reaction_cutoff_angstrom", "secondary_amine_probability", "resin_count", "hardener_count"]
+WORKFLOW_METRICS = ["final_frame_density", "probe_accessible_fraction", "npt_density", "bulk_modulus", "volume_expansion", "epoxide_conversion",
+                    "tg_kelvin", "expansion_glass", "expansion_melt"]
+
+
 def _schema(properties, required=()):
     return {"type": "object", "properties": properties, "required": list(required), "additionalProperties": False}
 
 
 JOB_ID = {"type": "string", "pattern": "^[a-f0-9]{32}$", "description": "32-character Polymer Lab job id"}
+MIXTURE_COMPONENTS = {"type": "array", "minItems": 2, "maxItems": 6,
+                      "items": _schema({"name": {"type": "string", "minLength": 1, "maxLength": 80},
+                                        "low": {"type": "number", "minimum": 0, "maximum": 1}, "high": {"type": "number", "minimum": 0, "maximum": 1}},
+                                       ["name", "low", "high"]),
+                      "description": "Component proportion bounds (fractions of the whole, 0 <= low < high <= 1); lower bounds must sum below 1 and upper bounds above 1. Names must match CSV headers."}
 DOE_FACTORS = {"type": "array", "minItems": 2, "maxItems": 6,
                "items": _schema({"name": {"type": "string", "minLength": 1, "maxLength": 80},
                                   "low": {"type": "number"}, "high": {"type": "number"}}, ["name", "low", "high"]),
@@ -411,15 +425,41 @@ class PolymerLabTools:
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
         t("create_research_workflow", "Connect DOE to bulk calculations",
-          "Save a reviewed two-factor DOE connection to GAFF2 native bulk jobs. Does not start calculations. Packing density is a preparation parameter. Templates, bindings and metrics follow /api/research/workflows/capabilities.",
-          _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": ["temperature_kelvin", "build_density"]}},
-                   "metric": {"type": "string", "enum": ["final_frame_density", "probe_accessible_fraction"]},
+          "Save a reviewed DOE connection to calculation jobs; the route follows the template: GAFF2 bulk with the native builder (temperature, initial packing density, monomers, chains), "
+          "PCFF bulk (temperature, monomers, chains) or epoxy-amine crosslink (cure temperature, target conversion, reaction cutoff, secondary-amine probability, sampling temperature, resin and hardener counts). "
+          "Each design factor binds one distinct setting; integer settings need integer design points. Does not start calculations. Capabilities: /api/research/workflows/capabilities. "
+          "Responses: final_frame_density and probe_accessible_fraction from the free-volume analysis; npt_density, bulk_modulus and volume_expansion from the NPT sampling with RadonPy's convergence verdict; "
+          "epoxide_conversion for crosslink flows.",
+          _schema({"design_id": JOB_ID, "template": _job_config_schema(), "bindings": {"type": "object", "additionalProperties": {"type": "string", "enum": WORKFLOW_FIELDS}},
+                   "metric": {"type": "string", "enum": WORKFLOW_METRICS},
+                   "responses": {"type": "array", "maxItems": 5, "items": {"type": "string", "enum": WORKFLOW_METRICS},
+                                 "description": "extra responses collected per row with the primary metric"},
                    "budget": {"type": "integer", "minimum": 1, "maximum": 50}, "probe": {"type": "number", "minimum": 0, "maximum": 5},
                    "spacing": {"type": "number", "minimum": 0.05, "maximum": 1}}, ["design_id", "template", "bindings"]), self.create_research_workflow)
         t("control_research_workflow", "Advance one reviewed research stage",
-          "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize reviewed observations with explicit exclusion reasons, confirm one recommendation, or cancel. Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
-          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "confirm", "analyze-confirmation", "cancel"]},
-                   "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+          "Perform exactly one explicitly user-authorized stage: submit selected rows, attach a matching completed job, analyze selected rows, optimize one collected response (optional response) "
+          "or several with Derringer-Suich desirability goals (optimize-desirability, user-supplied bounds), each with explicit exclusion reasons, confirm one recommendation, or cancel. "
+          "Never automatically advance to the next stage. Simulation observations are not verified experimental measurements.",
+          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["submit", "attach", "analyze", "optimize", "optimize-desirability", "confirm", "analyze-confirmation", "cancel"]},
+                   "parameters": {"type": "object", "description": "Stage-specific body from /api/research/workflows API; submit/analyze require rows, optimize-desirability requires goals [{name, model, goal, lower, target, upper}], confirm requires optimization_id."}}, ["workflow_id", "action"]), self.control_research_workflow)
+        t("create_tg_scan_workflow", "Tg follow-up of a finished flow",
+          "Create a flow that cools each finished cell of an earlier GAFF2/PCFF bulk or crosslink flow with the stepwise NPT Tg scan: same factors, responses tg_kelvin, expansion_glass, expansion_melt. "
+          "A row whose transition is not resolved fails analysis and must be excluded with its reason. A confirmation runs a new cell at the recommendation and then its scan (two calculations). "
+          "Cooling MD is about 1e11 K/s; Tg is never converted to a calorimetric value. Does not start calculations.",
+          _schema({"workflow_id": JOB_ID, "tg_high_kelvin": {"type": "number", "minimum": 150, "maximum": 800}, "tg_low_kelvin": {"type": "number", "minimum": 50, "maximum": 700},
+                   "tg_step_kelvin": {"type": "number", "minimum": 5, "maximum": 100}, "tg_stage_steps": {"type": "integer", "minimum": 1000, "maximum": 2000000},
+                   "metric": {"type": "string", "enum": ["tg_kelvin", "expansion_glass", "expansion_melt"]},
+                   "responses": {"type": "array", "items": {"type": "string", "enum": ["tg_kelvin", "expansion_glass", "expansion_melt"]}},
+                   "budget": {"type": "integer", "minimum": 1, "maximum": 50}}, ["workflow_id"]), self.create_tg_scan_workflow)
+        t("run_research_workflow_plan", "Run an approved workflow plan",
+          "preview: return the worst-case number of new calculations for a plan (rows, max_attempts 1-3 identical retries, max_failed_rows, optimize with model/objective/target, "
+          "confirm, report, upload_report) and the rows the fit would exclude. start: run the plan to the end without per-stage approval: submit, retry failed or interrupted runs "
+          "with the identical configuration, analyze, fit with stated exclusion reasons, run one confirmation and write a report. approved_budget must be at least the previewed "
+          "worst case. Call start only after the user approved this exact plan and approved_budget in the conversation. stop: end it after the current step; running jobs continue. "
+          "Every simulated value stays verified=false and the recommendation stays unconfirmed.",
+          _schema({"workflow_id": JOB_ID, "action": {"type": "string", "enum": ["preview", "start", "stop"]},
+                   "plan": {"type": "object", "description": "{rows?, max_attempts, max_failed_rows, optimize, model, objective, target?, response? or goals? (desirability), confirm, report, upload_report}"},
+                   "approved_budget": {"type": "integer", "minimum": 1, "maximum": 50}}, ["workflow_id", "action"]), self.run_research_workflow_plan)
         t("create_experiment_design", "Create experimental design",
           "Generate and save a randomized full factorial or face-centered central composite design. Returns the run table, a CSV with a blank response column, and download links. "
           "Creates an immutable local DOE record; does not execute physical experiments or approve measurements. Factor bounds must reflect the user's feasible experimental range.",
@@ -441,6 +481,35 @@ class PolymerLabTools:
                        "items": {"type": "object", "additionalProperties": {"type": "number"}},
                        "description": "Optional conditions to predict, each mapping every factor name to a real value within its declared bounds. Returns mean confidence and individual prediction intervals."}},
                   ["text", "factors", "response"]), self.analyze_response_surface)
+        t("create_mixture_design", "Create mixture design",
+          "Generate and save a randomized mixture design in proportions summing to one: simplex_lattice {q, degree}, simplex_centroid, or extreme_vertices (degree 2 adds edge midpoints) "
+          "for upper-bounded regions; axial adds check blends, centroid adds the overall centroid. Lower bounds use L-pseudocomponents. Creates an immutable local DOE record; executes nothing.",
+          _schema({"components": MIXTURE_COMPONENTS, "kind": {"type": "string", "enum": ["simplex_lattice", "simplex_centroid", "extreme_vertices"], "default": "simplex_lattice"},
+                   "degree": {"type": "integer", "minimum": 1, "maximum": 4, "default": 2}, "axial": {"type": "boolean", "default": False},
+                   "centroid": {"type": "boolean", "default": True}, "replicates": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1},
+                   "seed": {"type": "integer", "minimum": 0, "maximum": 2**63 - 1, "default": 1}}, ["components"]), self.create_mixture_design)
+        t("analyze_mixture_response", "Fit and optimize a mixture response",
+          "Fit a Scheffé linear, quadratic or special-cubic model in L-pseudocomponents to mixture CSV data (rows must sum to one within bounds), with ANOVA, lack-of-fit, model comparison "
+          "and a bounded, unvalidated blend recommendation with 95% prediction interval. Linear blending terms get no t-tests (they are pure-component responses, not effects). Saves an immutable record.",
+          _schema({"text": {"type": "string", "maxLength": 1000000}, "components": MIXTURE_COMPONENTS, "response": {"type": "string", "minLength": 1, "maxLength": 80},
+                   "model": {"type": "string", "enum": ["scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"], "default": "scheffe_quadratic"},
+                   "objective": {"type": "string", "enum": ["maximize", "minimize", "target"], "default": "maximize"},
+                   "target": {"type": "number"},
+                   "prediction_points": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": {"type": "number"}}}},
+                  ["text", "components", "response"]), self.analyze_mixture_response)
+        t("optimize_desirability", "Multi-response desirability optimum",
+          "Fit each response column on the same runs (process factors or mixture components, exactly one) and maximize the Derringer-Suich composite desirability D: per response goal "
+          "maximize (lower, target), minimize (target, upper) or target (lower, target, upper), shape exponents and importance 0.1-10. Returns the candidate settings, predicted values with "
+          "intervals, individual d and D, and the best observed run. Bounds and importances are the user's choices; the optimum is unvalidated.",
+          _schema({"text": {"type": "string", "maxLength": 1000000},
+                   "responses": {"type": "array", "minItems": 1, "maxItems": 10, "items": _schema({
+                       "name": {"type": "string", "minLength": 1, "maxLength": 80},
+                       "model": {"type": "string", "enum": ["linear", "interaction", "quadratic", "scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"]},
+                       "goal": {"type": "string", "enum": ["maximize", "minimize", "target"]},
+                       "lower": {"type": "number"}, "target": {"type": "number"}, "upper": {"type": "number"},
+                       "lower_shape": {"type": "number", "minimum": 0.1, "maximum": 10}, "upper_shape": {"type": "number", "minimum": 0.1, "maximum": 10},
+                       "importance": {"type": "number", "minimum": 0.1, "maximum": 10}}, ["name", "model", "goal", "target"])},
+                   "factors": DOE_FACTORS, "components": MIXTURE_COMPONENTS}, ["text", "responses"]), self.optimize_desirability)
         t("add_measurement", "Add measurement (unreviewed)",
           "Store one measurement with property, value, unit, method, conditions, source, origin and a material or indexed job_id. It is always saved unreviewed; a person must review it in Polymer Lab before models use it.",
           _schema({"measurement": {"type": "object"}}, ["measurement"]), self.add_measurement)
@@ -497,8 +566,26 @@ class PolymerLabTools:
                    "contact_scale": {"type": "number", "default": 1.0}, "n_base": {"type": "number", "default": 1}, "n_screen": {"type": "number", "default": 1}},
                   ["base_smiles", "screen_smiles"]),
           self.blend_chi_contacts, read_only=True, idempotent=True)
+        t("run_sheet", "Paste-to-run sheet (실행표)",
+          "A line-based sheet starting with '# Polymer Lab 실행표 v1' declares a Blends chi screen (종류: blends; 기준/대상 lines 'name | SMILES | 중합도=N', "
+          "온도, 표본, 클러스터, 시드, 말단, 접촉배율) or a job batch (종류: 작업; '공통: field=value | ...' and '작업: name | field=value | ...' with JobConfig field names). "
+          "Nothing in a sheet is executed as code. preview checks every line and each job exactly like the job API and returns line-numbered Korean errors without creating anything; "
+          "run saves the sheet and starts it (Blends pairs one by one in the analysis queue, jobs in the MD queue); status, list, cancel, resume and templates manage sheets. "
+          "Call run only after the user asked to run that sheet. Blends chi is an exploratory enthalpic estimate (see blend_chi_contacts); jobs keep the usual status meanings.",
+          _schema({"action": {"type": "string", "enum": ["preview", "run", "status", "list", "cancel", "resume", "templates"]},
+                   "text": {"type": "string", "maxLength": 100000, "description": "Sheet text for preview or run"},
+                   "sheet_id": {"type": "string", "pattern": "^[0-9a-f]{32}$", "description": "Sheet ID for status, cancel or resume"}}, ["action"]),
+          self.run_sheet)
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
+        t("create_research_report", "Create research report",
+          "Save an immutable report folder for one DoE record (kind doe), one bulk workflow (kind workflow) or the lab master table of experiments and measurements (kind lab): "
+          "summary.md, report.html, SVG/PNG figures, CSV tables plus report.xlsx and a manifest with SHA-256/MD5 per file. Numbers and verified flags are copied from saved records; "
+          "nothing is refitted or reviewed. upload_to_drive copies the folder to the user's configured rclone Google Drive remote and reports success only after every file's size and MD5 match; "
+          "set it only when the user asked for a Drive upload.",
+          _schema({"kind": {"type": "string", "enum": ["doe", "workflow", "lab"]},
+                   "id": {"type": "string", "pattern": "[0-9a-f]{32}", "description": "DoE record or workflow ID; omit for lab"},
+                   "upload_to_drive": {"type": "boolean"}}, ["kind"]), self.create_research_report)
         t("export_research_snapshot", "Export research snapshot", "Write an immutable Parquet snapshot of experiments and measurements (and copy it to the configured sync folder, if any).",
           _schema({}), self.export_research_snapshot)
 
@@ -630,11 +717,53 @@ class PolymerLabTools:
     def control_research_workflow(self, args):
         return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/{args['action']}", args.get("parameters", {}), timeout=3600)
 
+    def run_sheet(self, args):
+        action, text, identifier = args["action"], args.get("text"), args.get("sheet_id")
+        if action in {"preview", "run"} and not text:
+            raise ToolError("preview and run need the sheet text.")
+        if action in {"status", "cancel", "resume"} and not identifier:
+            raise ToolError(f"{action} needs sheet_id.")
+        if action == "preview":
+            return self.client.request("POST", "/api/research/sheets/preview", {"text": text}, timeout=120)
+        if action == "run":
+            return self.client.request("POST", "/api/research/sheets", {"text": text}, timeout=300)
+        if action == "list":
+            return self.client.request("GET", "/api/research/sheets")
+        if action == "templates":
+            return self.client.request("GET", "/api/research/sheets/templates")
+        if action == "status":
+            return self.client.request("GET", f"/api/research/sheets/{identifier}")
+        return self.client.request("POST", f"/api/research/sheets/{identifier}/{action}", {}, timeout=60)
+
+    def create_tg_scan_workflow(self, args):
+        body = {key: value for key, value in args.items() if key != "workflow_id"}
+        return self.client.request("POST", f"/api/research/workflows/{args['workflow_id']}/tg-scan", body, timeout=300)
+
+    def run_research_workflow_plan(self, args):
+        base = f"/api/research/workflows/{args['workflow_id']}/autopilot"
+        if args["action"] == "preview":
+            return self.client.request("POST", base + "/preview", args.get("plan", {}))
+        if args["action"] == "stop":
+            return self.client.request("POST", base + "/stop", {})
+        if "approved_budget" not in args:
+            raise ToolError("approved_budget is required to start: preview the plan and ask the user to approve that number of calculations")
+        record = self.client.request("POST", base, {"plan": args.get("plan", {}), "approved_budget": args["approved_budget"]}, timeout=300)
+        return {"workflow_id": record["id"], "autopilot": record["autopilot"], "submitted": record["submitted"], "budget": record["budget"]}
+
     def create_experiment_design(self, args):
         return self.client.request("POST", "/api/research/doe/design", args, timeout=300)
 
     def analyze_response_surface(self, args):
         return self.client.request("POST", "/api/research/doe/analyze", args, timeout=300)
+
+    def create_mixture_design(self, args):
+        return self.client.request("POST", "/api/research/doe/mixture-design", args, timeout=300)
+
+    def analyze_mixture_response(self, args):
+        return self.client.request("POST", "/api/research/doe/mixture-analyze", args, timeout=300)
+
+    def optimize_desirability(self, args):
+        return self.client.request("POST", "/api/research/doe/desirability", args, timeout=300)
 
     def add_measurement(self, args):
         record = dict(args["measurement"])
@@ -686,6 +815,18 @@ class PolymerLabTools:
         return {"rea": {key: (data.get("rea") or {}).get(key) for key in ("version", "status", "limitations")},
                 "repositories": [summary(r) for r in data.get("repositories", [])],
                 "extensions": [summary(r) for r in (data.get("extensions") or {}).get("repositories", [])]}
+
+    def create_research_report(self, args):
+        record = self.client.request("POST", "/api/research/reports", {"kind": args["kind"], "id": args.get("id")}, timeout=300)
+        if args.get("upload_to_drive"):
+            record = self.client.request("POST", f"/api/research/reports/{record['id']}/drive", {}, timeout=900)
+        paths = [f["path"] for f in record["files"]]
+        return {"id": record["id"], "title": record["title"], "kind": record["kind"], "subject_id": record["subject_id"], "status": record["status"],
+                "drive": record.get("drive"), "files": len(paths) + 1,
+                "figures": sorted({p.split("/")[1].rsplit(".", 1)[0] for p in paths if p.startswith("figures/")}),
+                "tables": sorted(p.split("/")[1] for p in paths if p.startswith("tables/")),
+                "view_url": self.client.origin + record["view_url"], "download_url": self.client.origin + record["download_url"],
+                "warnings": record["warnings"]}
 
     def export_research_snapshot(self, args):
         return self.client.request("POST", "/api/research/snapshots", {}, timeout=300)

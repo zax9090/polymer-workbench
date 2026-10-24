@@ -9,13 +9,16 @@
   <link rel="stylesheet" href="/static/research.css">
   <script defer src="/static/vendor/3Dmol-min.js"></script>
   <script defer src="/static/app.js"></script>
+  <script defer src="/static/reports.js"></script>
   <script defer src="/static/research.js"></script>
   <script defer src="/static/screening.js"></script>
   <script defer src="/static/structure.js"></script>
   <script defer src="/static/doe.js"></script>
+  <script defer src="/static/doe_mixture.js"></script>
   <script defer src="/static/process.js"></script>
   <script defer src="/static/workflows.js"></script>
   <script defer src="/static/drive.js"></script>
+  <script defer src="/static/sheets.js"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -24,6 +27,7 @@
     <nav aria-label="주 메뉴">
       <button class="nav-item active" data-view="workflow"><span class="nav-icon">⌘</span>워크플로우 <span class="nav-arrow">↗</span></button>
       <button class="nav-item" data-view="history"><span class="nav-icon">◷</span>실험 기록 <span class="nav-count" id="history-count">0</span></button>
+      <button class="nav-item" data-view="sheets"><span class="nav-icon">⎘</span>붙여넣어 실행</button>
       <button class="nav-item" data-view="research"><span class="nav-icon">▤</span>연구 데이터</button>
       <button class="nav-item" data-view="measurements"><span class="nav-icon">◈</span>실험 데이터</button>
       <button class="nav-item" data-view="models"><span class="nav-icon">⌁</span>물성 학습 · 예측</button>
@@ -93,7 +97,7 @@
       <div class="panel"><div class="panel-title"><h2>계산 데이터 색인</h2><label class="compact-filter"><span class="sr-only">계산 데이터 필터</span><select id="research-filter"><option value="all">모든 경로</option><option value="polymer">합성 고분자</option><option value="protein">단백질 · 혼합계</option><option value="demo">일반 CG 모델</option></select></label></div><div class="table-scroll" id="research-experiments"></div></div>
       <div id="research-experiment-detail" class="research-detail hidden"></div>
       <section class="panel"><div class="panel-title"><h2>다변수 비교</h2><span class="tiny-label">HIPLOT · PARALLEL COORDINATES</span></div><div class="research-body"><p class="research-copy">축을 드래그해 데이터를 선택하세요.</p><div class="research-actions"><button class="secondary-button" id="research-hiplot-open">HiPlot으로 보기</button><label class="compact-filter"><span class="sr-only">비교할 경로</span><select id="research-hiplot-scope"><option value="materials">합성 고분자 · 혼합계</option><option value="all">모든 계산</option></select></label></div><div id="research-hiplot" class="hiplot-host hidden"></div><p class="field-help">검토 상태는 ‘검토 완료’ 열에서 확인하세요.</p></div></section>
-      <div class="research-grid research-bottom"><section class="panel"><div class="panel-title"><h2>데이터 스냅샷</h2><span class="tiny-label">PARQUET + SHA256</span></div><div class="research-body"><p class="research-copy">Parquet 스냅샷을 생성합니다.</p><button class="secondary-button" id="research-snapshot">스냅샷 만들기 ↓</button><div id="research-snapshot-result" class="research-result" aria-live="polite"></div></div></section><section class="panel"><div class="panel-title"><h2>동기화 폴더</h2><span class="tiny-label">LOCAL BACKUP</span></div><form class="research-body" id="research-settings-form"><label class="field"><span>기존 폴더의 전체 경로 <small>선택</small></span><input id="research-backup-directory" placeholder="예: /home/kali/GoogleDrive/PolymerLab"></label><p class="field-help">이 항목은 로컬 동기화 폴더입니다. 원격 업로드는 상단 Drive 저장을 사용하세요.</p><button class="secondary-button" type="submit">경로 저장</button></form></section></div>
+      <div class="research-grid research-bottom"><section class="panel"><div class="panel-title"><h2>데이터 스냅샷</h2><span class="tiny-label">PARQUET + SHA256</span></div><div class="research-body"><p class="research-copy">Parquet 스냅샷을 생성합니다.</p><button class="secondary-button" id="research-snapshot">스냅샷 만들기 ↓</button><div id="research-snapshot-result" class="research-result" aria-live="polite"></div><p class="research-copy">마스터 표 보고서는 계산 기록과 측정값을 출처 종류·검토 여부와 함께 CSV·엑셀·요약으로 저장합니다.</p><div class="research-actions"><span class="report-action"><button type="button" class="secondary-button" data-report-kind="lab">마스터 표 보고서 만들기</button><span class="report-links" aria-live="polite"></span></span></div></div></section><section class="panel"><div class="panel-title"><h2>동기화 폴더</h2><span class="tiny-label">LOCAL BACKUP</span></div><form class="research-body" id="research-settings-form"><label class="field"><span>기존 폴더의 전체 경로 <small>선택</small></span><input id="research-backup-directory" placeholder="예: /home/kali/GoogleDrive/PolymerLab"></label><p class="field-help">이 항목은 로컬 동기화 폴더입니다. 원격 업로드는 상단 Drive 저장을 사용하세요.</p><button class="secondary-button" type="submit">경로 저장</button></form></section></div>
     </section>
     <section class="view research-view hidden" id="view-measurements">
       <div class="page-heading"><div><h1>실험 데이터<span>.</span></h1></div><span class="outline-pill">단위 · 출처 · 검토 상태</span></div>
@@ -191,6 +195,19 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
       <div class="page-heading"><div><h1>혼합계 준비<span>.</span></h1></div><span class="outline-pill">준비 범위와 누락 조건 기록</span></div>
       <div class="research-grid research-input-grid"><section class="panel"><div class="panel-title"><h2>브릿지 설정</h2><span class="tiny-label">TOPOLOGY PREPARATION</span></div><form class="research-body" id="bridge-form"><label class="field"><span>작업 이름</span><input id="bridge-name" required value="단백질–고분자 혼합계 준비"></label><label class="field"><span>힘장 트랙</span><select id="bridge-track"><option value="martini3">Martini 3 · 조대화</option><option value="amber">AmberTools · 전원자 레시피</option><option value="openff">OpenFF · 전원자 레시피</option></select></label><label class="field"><span>준비 방식</span><select id="bridge-mode"><option value="prepare">필수 조건과 실행 레시피 만들기</option><option value="protein_cg">Martinize2 + polyply 구성요소 생성</option><option value="simulate">Martini 3 용매화 혼합계 MD 실행 · GROMACS</option></select></label><label class="field"><span>기존 원자 구조 연결 <small>선택</small></span><select id="bridge-source"><option value="">PDB 파일 직접 입력</option></select></label><label class="field" id="bridge-pdb-field"><span>단백질 PDB</span><input type="file" id="bridge-pdb-file" accept=".pdb,.ent"><textarea id="bridge-pdb" class="mono" rows="4" placeholder="AlphaFold/PDB 원자 좌표"></textarea></label><div class="field-row"><label class="field"><span>단백질 양성자화</span><select id="bridge-protonation"><option value="as_input">입력 구조 그대로</option><option value="propka">PROPKA3 · 지정 pH로 할당 (PDB2PQR)</option></select></label><label class="field"><span>pH</span><input id="bridge-ph" type="number" min="0" max="14" step="0.1" value="7.0"></label></div><label class="field" id="bridge-ss-field"><span>2차 구조 지정 <small>실제 구성요소 생성에 필요</small></span><textarea id="bridge-ss" class="mono" rows="2" placeholder="잔기 순서에 맞는 H / E / C 문자열"></textarea><small class="field-help">입력 잔기 수와 길이가 같아야 합니다. 확인하지 않은 2차 구조를 자동 가정하지 않습니다.</small></label><div class="field-row"><label class="field"><span>polyply 라이브러리</span><input id="bridge-library" value="martini3" class="mono" required></label><label class="field"><span>정의된 고분자 잔기</span><input id="bridge-residue" value="PEO" class="mono" required></label></div><label class="field hidden" id="bridge-smiles-field"><span>전원자 반복단위 SMILES</span><input id="bridge-smiles" class="mono" value="[*]CCO[*]"></label><div class="field-row"><label class="field"><span>사슬당 반복단위 수</span><input id="bridge-monomers" type="number" min="2" max="200" value="8" required></label><label class="field"><span>사슬 수</span><input id="bridge-chains" type="number" min="1" max="16" value="1" required></label></div><div class="field-row"><label class="field"><span>온도 <small>K</small></span><input id="bridge-temperature" type="number" min="1" max="2000" value="300" required></label><label class="field"><span>박스 한 변 <small>nm</small></span><input id="bridge-box" type="number" min="5" max="100" step="any" value="10" required></label></div><label class="field"><span>고분자 순전하 <small>e</small></span><input id="bridge-charge" type="number" min="-100" max="100" value="0" required></label><div id="bridge-sim-fields" class="hidden"><div class="form-section-label">용매화 · 평형화 · 분석</div><div class="field-row"><label class="field"><span>NaCl 농도 <small>mol/L</small></span><input id="bridge-salt" type="number" min="0" max="1" step="any" value="0.15"></label><label class="field"><span>접촉 기준 거리 <small>nm</small></span><input id="bridge-cutoff" type="number" min="0.3" max="1.5" step="any" value="0.6"></label></div><div class="field-row"><label class="field"><span>NVT·NPT 단계별 스텝</span><input id="bridge-eq-steps" type="number" min="100" max="500000" value="50000"></label><label class="field"><span>생산 계산 스텝 <small>10 fs</small></span><input id="bridge-steps" type="number" min="10" max="100000" value="10000"></label></div><label class="checkbox-field"><input type="checkbox" id="bridge-elastic"><span>단백질 탄성 네트워크 사용 <small>(-elastic -ef 700 -el 0.5 -eu 0.9)</small></span></label><div class="field-row"><label class="field"><span>탄성망 pLDDT 하한 <small>0 = 단백질 전체</small></span><input id="bridge-plddt-min" type="number" min="0" max="95" step="5" value="0"></label><label class="field"><span>단백질–고분자 ε 배율 λ <small>실험적 · 1 = Martini 3 그대로</small></span><input id="bridge-lambda" type="number" min="0.5" max="1" step="0.05" value="1"></label></div><label class="checkbox-field"><input type="checkbox" id="bridge-bfactor-plddt"><span>이 구조의 B-factor 값이 pLDDT임을 확인했습니다 <small>(AlphaFold 예측 구조)</small></span></label><p class="field-help">pLDDT 하한을 정하면 그 값 이상인 연속 3잔기 이상 구간 안에서만 탄성 결합을 만듭니다(martinize2 -eunit). λ는 단백질 비드–고분자 비드 쌍의 LJ ε만 곱하는 가정값이므로 λ = 1 결과와 함께 보고하세요.</p><p class="field-help">MD 실행에는 GROMACS가 필요합니다. 짧은 계산은 평형을 보증하지 않습니다.</p></div><button class="primary-button" type="submit"><span>준비 작업 생성</span><span>↗</span></button><div id="bridge-result" class="research-result" aria-live="polite"></div></form></section><div class="research-stack"><section class="panel"><div class="panel-title"><h2>현재 실행 범위</h2><span class="tiny-label">REVIEW GATES</span></div><div class="research-body"><div class="bridge-stage"><b>01</b><div><strong>구성요소 정의</strong><p>단백질 원자 구조와 polyply의 검증된 잔기 블록을 연결합니다.</p></div></div><div class="bridge-stage"><b>02</b><div><strong>토폴로지 · 입력 준비</strong><p>Martini 3: 토폴로지 생성. 전원자: 준비 레시피.</p></div></div><div class="bridge-stage"><b>03</b><div><strong>혼합계 검토 후 계산</strong><p>Martini 3: 용매화 MD. 전원자: 검토용 레시피.</p></div></div><p class="notice">짧은 MD의 접촉 수는 결합 자유에너지나 평형 판정이 아닙니다.</p></div></section><section class="panel"><div class="panel-title"><h2>브릿지 실행 환경</h2><button id="bridge-refresh" class="text-button">새로고침 ↻</button></div><div id="bridge-capabilities" class="research-body"></div></section></div></div>
     </section>
+    <section class="view research-view hidden" id="view-sheets">
+      <div class="page-heading"><div><h1>붙여넣어 실행</h1></div><a class="manual-link" href="/manual" target="_blank" rel="noopener">설명서 ↗</a></div>
+      <div class="research-grid research-input-grid">
+        <section class="panel"><div class="panel-title"><h2>실행표</h2><span class="tiny-label">POLYMER LAB 실행표 V1</span></div><form id="sheet-form" class="research-body">
+          <div class="research-actions" id="sheet-templates"></div>
+          <label class="field"><span>실행표 붙여넣기 <small>설정 목록일 뿐 코드로 실행되지 않습니다</small></span><textarea id="sheet-text" rows="16" class="mono" spellcheck="false" required placeholder="# Polymer Lab 실행표 v1&#10;종류: blends&#10;이름: PS 용매 스크리닝&#10;기준: 폴리스타이렌 | [*]CC([*])c1ccccc1&#10;대상: 톨루엔 | Cc1ccccc1"></textarea></label>
+          <div class="research-actions"><button class="secondary-button" type="button" id="sheet-check">검사만 하기</button><button class="primary-button" type="submit"><span>검사 후 실행</span><span>↗</span></button></div>
+          <p class="field-help">검사는 아무것도 만들지 않습니다. 실행하면 Blends 조합은 구조·접촉 분석 줄에서 하나씩, 작업은 MD 계산 줄에서 차례로 돕니다. 작업은 작업 화면에서 제출한 것과 같은 검사를 거칩니다. 결과는 측정값으로 등록되지 않습니다.</p>
+        </form></section>
+        <section class="panel"><div class="panel-title"><h2>검사 · 결과</h2><span class="research-tag amber">시뮬레이션 · 검토 전</span></div><div class="research-body"><div id="sheet-result" class="research-result" aria-live="polite"><p class="research-footnote">예제를 고르거나 실행표를 붙여넣고 검사하세요.</p></div></div></section>
+      </div>
+      <section class="panel research-bottom"><div class="panel-title"><h2>실행표 기록</h2><button class="text-button" type="button" id="sheet-refresh">새로 고침</button></div><div class="research-body" id="sheet-history"></div></section>
+    </section>
     <section class="view research-view hidden" id="view-process">
       <div class="page-heading"><div><h1>공정 데이터 분석</h1></div><a class="manual-link" href="/manual" target="_blank" rel="noopener">설명서 ↗</a></div>
       <div class="research-grid research-input-grid">
@@ -243,6 +260,31 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
         </form></section>
       </div>
       <section class="panel research-bottom" id="doe-assessment"><div class="panel-title"><h2>3. 모델 판단 · 4. 확인 실험</h2><span class="research-tag">Rust 통계</span></div><div id="doe-analysis-result" class="research-body research-result" aria-live="polite"><p class="research-footnote">측정값을 분석하면 모델 비교·잔차 진단·추천 조건을 함께 확인할 수 있습니다.</p></div></section>
+      <div class="doe-grid" id="mixture-section">
+        <section class="panel"><div class="panel-title"><h2>혼합물 설계</h2><span class="research-tag">배합 비율 합 = 1</span></div><form id="mix-design-form" class="research-body">
+          <div class="table-scroll"><table class="research-table doe-factors"><thead><tr><th>성분 이름</th><th>하한 <small>비율</small></th><th>상한 <small>비율</small></th><th aria-label="삭제"></th></tr></thead><tbody id="mix-components"></tbody></table></div>
+          <button class="text-button" type="button" id="mix-add-component">+ 성분 추가</button>
+          <div class="field-row"><label class="field"><span>설계 방법</span><select id="mix-kind"><option value="simplex_lattice">심플렉스 격자 {q, m}</option><option value="simplex_centroid">심플렉스 중심</option><option value="extreme_vertices">꼭짓점 설계 · 상한이 있는 영역</option></select></label><label class="field"><span>차수 <small>격자 m · 꼭짓점 1~2</small></span><input id="mix-degree" type="number" min="1" max="4" value="2"></label></div>
+          <label class="checkbox-field"><input type="checkbox" id="mix-centroid" checked><span>전체 중심점 추가</span></label><label class="checkbox-field"><input type="checkbox" id="mix-axial"><span>축 점검 배합 추가 <small>중심과 꼭짓점의 중간</small></span></label>
+          <div class="field-row"><label class="field"><span>반복 수</span><input id="mix-replicates" type="number" min="1" max="10" value="1"></label><label class="field"><span>난수 시드</span><input id="mix-seed" type="number" min="0" value="42"></label></div>
+          <p class="field-help">하한이 있으면 L-유사성분 (x − L)/(1 − ΣL)으로 설계·적합합니다. 상한이 영역을 자르면 꼭짓점 설계를 쓰세요.</p>
+          <button class="primary-button" type="submit"><span>혼합물 설계 생성</span><span>↗</span></button><div id="mix-design-result" class="research-result" aria-live="polite"></div>
+        </form></section>
+        <section class="panel"><div class="panel-title"><h2>혼합물 측정값 분석</h2><span class="research-tag amber">검증 실험 필요</span></div><form id="mix-analysis-form" class="research-body">
+          <label class="field"><span>실험 결과 CSV <small>성분 비율 열 + 반응 열</small></span><textarea id="mix-csv" rows="7" class="mono" required placeholder="혼합물 설계 CSV의 response 열을 채워 넣으세요."></textarea></label>
+          <div class="field-row"><label class="field"><span>반응값 열</span><select id="mix-response"><option value="response">response</option></select></label><label class="field"><span>Scheffé 모델</span><select id="mix-model"><option value="scheffe_quadratic">2차</option><option value="scheffe_linear">1차</option><option value="scheffe_special_cubic">특수 3차</option></select></label></div>
+          <div class="field-row"><label class="field"><span>최적화 목표</span><select id="mix-objective"><option value="maximize">최대화</option><option value="minimize">최소화</option><option value="target">목표값에 맞추기</option></select></label><label class="field hidden" id="mix-target-field"><span>목표값</span><input id="mix-target" type="number" step="any"></label></div>
+          <button class="primary-button" type="submit"><span>분석·배합 추천</span><span>↗</span></button><div id="mix-analysis-result" class="research-result" aria-live="polite"></div>
+        </form></section>
+      </div>
+      <section class="panel research-bottom" id="desirability-panel"><div class="panel-title"><h2>다중 반응 만족도 최적화</h2><span class="research-tag amber">Derringer–Suich D</span></div><form id="desire-form" class="research-body">
+        <div class="field-row"><label class="field"><span>설계 변수</span><select id="desire-domain"><option value="components">위 혼합물 성분</option><option value="factors">위 공정 인자 (실험 설계 1번)</option></select></label></div>
+        <label class="field"><span>실험 결과 CSV <small>변수 열 + 반응 열 여러 개</small></span><textarea id="desire-csv" rows="6" class="mono" required></textarea></label>
+        <div class="table-scroll"><table class="research-table"><thead><tr><th>반응 열</th><th>모델</th><th>목표</th><th>하한</th><th>목표값</th><th>상한</th><th>중요도</th><th aria-label="삭제"></th></tr></thead><tbody id="desire-goals"></tbody></table></div>
+        <button class="text-button" type="button" id="desire-add-goal">+ 반응 추가</button>
+        <p class="field-help">최대화는 하한·목표값, 최소화는 목표값·상한, 목표값 맞추기는 셋 다 필요합니다. 범위와 중요도는 연구자가 정하는 기준이며 D 값 자체에 물리적 의미는 없습니다.</p>
+        <button class="primary-button" type="submit"><span>만족도 최적점 찾기</span><span>↗</span></button><div id="desire-result" class="research-result" aria-live="polite"></div>
+      </form></section>
       <section class="panel research-bottom" id="bulk-flow-panel">
         <div class="panel-title"><h2>벌크 계산 연결</h2><a href="/manual#연결된-벌크-연구-흐름" target="_blank" rel="noopener">설명서 ↗</a></div>
         <div class="research-body">
@@ -250,13 +292,25 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
           <label class="field"><span>저장한 연구 흐름</span><select id="flow-history"><option value="">흐름 선택</option></select></label>
           <p id="flow-start-note" class="research-footnote">설계 결과에서 ‘벌크 계산에 연결’을 선택하세요. 온도와 초기 패킹 밀도를 사용합니다.</p>
           <form id="flow-create" class="hidden">
-            <h3>1. 설계와 계산 설정 확인</h3><div id="flow-bindings" class="field-row"></div>
-            <div class="field-row"><label class="field"><span>반복단위 SMILES</span><input id="flow-smiles" value="[*]CC[*]" required></label><label class="field"><span>전하 모델</span><select id="flow-charge"><option value="gasteiger">Gasteiger</option><option value="xtb_cm5">xtb CM5 · 별도 엔진 필요</option></select></label></div>
-            <div class="field-row"><label class="field"><span>사슬당 반복단위</span><input id="flow-monomers" type="number" value="24" min="2" max="200" required></label><label class="field"><span>사슬 수</span><input id="flow-chains" type="number" value="2" min="2" max="16" required></label></div>
-            <div class="field-row"><label class="field"><span>프로토콜 길이 배율 · 1 = 전체 길이</span><input id="flow-scale" type="number" value="1" min="0.001" max="1" step="any" required></label><label class="field"><span>계산 예산 · 재시도와 확인 계산 포함</span><input id="flow-budget" type="number" value="50" min="1" max="50" required></label></div>
-            <div class="field-row"><label class="field"><span>반응값</span><select id="flow-metric"><option value="probe_accessible_fraction">탐침 접근 가능 부피 비율</option><option value="final_frame_density">최종 구조 밀도 · g/cm³</option></select></label><label class="field"><span>기본 시드 · 각 행은 별도 시드</span><input id="flow-seed" type="number" value="42" min="1" max="899999998" required></label></div>
+            <h3>1. 설계와 계산 설정 확인</h3>
+            <div class="field-row"><label class="field"><span>계산 경로</span><select id="flow-route"><option value="gaff2_bulk">GAFF2 벌크 · 자체 셀 빌더</option><option value="pcff_bulk">PCFF 벌크 · EMC</option><option value="crosslink">에폭시–아민 가교</option></select></label></div>
+            <div id="flow-bindings" class="field-row"></div>
+            <div data-route-group="bulk">
+              <div class="field-row"><label class="field"><span>반복단위 SMILES</span><input id="flow-smiles" value="[*]CC[*]"></label><label class="field" data-route-only="gaff2_bulk"><span>전하 모델</span><select id="flow-charge"><option value="gasteiger">Gasteiger</option><option value="xtb_cm5">xtb CM5 · 별도 엔진 필요</option></select></label></div>
+              <div class="field-row"><label class="field"><span>사슬당 반복단위</span><input id="flow-monomers" type="number" value="24" min="2" max="200"></label><label class="field"><span>사슬 수</span><input id="flow-chains" type="number" value="2" min="2" max="16"></label></div>
+            </div>
+            <div data-route-group="crosslink" class="hidden">
+              <div class="field-row"><label class="field"><span>에폭시 수지 SMILES · 말단 글리시딜 2개 이상</span><input id="flow-resin" value="CC(C)(c1ccc(OCC2CO2)cc1)c1ccc(OCC2CO2)cc1"></label><label class="field"><span>1차 아민 경화제 SMILES</span><input id="flow-hardener" value="NCCN"></label></div>
+              <div class="field-row"><label class="field"><span>수지 분자 수</span><input id="flow-resin-count" type="number" value="16" min="2" max="400"></label><label class="field"><span>경화제 분자 수</span><input id="flow-hardener-count" type="number" value="8" min="1" max="400"></label></div>
+              <div class="field-row"><label class="field"><span>경화 온도 · K</span><input id="flow-cure-temperature" type="number" value="450" min="300" max="600" step="any"></label><label class="field"><span>목표 에폭시 전환율</span><input id="flow-target-conversion" type="number" value="0.85" min="0.05" max="0.99" step="any"></label></div>
+              <div class="field-row"><label class="field"><span>반응 거리 · Å</span><input id="flow-cutoff" type="number" value="4" min="3" max="6" step="any"></label><label class="field"><span>경화 스텝 상한</span><input id="flow-cure-steps" type="number" value="200000" min="1000" max="5000000"></label></div>
+            </div>
+            <div class="field-row"><label class="field"><span>물성 샘플링 온도 · K</span><input id="flow-temperature" type="number" value="300" min="100" max="500" step="any" required></label><label class="field"><span>프로토콜 길이 배율 · 1 = 전체 길이</span><input id="flow-scale" type="number" value="1" min="0.001" max="1" step="any" required></label></div>
+            <div class="field-row"><label class="field"><span>계산 예산 · 재시도와 확인 계산 포함</span><input id="flow-budget" type="number" value="50" min="1" max="50" required></label><label class="field"><span>기본 시드 · 각 행은 별도 시드</span><input id="flow-seed" type="number" value="42" min="1" max="899999998" required></label></div>
+            <div class="field-row"><label class="field"><span>대표 반응값</span><select id="flow-metric"></select></label></div>
+            <fieldset class="flow-responses"><legend>함께 수집할 반응값 · 선택</legend><span id="flow-response-options" class="flow-response-options"></span><p class="field-help">자유 부피 값은 최종 구조의 분석에서, NPT 값은 계산의 표본 평균에서, 에폭시 전환율은 가교 기록에서 얻습니다. NPT 값에는 RadonPy의 수렴 판정이 함께 기록됩니다.</p></fieldset>
             <div class="field-row"><label class="field"><span>탐침 반경 · Å</span><input id="flow-probe" type="number" value="1" min="0" max="5" step="any" required></label><label class="field"><span>격자 간격 · Å</span><input id="flow-spacing" type="number" value="0.25" min="0.05" max="1" step="any" required></label></div>
-            <p class="research-footnote">GAFF2 · 자체 셀 빌더. 초기 패킹 밀도는 계산 준비 조건이며 최종 밀도와 다릅니다. 전체 길이 계산은 오래 걸릴 수 있습니다.</p>
+            <p class="research-footnote" id="flow-route-note">설계에 연결한 설정은 행마다 설계값으로 바뀌고, 나머지는 위 값으로 고정됩니다. 정수 설정(반복단위·사슬·분자 수)은 모든 설계점이 정수여야 합니다. 전체 길이 계산은 오래 걸릴 수 있습니다.</p>
             <button class="primary-button" type="submit">설정 확인 · 연구 흐름 저장</button>
           </form>
           <div id="flow-message" aria-live="polite"></div>
@@ -264,11 +318,33 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
             <div id="flow-summary"></div><div id="flow-rows" class="table-scroll"></div>
             <div class="research-actions"><button class="secondary-button" id="flow-preview">선택 행 실행 미리보기</button><button class="secondary-button" id="flow-retry">선택 행 실패 계산 재시도 미리보기</button><button class="secondary-button" id="flow-analyze">선택 행 분석 · 반응값 수집</button><button class="text-button" id="flow-refresh">상태 새로고침 ↻</button><button class="text-button" id="flow-cancel">이 흐름 실행 취소</button></div>
             <div id="flow-submit-preview" class="hidden"></div>
+            <details id="flow-autopilot"><summary>승인한 계획으로 끝까지 실행</summary>
+              <p class="research-footnote">계획을 한 번 승인하면 제출 → 같은 설정으로 재시도 → 분석 → 최적화 → 확인 계산 → 보고서를 묻지 않고 진행합니다. 재시도는 설정을 바꾸지 않으며, 모든 값은 검토 전 시뮬레이션입니다. 모델과 목표는 아래 3단계 설정을 씁니다. 행을 선택하지 않으면 모든 행을 계획에 넣습니다.</p>
+              <div class="field-row"><label class="field"><span>행마다 시도 횟수 · 같은 설정</span><input id="pilot-attempts" type="number" value="2" min="1" max="3"></label><label class="field"><span>허용 실패 행 수 · 넘으면 멈춤</span><input id="pilot-failures" type="number" value="0" min="0" max="50"></label></div>
+              <div class="field-row"><label class="field"><span>최적화 방식</span><select id="pilot-mode"><option value="single">3단계에서 고른 반응값 하나</option><option value="desirability">여러 반응 만족도 목표</option></select></label></div>
+              <div class="field-row"><label class="checkbox-field"><input type="checkbox" id="pilot-optimize" checked> 반응표면 최적화</label><label class="checkbox-field"><input type="checkbox" id="pilot-confirm" checked> 추천 조건 확인 계산</label><label class="checkbox-field"><input type="checkbox" id="pilot-report" checked> 보고서 만들기</label><label class="checkbox-field"><input type="checkbox" id="pilot-upload"> 보고서 Drive 업로드</label></div>
+              <button class="secondary-button" type="button" id="pilot-preview">계획 미리보기</button>
+              <div id="pilot-plan" aria-live="polite"></div>
+            </details>
+            <div id="flow-autopilot-status" aria-live="polite"></div>
+            <details id="flow-tg"><summary>이 흐름의 셀로 Tg 스캔 흐름 만들기</summary>
+              <p class="research-footnote">계산이 끝난 행의 최종 셀을 단계 냉각 NPT로 다시 계산해, 같은 인자로 Tg를 반응값으로 맞춥니다. 전이가 확인되지 않은 행은 분석 실패로 남습니다. 확인 계산은 추천 조건의 셀 계산과 그 스캔, 2개를 씁니다. 냉각 속도는 약 10¹¹ K/s이며 실험값으로 환산하지 않습니다.</p>
+              <div class="field-row"><label class="field"><span>시작 온도 · K</span><input id="flow-tg-high" type="number" value="500" min="150" max="800" step="any"></label><label class="field"><span>끝 온도 · K</span><input id="flow-tg-low" type="number" value="200" min="50" max="700" step="any"></label></div>
+              <div class="field-row"><label class="field"><span>온도 간격 · K</span><input id="flow-tg-step" type="number" value="20" min="5" max="100" step="any"></label><label class="field"><span>온도당 스텝 · 1 fs</span><input id="flow-tg-steps" type="number" value="200000" min="1000" max="2000000"></label></div>
+              <div class="field-row"><label class="field"><span>계산 예산</span><input id="flow-tg-budget" type="number" value="50" min="1" max="50"></label></div>
+              <button class="secondary-button" type="button" id="flow-tg-create">Tg 스캔 흐름 저장</button>
+            </details>
             <details><summary>완료된 기존 작업 연결</summary><div class="field-row"><label class="field"><span>설계 행 번호</span><input id="flow-attach-row" type="number" min="1" max="50"></label><label class="field"><span>작업 ID · 설정과 시드가 일치해야 함</span><input id="flow-attach-job"></label></div><button class="secondary-button" id="flow-attach">기존 작업 연결</button></details>
             <form id="flow-optimize"><h3>3. 반응값 검토 · 조건 추천</h3>
+              <div class="field-row"><label class="field"><span>최적화할 반응값</span><select id="flow-response"></select></label></div>
               <div class="field-row"><label class="field"><span>모델</span><select id="flow-model"><option value="quadratic">2차 반응표면 · 중심 합성 설계</option><option value="interaction">주효과 + 상호작용</option><option value="linear">주효과</option></select></label><label class="field"><span>목표</span><select id="flow-objective"><option value="maximize">최대화</option><option value="minimize">최소화</option><option value="target">목표값 맞추기</option></select></label><label class="field hidden" id="flow-target-field"><span>목표값</span><input id="flow-target" type="number" step="any"></label></div>
               <div class="field-row"><label class="field"><span>제외할 행 · 쉼표 구분, 기본은 모두 포함</span><input id="flow-excluded" placeholder="예: 2, 5"></label><label class="field"><span>제외 사유 · 제외할 때 필수</span><input id="flow-exclusion-reason"></label></div>
               <button class="primary-button" type="submit">반응값·제외 목록 확인 후 최적화</button>
+            </form>
+            <form id="flow-desirability"><h3>여러 반응 만족도로 추천 <small>Derringer–Suich · 제외 행은 위 설정을 씀</small></h3>
+              <div id="flow-goals" class="table-scroll"></div>
+              <p class="field-help">최대화는 하한·목표값, 최소화는 목표값·상한, 목표값 맞추기는 셋 모두 필요합니다. 경계는 사용자가 정하는 값이며 D는 그 선택 아래의 순위입니다.</p>
+              <button class="secondary-button" type="submit">만족도 최적화</button>
             </form>
             <div id="flow-recommendation"></div>
           </div>

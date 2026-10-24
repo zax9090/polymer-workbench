@@ -8,15 +8,40 @@ pub fn terms(k: usize, model: &str) -> Result<usize, String> {
     if !(2..=6).contains(&k) {
         return Err("DOE requires 2 to 6 factors".into());
     }
+    let pairs = k * (k - 1) / 2;
     match model {
         "linear" => Ok(1 + k),
-        "interaction" => Ok(1 + k + k * (k - 1) / 2),
-        "quadratic" if k <= 4 => Ok(1 + 2 * k + k * (k - 1) / 2),
-        _ => Err("Unknown model or more than 4 factors for a quadratic model".into()),
+        "interaction" => Ok(1 + k + pairs),
+        "quadratic" if k <= 4 => Ok(1 + 2 * k + pairs),
+        // Scheffé mixture polynomials have no intercept: the components sum to one.
+        "scheffe_linear" => Ok(k),
+        "scheffe_quadratic" => Ok(k + pairs),
+        "scheffe_special_cubic" if k >= 3 => Ok(k + pairs + k * (k - 1) * (k - 2) / 6),
+        _ => Err("Unknown model, more than 4 factors for a quadratic model, or fewer than 3 components for a special cubic".into()),
     }
 }
 
 pub fn features(point: &[f64], model: &str) -> Vec<f64> {
+    if let Some(order) = model.strip_prefix("scheffe_") {
+        let mut out = point.to_vec();
+        if order != "linear" {
+            for i in 0..point.len() {
+                for j in i + 1..point.len() {
+                    out.push(point[i] * point[j]);
+                }
+            }
+        }
+        if order == "special_cubic" {
+            for i in 0..point.len() {
+                for j in i + 1..point.len() {
+                    for l in j + 1..point.len() {
+                        out.push(point[i] * point[j] * point[l]);
+                    }
+                }
+            }
+        }
+        return out;
+    }
     let mut out = vec![1.0];
     out.extend_from_slice(point);
     if model != "linear" {
@@ -337,6 +362,9 @@ fn predict(point: &[f64], coefficients: &[f64], model: &str) -> f64 {
 pub struct Candidate { pub point: Vec<f64>, pub response: f64, pub starts: usize }
 
 pub fn optimize(coefficients: &[f64], k: usize, model: &str, objective: &str, target: Option<f64>) -> Result<Candidate, String> {
+    if model.starts_with("scheffe_") {
+        return Err("Scheffé mixture models are optimized over the mixture region (mixture::optimize_region)".into());
+    }
     let p = terms(k, model)?;
     if coefficients.len() != p || coefficients.iter().any(|v| !v.is_finite() || v.abs() > 1e120)
         || !["maximize", "minimize", "target"].contains(&objective)

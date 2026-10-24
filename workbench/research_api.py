@@ -114,6 +114,56 @@ class DoeAnalysis(BaseModel):
     prediction_points: list[dict[str, float]] | None = Field(default=None, max_length=50)
 
 
+class MixtureComponent(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    name: str = Field(min_length=1, max_length=80)
+    low: float = Field(ge=0, le=1)
+    high: float = Field(ge=0, le=1)
+
+
+class MixtureDesign(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    components: list[MixtureComponent] = Field(min_length=2, max_length=6)
+    kind: Literal["simplex_lattice", "simplex_centroid", "extreme_vertices"] = "simplex_lattice"
+    degree: int = Field(default=2, ge=1, le=4)
+    axial: bool = False
+    centroid: bool = True
+    replicates: int = Field(default=1, ge=1, le=10)
+    seed: int = Field(default=1, ge=0, le=2**63 - 1)
+
+
+class MixtureAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    text: str = Field(min_length=1, max_length=1_000_000)
+    components: list[MixtureComponent] = Field(min_length=2, max_length=6)
+    response: str = Field(min_length=1, max_length=80)
+    model: Literal["scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"] = "scheffe_quadratic"
+    objective: Literal["maximize", "minimize", "target"] = "maximize"
+    target: float | None = None
+    prediction_points: list[dict[str, float]] | None = Field(default=None, max_length=50)
+
+
+class DesirabilityGoal(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    name: str = Field(min_length=1, max_length=80)
+    model: Literal["linear", "interaction", "quadratic", "scheffe_linear", "scheffe_quadratic", "scheffe_special_cubic"]
+    goal: Literal["maximize", "minimize", "target"]
+    lower: float | None = None
+    target: float
+    upper: float | None = None
+    lower_shape: float = Field(default=1.0, ge=0.1, le=10)
+    upper_shape: float = Field(default=1.0, ge=0.1, le=10)
+    importance: float = Field(default=1.0, ge=0.1, le=10)
+
+
+class DesirabilityAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    text: str = Field(min_length=1, max_length=1_000_000)
+    responses: list[DesirabilityGoal] = Field(min_length=1, max_length=10)
+    factors: list[DoeFactor] | None = Field(default=None, min_length=2, max_length=6)
+    components: list[MixtureComponent] | None = Field(default=None, min_length=2, max_length=6)
+
+
 def initialize_research(app, manager):
     from .learning import SurrogateManager
     from .campaigns import CampaignManager
@@ -201,7 +251,7 @@ def save_doe_record(request, result, parameters, csv_text, record_type):
     identifier = uuid.uuid4().hex
     staging = root / (".staging-" + identifier)
     final = root / identifier
-    filename = "design.csv" if record_type == "doe_design" else "input.csv"
+    filename = "design.csv" if record_type in {"doe_design", "doe_mixture_design"} else "input.csv"
     raw = csv_text.encode("utf-8")
     kernel = doe._kernel()
     compiled = sys.modules.get(kernel.doe_fit.__module__, kernel)
@@ -279,6 +329,37 @@ def analyze_experiment(payload: DoeAnalysis, request: Request):
         request.app.state.doe_lock.release()
 
 
+def run_doe(request, operation, parameters, text, record_type):
+    doe_module()
+    if text is not None and len(text.encode("utf-8")) > 1_000_000:
+        raise HTTPException(413, "실험 데이터 CSV는 UTF-8 기준 1 MB 이하여야 합니다.")
+    if not request.app.state.doe_lock.acquire(blocking=False):
+        raise HTTPException(429, "다른 실험계획 계산이 진행 중입니다. 완료 후 다시 실행하세요.")
+    try:
+        execution = request.app.state.execution
+        payload = parameters if text is None else {"text": text, **parameters}
+        result = execution.compute(operation, payload, wait=execution.request_wait)
+        return save_doe_record(request, result, parameters, result["csv"] if text is None else text, record_type)
+    finally:
+        request.app.state.doe_lock.release()
+
+
+@router.post("/doe/mixture-design", status_code=201)
+def design_mixture(payload: MixtureDesign, request: Request):
+    return run_doe(request, "doe_mixture_design", payload.model_dump(), None, "doe_mixture_design")
+
+
+@router.post("/doe/mixture-analyze", status_code=201)
+def analyze_mixture_experiment(payload: MixtureAnalysis, request: Request):
+    return run_doe(request, "doe_mixture_analyze", payload.model_dump(exclude={"text"}), payload.text, "doe_mixture_analysis")
+
+
+@router.post("/doe/desirability", status_code=201)
+def optimize_desirability(payload: DesirabilityAnalysis, request: Request):
+    parameters = payload.model_dump(exclude={"text"})
+    return run_doe(request, "doe_desirability", parameters, payload.text, "doe_desirability")
+
+
 @router.get("/doe")
 def list_doe_records(request: Request, limit: int = Query(default=30, ge=1, le=100)):
     root = doe_root(request)
@@ -293,8 +374,8 @@ def list_doe_records(request: Request, limit: int = Query(default=30, ge=1, le=1
         try:
             path = doe_record_file(folder.name, request)
             record = json.loads(path.read_text())
-            records.append({key: record.get(key) for key in ("id", "created_at", "record_type", "parameters", "kind", "factors", "response",
-                                                             "model", "objective", "total_runs", "fit", "recommendation",
+            records.append({key: record.get(key) for key in ("id", "created_at", "record_type", "parameters", "kind", "factors", "components", "response",
+                                                             "model", "objective", "total_runs", "fit", "recommendation", "optimum",
                                                              "download_url", "csv_download_url")})
         except (OSError, ValueError, HTTPException):
             unreadable += 1
@@ -314,7 +395,7 @@ def download_doe_record(identifier: str, request: Request):
 @router.get("/doe/{identifier}/csv")
 def download_doe_csv(identifier: str, request: Request):
     record = get_doe_record(identifier, request)
-    filename = "design.csv" if record.get("record_type") == "doe_design" else "input.csv"
+    filename = "design.csv" if record.get("record_type") in {"doe_design", "doe_mixture_design"} else "input.csv"
     return FileResponse(doe_record_file(identifier, request, filename), media_type="text/csv; charset=utf-8", filename=f"PolymerLab-DOE-{identifier}.csv")
 
 
