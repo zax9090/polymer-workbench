@@ -35,7 +35,7 @@ hiddenimports = [
     "workbench.class2", "workbench.pcff", "workbench.crosslink", "workbench.engines", "workbench.repair",
     "workbench.mcp_http", "workbench.amorphous", "workbench.blends", "workbench.structure_analysis", "workbench.manual",
     "workbench.doe", "workbench.drive_backup", "workbench.process", "workbench.evaluation", "workbench.preflight", "workbench.glass_transition", "workbench.correlations", "workbench.reports",
-    "workbench.execution", "workbench.compute_worker", "workbench.analysis_service", "workbench.workflows", "workbench.workflow_api", "workbench.autopilot", "workbench.sheets", "workbench.sheet_api", "workbench.target_spec", "workbench.target_api",
+    "workbench.execution", "workbench.compute_worker", "workbench.analysis_service", "workbench.workflows", "workbench.workflow_api", "workbench.autopilot", "workbench.sheets", "workbench.sheet_api", "workbench.target_spec", "workbench.target_api", "workbench.result_quality", "workbench.density_studies", "workbench.density_api",
     "matplotlib.backends.backend_agg", "matplotlib.backends.backend_svg",
     "_duckdb", "torch", "sklearn.gaussian_process", "sklearn.model_selection",
     "uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",

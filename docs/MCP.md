@@ -80,6 +80,9 @@ MCP 서버는 다음 순서로 실행 중인 Polymer Lab을 찾습니다.
 | `research_overview` · `list_experiments` · `list_measurements` | 색인된 계산 피처, 측정값, 모델·캠페인 요약 |
 | `analyze_instrument_curve` | DSC·인장·TGA·GPC·IR·UV-vis·탁도 곡선(IR·UV-vis는 JCAMP-DX도)에서 저장하지 않는 측정값 초안 계산 |
 | `analyze_process_data` | 공정 CSV 하나를 저장 없이 분석: 데이터 사전(키·중복·균형), 관리도(I-MR·X̄-S, 신호 규칙), 공정 능력(Cp·Cpk·Pp·Ppk), 분산 성분(균형 내포 ANOVA), 층별 불량률(Mantel–Haenszel), 불량 판정 평가(기준별 놓침·오탐·비용, 모두 정상 판정 기준선), 가상계측 오차(규격 경계 구간), 검증 분할 비교(무작위·로트·시간). 통계 계산 줄에서 실행 |
+| `get_research_quality` | 실행·수렴·반복·대조·출처·검토를 분리한 읽기 전용 근거 요약, 자동 승인 없음 |
+| `create_density_study` | 같은 조건 GAFF2 NPT 밀도의 독립 반복/대조 기록 계획. 계산 실행 없음 |
+| `control_density_study` | 기존 작업·참조 연결, 불변 평가 저장·조회. 원본 변경과 미수렴은 보류, 검토 상태 변경 없음 |
 | `prepare_target_workflow` | 목표·단위·독립 변수·예산 계약을 미리 검사하고 기존 DOE·벌크 흐름을 준비. MD 실행·Drive 업로드 없음 |
 | `create_experiment_design` | Rust로 무작위 실행 순서의 완전 요인·면 중심 중심합성 설계를 만들고 설계 CSV·결과 기록 저장 |
 | `analyze_response_surface` | Rust 회귀·ANOVA·적합성 결여·잔차 영향도·예측 R²·모델 비교·예측구간과 확인 실험표를 저장. 추천 조건은 실험 검증 전 |
@@ -162,3 +165,11 @@ MCP 도구만 제공하며 resources·prompts·진행 알림 스트리밍은 없
 `variables`는 `{name,field,low,high,unit}`, `targets`는 `{name,unit,model,goal,lower?,target,upper?}`이며 단위는 자동 변환하지 않습니다. `template`은 GAFF2 자체 벌크 JobConfig, `mode`는 `exploratory`, 설계는 독립 변수용 `factorial` 또는 `central_composite`입니다. `max_calculations`에 모든 행의 시도와 확인 계산을 포함합니다. `preview.ready=false`의 `blockers`에는 `unsupported_target`, `variable_unit`, `target_unit`, `budget`, `missing_engines`, `design_or_model` 같은 안정된 분류와 한국어 설명이 나옵니다.
 
 `prepare` 뒤에도 작업 수는 0이며 `workflow`, `plan`, `cost`, 계약 해시를 반환합니다. 사용자가 계획과 최대 계산 수를 승인한 다음 기존 `run_research_workflow_plan`으로 실행합니다. 실패 재시도는 기존 허용 목록과 같은 설정을 따릅니다. 저비용 물성 스크리닝·검증된 물성 예측·Tg·출처 미확인 상관식은 이 첫 목표 계약 경로의 지원 기능이 아닙니다.
+
+### 대표 밀도 근거
+
+`create_density_study`는 `name, template(JobConfig), minimum_replicates(3~10), max_replicates(상한10), max_relative_sd?, absolute_tolerance_g_cm3?`를 받습니다. `control_density_study`는 `action=list|get|attach|reference|assess`, `study_id`, 작업 연결의 `job_ids`, 참조 연결의 `measurement_id, standard_uncertainty?`를 받습니다. 참조는 기존 등록값이며 표준 불확실성의 단위는 g/cm³입니다. 이 도구로 계산을 시작하거나 데이터를 검토 완료로 바꿀 수 없습니다.
+
+REST 루트는 `/api/research/density-studies`, 평가 다운로드는 `/{id}/assessments/{assessment_id}/download`입니다. `create_research_report kind=density_study`는 저장한 평가를 표·그림·입력·해시로 보관합니다. 기존 흐름의 `GET /api/research/workflows/{id}/quality`와 `get_research_quality`는 행들의 실행과 실제 원본 수렴을 읽으며 DOE 행을 동일 조건 반복으로 합치지 않습니다.
+
+출력 스키마는 v1이며 `conclusion=hold|review_required`, `automatic_approval=false`, `scientifically_validated=false`입니다. 제안 계산 수는 `proposed_runs_additive=false`, `authorizes_new_calculations=false`로 표시합니다. 수렴 판정과 반복/대조 기준 충족은 물성 검증의 증거를 일부 제공할 뿐이며 전체 물리적 타당성을 자동 승인하지 않습니다.

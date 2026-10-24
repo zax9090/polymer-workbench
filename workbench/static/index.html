@@ -16,7 +16,9 @@
   <script defer src="/static/doe.js"></script>
   <script defer src="/static/doe_mixture.js"></script>
   <script defer src="/static/process.js"></script>
+  <script defer src="/static/quality.js"></script>
   <script defer src="/static/workflows.js"></script>
+  <script defer src="/static/density_studies.js"></script>
   <script defer src="/static/drive.js"></script>
   <script defer src="/static/sheets.js"></script>
 </head>
@@ -347,6 +349,29 @@ PMMA</textarea><small class="field-help">혼합계 MD 설정을 고정해 후보
               <button class="secondary-button" type="submit">만족도 최적화</button>
             </form>
             <div id="flow-recommendation"></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel research-bottom" id="density-study-panel">
+        <div class="panel-title"><h2>대표 밀도 검토 · 독립 반복/대조</h2><span class="research-tag amber">근거 확인 · 자동 승인 없음</span></div>
+        <div class="research-body">
+          <div class="field-row"><label class="field"><span>저장한 검토</span><select id="density-history"><option value="">검토 선택</option></select></label><button class="text-button" type="button" id="density-refresh">기록 새로고침 ↻</button></div>
+          <details id="density-create-fields"><summary>기존 계산 조건으로 검토 계획 만들기</summary><form id="density-create" class="density-form">
+            <div class="field-row"><label class="field"><span>검토 이름</span><input id="density-name" value="대표 밀도 검토" maxlength="80" required></label><label class="field"><span>조건을 가져올 GAFF2 자체 벌크 작업 ID</span><input id="density-source-job" class="mono" minlength="32" maxlength="32" required></label></div>
+            <div class="field-row"><label class="field"><span>최소 독립 반복 수 · 계획 기준</span><input id="density-minimum" type="number" min="3" max="10" value="3" required></label><label class="field"><span>계획 상한</span><input id="density-maximum" type="number" min="3" max="10" value="5" required></label></div>
+            <div class="field-row"><label class="field"><span>허용 상대 표준편차 · 선택, 비율</span><input id="density-max-rsd" type="number" min="0" step="any" placeholder="예산·연구 목적에 맞춰 결정"></label><label class="field"><span>참조와 허용 절대 차이 · g/cm³, 선택</span><input id="density-tolerance" type="number" min="0" step="any" placeholder="판정 근거에 맞춰 결정"></label></div>
+            <button class="secondary-button" type="submit">검토 계획 저장 · 계산 미실행</button>
+            <p class="research-footnote">NPT 표본 평균 밀도를 같은 재료·조건·방법끼리 비교합니다. 반복 수·허용 기준을 입력해도 실제 독립성이나 물성 정확도가 입증되지는 않습니다.</p>
+          </form></details>
+          <div id="density-message" aria-live="polite"></div>
+          <div id="density-detail" class="hidden">
+            <div id="density-summary"></div>
+            <div class="density-input-grid">
+              <form id="density-attach"><label class="field"><span>같은 조건의 기존 작업 ID · 쉼표 또는 줄바꿈</span><textarea id="density-job-ids" rows="3" class="mono" required></textarea></label><button class="secondary-button" type="submit">기존 작업 연결</button></form>
+              <form id="density-reference"><label class="field"><span>등록된 실험·문헌 측정값 ID · 선택</span><input id="density-reference-id" class="mono" minlength="32" maxlength="32" required></label><label class="field"><span>참조 표준 불확실성 · g/cm³, 선택</span><input id="density-reference-u" type="number" min="0" step="any" placeholder="미기록은 0으로 가정하지 않음"></label><button class="secondary-button" type="submit">기존 참조 연결 · 검토 상태 유지</button></form>
+            </div>
+            <div class="research-actions"><button class="primary-button" type="button" id="density-assess">현재 근거 평가 · 기록 저장</button></div>
+            <div id="density-assessment" class="research-result" aria-live="polite"></div>
           </div>
         </div>
       </section>

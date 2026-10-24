@@ -180,3 +180,66 @@ cargo test --release --locked --no-default-features --manifest-path native/Cargo
 사용자가 요청한 게시 대상은 `codex/target-contract-repro` 기능 브랜치이며 main 직접 푸시·머지·배포는 하지 않습니다. 업로드 대상은 소스·테스트·문서뿐입니다. `/tmp`의 계산 원자료·보고서·가상 환경·인증 파일은 넣지 않습니다.
 
 Windows에서 소스 ZIP/Git 다운로드는 가능하지만 **Windows 네이티브 실행과 exe 배포는 검증하지 않았습니다.** 현재 `scripts/build_desktop.py`는 Linux x86_64 배포만 지원합니다. 확인된 실행 경로는 Linux 환경의 `setup.sh`와 `start.sh`이며, Windows에서는 WSL2 Ubuntu를 사용해 같은 소스 경로를 실행하는 방식을 우선 안내합니다. 이번 클라우드 검사를 실제 WSL2 PC 검증으로 간주하지 않습니다.
+
+## 10. 결과 근거와 대표 밀도 반복 검토 (2026-10-24)
+
+### 이번 완료 범위와 게시 상태
+
+- 기준 브랜치는 `codex/target-contract-repro`, HEAD는 `f52f22906ba37f5bef70793d718ece59bec8671c`입니다. 이 절의 개선은 **커밋·푸시 전 로컬 변경**입니다. 이전 푸시 승인을 새 변경에 확대하지 않았으며 main·배포·Drive 업로드는 실행하지 않았습니다. 별도 Kali 설치 작업에는 접근하지 않았습니다.
+- 기존 흐름의 실행 완료, 실제 원본의 수렴 판정, 독립 반복, 실험·문헌 대조, 입력·출처, 사람 검토를 별도 상태로 표시합니다. 이전에는 최종 구조로 구한 밀도 관측에 평형 판정이 없었으므로 `bulk_complete.json`의 실제 판정을 읽도록 연결했습니다. 판정이 없거나 원본이 손상되면 보류하며 DOE의 서로 다른 조건을 반복으로 합치지 않습니다.
+- `native/src/reliability.rs`와 PyO3 `replicate_summary`는 Welford 표본분산, SE, Student-t 95% 구간, 명시된 참조 표준 불확도의 결합을 계산합니다. Welford(1962), Student(1908)의 서지는 코드에 적었습니다. 단일 반복의 산포는 미상이며, 동일 숫자만 반복된 경우 정밀도가 입증된 것으로 취급하지 않습니다. 수치 결과는 독립성·정규성 가정하의 기술 통계이지 물리 정확도 판정이 아닙니다.
+- 대표 경로는 **GAFF2/native 벌크의 고정 조건 NPT 평균 밀도**입니다. 계획은 실행하지 않고 설정과 seed만 준비합니다. 기존 작업을 연결해 같은 재료·온도·압력·힘장·셀/프로토콜인지 확인하고, 중복 seed·혼합 조건·원본 해시 변경·잘못된 단위는 제외 사유를 기록합니다. 별도 실험·문헌 측정값을 ID로 연결하며 검토 상태를 바꾸지 않습니다.
+- API/MCP → Rust → 근거 평가 → 화면 → 불변 JSON·그림·보고서 ZIP/manifest가 연결되었습니다. 평가 스냅샷은 원본 변경 뒤에도 유지됩니다. 모든 시뮬레이션은 `verified=false`, `scientifically_validated=false`이고, 기준을 만족해도 `review_required`입니다. 다음 검사 제안의 계산 수는 서로 겹칠 수 있으며 합산 예산이나 실행 승인이 아닙니다. 기존 취소·재개·재시도 동작은 변경하지 않았습니다.
+
+### 실제 확인과 과학적 한계
+
+- **현재 코드 관련 pytest 139 passed, 기존 경고 1개, 63.72초**: 새 커널·근거 평가·밀도/API·보고서·MCP·기존 API·Rust 바인딩·DOE·목표 계약·Drive 로컬 아카이브·단일 설명서를 검사했습니다. NumPy/SciPy와 SD/SE/t 구간/참조 불확도를 독립 대조했습니다. 로그: `/tmp/polymer-quality-verified-tests.log`.
+- **Rust 전체 31 passed, 1 ignored**: `/tmp/polymer-quality-rust-full.log`. `pip check` 통과, 현재 소스의 새 모듈과 UI가 포함된 wheel 빌드 및 바이트 일치 확인. PyInstaller exe/Windows 빌드는 실행하지 않았습니다. 이 초기 관련 검사 이후 현재 변경 코드의 전체 pytest도 완료했습니다(아래 후속 전체 검사). 9절의 548 passed/16 skipped는 이전 f52 기준 검사입니다.
+- 테스트 중 손상 파일을 의도적으로 만든 fixture가 종료 전에 복원되지 않아 처음에는 teardown이 실패했습니다. fixture 복원을 고쳤고 위 139개 최종 검사에서 재확인했습니다. 제품의 JobManager나 사용자 자료를 변경해 오류를 숨기지 않았습니다.
+- Chromium **1440/390 px**에서 미검토 참조의 보류 → 이미 검토된 합성 참조 연결 → 사람 검토 필요, 불변 JSON 다운로드, 보고서 ZIP 다운로드/모든 manifest 해시/그림, 원본 변경의 명시적 제외, 기존 흐름의 실제 수렴 판정을 확인했습니다. 화면 넘침·JS 오류·새 작업 생성·업로드는 없었습니다. 합성 fixture의 검토값은 소프트웨어 검사용이며 실제 실험/사람의 승인 기록이 아닙니다. 로그: `/tmp/polymer-quality-final-browser.log`.
+- 새 MD는 실행하지 않았습니다. 9절의 기존 엔진 자료 중 같은 조건 두 건을 복사해 읽었습니다(seed 54/56, 300 K, 1 atm, PE 18 반복단위×2 사슬, `protocol_scale=0.001`). 두 건 모두 `equilibrated=false`, 최소 계획 3회에도 미달하고 외부 대조값이 없어 **결론 보류**입니다. 이 두 평균으로 계산된 통계는 탐색용이며 검증된 PE 물성으로 쓰지 않습니다.
+- 원본 `/tmp/polymer-autopilot-integration`은 그대로 보존했습니다. 이번 독립 검사용 복사본/평가/보고서는 `/tmp/polymer-quality-final-integration`, 실제 자료 검토 보고서는 `671331329b86495a9f45aceb9109164a`입니다. 저장소에는 계산 원자료·개인 측정값·인증 파일을 넣지 않았습니다. 임시 서버는 대기/실행 작업이 없는 것(완료 8, 취소 1)을 확인하고 종료했습니다.
+
+### 다음 과학적 작업과 UI 병합 경계
+
+1. 같은 명시적 조건에서 충분한 평형화·유지 시간과 독립 준비를 갖춘 반복 계획이 필요합니다. 기존 미수렴 두 건에 한 건만 추가해 수렴을 주장하면 안 됩니다. 셀 크기나 프로토콜이 달라지면 별도 연구로 분리하고 계산 예산을 먼저 정합니다.
+2. 실제 재료의 분자량·시료 준비·측정 방법까지 대조 가능한 외부 밀도와 출처·표준 불확도, 실질적인 허용 차이를 확보해야 합니다. 현재 일치하는 검토 실험값은 제공되지 않았으며 과거 엔진 버전 누락을 추측해 채우지 않았습니다. Tg의 전이 분해와 Bicerano 계수의 원문 출처 문제도 아직 해결되지 않았습니다.
+3. 독립 Kali UI 변경과 대조할 파일은 `workbench/static/index.html`, `research.css`, `workflows.js`, 새 `quality.js`, `density_studies.js`입니다. 추가 영역은 DOE 화면의 `#density-study-panel`과 워크플로의 `#flow-quality-content` 및 관련 결과 근거 UI입니다. 새 코드는 백엔드/API·과학 상태와 연결되므로 공통 레이아웃/내비게이션 개선을 합칠 때 이 ID·이벤트·스크립트 로드 순서를 보존합니다. 공유 원격에는 아직 게시하지 않았습니다.
+
+### 후속 전체 회귀 검사 — 현재 변경 코드
+
+- **578 passed, 16 skipped, 실패/오류 0, 기존 경고 1, 665.90초**. `.venv/bin/python -m pytest -v -rs --junitxml=/tmp/polymer-quality-current-full.xml`을 현재 코드로 실행했습니다. Linux/Python 3.12.14에서 `PATH=.venv/bin:$PATH`, `LD_LIBRARY_PATH=.venv/lib`, OpenBLAS/OMP 1, Rayon 2를 사용했습니다. 로그: `/tmp/polymer-quality-current-full.log`. 이전 검사 결과를 재사용하지 않았습니다.
+- 16개 건너뜀은 GROMACS 의존 3개(`bridges` 2, `research_api` 1), EMC 9.4.4 미설치 3개, xtb 6.7.1 미설치 1개, BayBE 미설치 2개, 미수집 고정 참조 자료 7개(msi2lmp 6, PI1070 1)입니다. martinize2와 polyply는 설치되어 있지만 GROMACS는 없습니다. 이 검사는 미실행이며 통과로 세지 않습니다.
+- 같은 코드로 Rust 전체 **31 passed, 1 ignored**, LAMMPS CLI/라이브러리 시작 확인, `pip check`, 변경 JS 3개 문법, `git diff --check`가 모두 통과했습니다. Rust의 ignored 1개는 수동 성능 비교이며 정확성 테스트 실패가 아닙니다. 로그: `/tmp/polymer-quality-current-aggregate.log`, 종료 코드: `/tmp/polymer-quality-current-aggregate.json`.
+- 첫 Cargo 호출은 `RUSTUP_HOME` 미지정으로 기본 toolchain을 못 찾아 테스트 시작 전에 종료됐습니다. 이미 설치된 `/workspace/.rustup`, `/workspace/.cargo`를 명시해 해결했습니다. 다운로드·버전 변경·코드 수정은 없었고 최초 기록은 `/tmp/polymer-quality-current-aggregate-launcher-failure.log`에 남겼습니다.
+- 전체 회귀에는 기존 GAFF2 소형 MD와 PCFF 짧은 Tg 실행 테스트가 포함되어 실제로 재실행됐습니다. 연구용 대규모/장시간 MD는 추가하지 않았습니다. 이 결과는 실행 경로의 소프트웨어 회귀 확인이며 수렴한 물성이나 Tg 검증이 아닙니다. 위의 실제 밀도 검토 두 건은 여전히 보류입니다.
+- 검사 전후 변경 파일 **27개의 SHA-256이 모두 일치**했습니다(`/tmp/polymer-quality-current-full-source.json`). 그 뒤 변경한 것은 이 인계 문서의 결과 기록뿐입니다. 실행 코드는 검사한 코드 그대로입니다. 기존 브라우저·JSON/ZIP·wheel 바이트 검증도 같은 실행 코드에 해당합니다.
+- CI의 Python 3.13, 선택 엔진/참조 자료를 복원한 전체 경로, PySide6/PyInstaller 데스크톱 번들, Windows는 여기서 검사하지 않았습니다. 현재 설치된 연구 의존성의 명시적 고정 버전 81개는 일치합니다. 기능 브랜치 푸시만으로는 `tests.yml`이 실행되지 않으며, 이번 변경은 여전히 미커밋·미게시입니다.
+
+### 정확한 변경 파일과 Kali UI 통합 계약
+
+추적 파일 수정 17개:
+`AGENTS.md`, `docs/HANDOFF.md`, `docs/MANUAL.md`, `docs/MCP.md`, `docs/REPORTS.md`, `native/src/lib.rs`, `native/src/python.rs`, `packaging/polymer-lab.spec`, `tests/test_drive_results.py`, `workbench/drive_backup.py`, `workbench/mcp_server.py`, `workbench/reports.py`, `workbench/server.py`, `workbench/static/index.html`, `workbench/static/research.css`, `workbench/static/workflows.js`, `workbench/workflow_api.py`.
+
+신규 파일 10개:
+`native/src/reliability.rs`, `tests/test_density_studies.py`, `tests/test_quality_reports.py`, `tests/test_reliability_kernel.py`, `tests/test_result_quality.py`, `workbench/density_api.py`, `workbench/density_studies.py`, `workbench/result_quality.py`, `workbench/static/density_studies.js`, `workbench/static/quality.js`.
+
+Kali의 별도 로컬 브랜치 `codex/kali-ui-navigation`, 커밋 `6be8b32e03e597c077d27296f5448883fe72a6da`는 전달받은 상태 정보이며 이 환경으로 가져오지 않았습니다. 두 작업의 공통 수정 파일은 `index.html`, `research.css`입니다. Kali의 `app.js`, `sheets.js`는 이번 신뢰도 변경에서 수정하지 않았습니다. 파일 전체를 덮어쓰지 말고 각 패널·추가 CSS·내비게이션 변경을 대조해야 합니다.
+
+보존할 신규 정적 ID 21개:
+`density-study-panel`, `density-history`, `density-refresh`, `density-create-fields`, `density-create`, `density-name`, `density-source-job`, `density-minimum`, `density-maximum`, `density-max-rsd`, `density-tolerance`, `density-message`, `density-detail`, `density-summary`, `density-attach`, `density-job-ids`, `density-reference`, `density-reference-id`, `density-reference-u`, `density-assess`, `density-assessment`.
+
+기존 `#view-doe`/`#doe`와 워크플로 선택자, 동적 `flow-quality`, `flow-quality-refresh`, `flow-quality-content`, `[data-density-job]`, 보고서의 `data-report-kind`/`data-report-id`도 유지합니다. `polymer:view`의 `detail='doe'`, `polymer:density-study`의 `detail={job_id}`가 연결 계약입니다. 워크플로의 밀도 검토 사전 입력 버튼에는 별도 ID가 없으며 이 이벤트를 보냅니다.
+
+현재 defer 순서:
+`vendor/3Dmol-min.js` → `app.js` → `reports.js` → `research.js` → `screening.js` → `structure.js` → `doe.js` → `doe_mixture.js` → `process.js` → `quality.js` → `workflows.js` → `density_studies.js` → `drive.js` → `sheets.js`.
+
+빈 산포/허용 차이/표준 불확도를 0이나 추정값으로 채우지 않고, 검토·계산 실행을 분리하며 중복 동작 방지와 `.table-scroll`의 내부 스크롤을 유지합니다. 합친 뒤 390/1440 px, 뒤로/앞으로·입력 보존·취소와 근거 평가/다운로드를 다시 확인해야 합니다. 이번 단계에서는 병합이나 게시를 하지 않았습니다.
+
+### 승인된 다음 통합 단계
+
+사용자가 두 개선분의 통합 검증 후 별도 기능 브랜치 푸시와 Kali 반영을 승인했습니다. 위 미커밋·미게시 표시는 전체 검사 완료 시점의 기록입니다. 신뢰도 개선은 로컬 체크포인트 커밋으로 보존하고, 부모가 Kali 브랜치의 원격 SHA를 확인해 전달한 뒤 별도 통합 브랜치에서 진행합니다. 이 승인으로 main 머지나 배포를 하지 않습니다.
+
+Kali 브랜치의 현재 전달된 예상 HEAD는 `6826953baf4de0d7a59cbf43e91ac5a26f96ebe0`이며 앞 UI 커밋은 `6be8b32e03e597c077d27296f5448883fe72a6da`입니다. 아직 이 객체를 가져오거나 검증하지 않았습니다. 통합 때 새 `sidebar.js`, 내비게이션·입력 보존, 신뢰도/밀도 이벤트를 함께 유지하고 전체 pytest·Rust·JS 및 데스크톱/모바일 브라우저 흐름을 다시 검사합니다. 검증된 소스만 푸시하고 계산 원자료·인증 자료는 제외합니다. Kali 설치 반영은 부모가 최종 원격 SHA를 받아 별도로 수행합니다.
+
+커밋 직전 제한된 diff 검토에서 두 가지 후속 보완을 정했습니다. 원본 `convergence_warnings`가 숫자/문자열/혼합 목록이면 해당 작업을 명시적으로 제외해 나머지 평가를 보존하도록 고쳤고, 밀도 계획 생성은 소스 요청 전에 폼 값을 스냅샷해 대기 중 편집과 섞이지 않도록 합니다. 백엔드/API/보고서 관련 **26 passed**로 손상 경고의 세 경우와 기존 경로를 확인했습니다(`/tmp/polymer-quality-precommit-robustness-tests.log`). 위 578개 전체 검사는 이 작은 후속 보완 전의 기록이며, 보완 및 Kali UI를 합친 최종 코드로 전체 검사를 다시 실행할 예정입니다.

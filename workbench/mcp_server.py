@@ -434,6 +434,23 @@ class PolymerLabTools:
           "Unavailable Tg, unverified Bicerano models and validated-property claims are explicit blockers. "
           "Review the returned plan and use run_research_workflow_plan only with a user-approved calculation budget; no Drive upload is included.",
           target_tool_schema, self.prepare_target_workflow, read_only=False, idempotent=False)
+        t("get_research_quality", "Read evidence and hold conditions",
+          "Separate execution completion, recorded convergence, independent replication, external comparison, source integrity and human review. "
+          "DOE rows are not pooled as fixed-condition replicates. This read-only summary never validates a physical property or changes review flags.",
+          _schema({"workflow_id": JOB_ID}, ["workflow_id"]), self.get_research_quality, read_only=True, idempotent=True)
+        from .density_studies import Create as DensityStudySpec
+        t("create_density_study", "Plan a fixed-condition density evidence study",
+          "Save a representative GAFF2 native-bulk NPT density repeat/comparison contract. No jobs are created or run. "
+          "Different names/seeds are allowed but physical settings must match. Thresholds are explicit; default minimum three runs is not proof of independence or validity.",
+          DensityStudySpec.model_json_schema(), self.create_density_study, read_only=False, idempotent=False)
+        t("control_density_study", "Record density repetitions and comparison evidence",
+          "List/get studies, attach existing jobs, link an existing experimental/literature measurement, or save an immutable assessment. "
+          "Never starts/retries jobs or marks data reviewed. Matching material, units, temperature, pressure and method are required; changed sources are flagged, never silently discarded. "
+          "Reference uncertainty is a standard uncertainty in g/cm^3; missing uncertainty stays unknown.",
+          _schema({"action": {"type": "string", "enum": ["list", "get", "attach", "reference", "assess"]}, "study_id": JOB_ID,
+                   "job_ids": {"type": "array", "minItems": 1, "maxItems": 10, "items": JOB_ID},
+                   "measurement_id": JOB_ID, "standard_uncertainty": {"type": "number", "exclusiveMinimum": 0}}, ["action"]),
+          self.control_density_study, read_only=False, idempotent=False)
         t("get_research_workflow", "Read connected bulk workflow",
           "Read linked DOE rows, calculation status, observations and unvalidated recommendations. Omit workflow_id to list flows.",
           _schema({"workflow_id": JOB_ID}), self.get_research_workflow, read_only=True, idempotent=True)
@@ -592,11 +609,11 @@ class PolymerLabTools:
         t("rea_evidence", "REA source evidence", "Audited upstream repositories behind each engine adapter: pinned commit, license and REA inventory status.",
           _schema({}), self.rea_evidence, read_only=True, idempotent=True)
         t("create_research_report", "Create research report",
-          "Save an immutable report folder for one DoE record (kind doe), one bulk workflow (kind workflow) or the lab master table of experiments and measurements (kind lab): "
+          "Save an immutable report folder for one DoE record (kind doe), bulk workflow (kind workflow), density evidence study (kind density_study), or lab master table (kind lab): "
           "summary.md, report.html, SVG/PNG figures, CSV tables plus report.xlsx and a manifest with SHA-256/MD5 per file. Numbers and verified flags are copied from saved records; "
           "nothing is refitted or reviewed. upload_to_drive copies the folder to the user's configured rclone Google Drive remote and reports success only after every file's size and MD5 match; "
           "set it only when the user asked for a Drive upload.",
-          _schema({"kind": {"type": "string", "enum": ["doe", "workflow", "lab"]},
+          _schema({"kind": {"type": "string", "enum": ["doe", "workflow", "lab", "density_study"]},
                    "id": {"type": "string", "pattern": "[0-9a-f]{32}", "description": "DoE record or workflow ID; omit for lab"},
                    "upload_to_drive": {"type": "boolean"}}, ["kind"]), self.create_research_report)
         t("export_research_snapshot", "Export research snapshot", "Write an immutable Parquet snapshot of experiments and measurements (and copy it to the configured sync folder, if any).",
@@ -722,6 +739,32 @@ class PolymerLabTools:
 
     def prepare_target_workflow(self, args):
         return self.client.request("POST", "/api/research/targets/" + args.get("action", "preview"), args["spec"], timeout=300)
+
+    def get_research_quality(self, args):
+        return self.client.request("GET", f"/api/research/workflows/{args['workflow_id']}/quality", timeout=120)
+
+    def create_density_study(self, args):
+        return self.client.request("POST", "/api/research/density-studies", args)
+
+    def control_density_study(self, args):
+        action = args["action"]
+        allowed = {"list": {"action"}, "get": {"action", "study_id"}, "assess": {"action", "study_id"},
+                   "attach": {"action", "study_id", "job_ids"}, "reference": {"action", "study_id", "measurement_id", "standard_uncertainty"}}
+        if set(args) - allowed[action]:
+            raise ToolError("arguments do not match this study action")
+        base = "/api/research/density-studies"
+        if action == "list":
+            return self.client.request("GET", base)
+        if not args.get("study_id"):
+            raise ToolError("study_id is required")
+        base += "/" + args["study_id"]
+        if action == "get":
+            return self.client.request("GET", base)
+        required = {"attach": "job_ids", "reference": "measurement_id"}.get(action)
+        if required and not args.get(required):
+            raise ToolError(required + " is required")
+        body = {key: value for key, value in args.items() if key not in {"action", "study_id"}}
+        return self.client.request("POST", base + "/" + action, body, timeout=120)
 
     def get_research_workflow(self, args):
         suffix = "/" + args["workflow_id"] if args.get("workflow_id") else ""

@@ -109,6 +109,12 @@ def create_workflow(payload: Create, request: Request):
 def get_workflow(identifier: str, request: Request):
     return request.app.state.workflows.get(identifier)
 
+@router.get("/{identifier}/quality")
+def workflow_quality(identifier: str, request: Request):
+    from .result_quality import summarize_workflow
+    manager = request.app.state.workflows
+    return summarize_workflow(manager.get(identifier), manager)
+
 @router.get("/{identifier}/download")
 def download_workflow(identifier: str, request: Request):
     manager = request.app.state.workflows

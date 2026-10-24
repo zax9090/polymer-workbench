@@ -1,7 +1,7 @@
 //! PyO3 bindings: module workbench_native.
 
 use crate::contacts::{self, closest_scaled_contact, pair_energy, Molecule, COULOMB};
-use crate::{doe, mixture, topology, trajectory, volume, widom};
+use crate::{doe, mixture, reliability, topology, trajectory, volume, widom};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::types::{PyDict, PyList};
 use pyo3::exceptions::PyValueError;
@@ -473,9 +473,59 @@ fn block_atoms(n: usize, bonds: Vec<(usize, usize)>, closure: usize) -> PyResult
     topology::block_of(n, &bonds, closure).map_err(PyValueError::new_err)
 }
 
+/// Descriptive summary of independent replicate densities; no validation decision is made here.
+#[pyfunction]
+#[pyo3(signature = (values, reference=None, reference_standard_uncertainty=None))]
+fn replicate_summary<'py>(py: Python<'py>, values: PyReadonlyArray1<'py, f64>, reference: Option<Bound<'py, PyAny>>,
+                          reference_standard_uncertainty: Option<Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyDict>> {
+    if values.as_array().is_empty() || values.as_array().len() > 1000 {
+        return Err(PyValueError::new_err("Expected 1..1000 replicate densities"));
+    }
+    let number = |value: Option<Bound<'py, PyAny>>| -> PyResult<Option<f64>> {
+        value.map(|v| {
+            if v.is_instance_of::<pyo3::types::PyBool>() {
+                return Err(PyValueError::new_err("Boolean reference values are not numbers"));
+            }
+            v.extract::<f64>()
+        }).transpose()
+    };
+    let reference = number(reference)?;
+    let uncertainty = number(reference_standard_uncertainty)?;
+    let input = values.as_array().to_vec();
+    let summary = py.detach(|| reliability::summarize(&input, reference, uncertainty)).map_err(PyValueError::new_err)?;
+    let out = PyDict::new(py);
+    out.set_item("schema_version", 1)?;
+    out.set_item("n", summary.n)?;
+    out.set_item("mean", summary.mean)?;
+    out.set_item("min", summary.min)?;
+    out.set_item("max", summary.max)?;
+    out.set_item("sample_sd", summary.sample_sd)?;
+    out.set_item("standard_error", summary.standard_error)?;
+    out.set_item("confidence_interval", summary.confidence_interval)?;
+    out.set_item("relative_sd", summary.relative_sd)?;
+    out.set_item("confidence", 0.95)?;
+    out.set_item("unit", "g/cm^3")?;
+    out.set_item("method", "Welford sample variance and Student-t interval for independent replicate means")?;
+    out.set_item("warnings", summary.warnings)?;
+    match summary.reference_comparison {
+        Some(comparison) => {
+            let value = PyDict::new(py);
+            value.set_item("reference", comparison.reference)?;
+            value.set_item("value_difference", comparison.value_difference)?;
+            value.set_item("relative_difference", comparison.relative_difference)?;
+            value.set_item("combined_standard_uncertainty", comparison.combined_standard_uncertainty)?;
+            value.set_item("standardized_difference", comparison.standardized_difference)?;
+            out.set_item("reference_comparison", value)?;
+        },
+        None => out.set_item("reference_comparison", py.None())?,
+    }
+    Ok(out)
+}
+
 #[pymodule]
 fn workbench_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ExecutionQueue>()?;
+    m.add_function(wrap_pyfunction!(replicate_summary, m)?)?;
     m.add_function(wrap_pyfunction!(contact_energies, m)?)?;
     m.add_function(wrap_pyfunction!(coordination_numbers, m)?)?;
     m.add_function(wrap_pyfunction!(sample_contact, m)?)?;

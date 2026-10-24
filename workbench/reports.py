@@ -33,7 +33,7 @@ from .jobs import atomic_json, now
 router = APIRouter(prefix="/api/research", tags=["Research reports"])
 IDENTIFIER = re.compile(r"[0-9a-f]{32}\Z")
 DESTINATION = "PolymerLab-reports"
-KINDS = ("doe", "workflow", "lab")
+KINDS = ("doe", "workflow", "lab", "density_study")
 SCHEMA_VERSION = 1
 # Single-hue blue ramp for a white page: low response light, high response dark.
 RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
@@ -640,9 +640,51 @@ def _desirability_section(b, record):
             [[i + 2, v] for i, v in enumerate(record["observed_composite_desirability"])], preview=0)
 
 
+def build_quality_evidence(b, quality):
+    b.heading("결과 근거와 다음 결정")
+    b.paragraph(quality['message'])
+    labels = {'passed':'해당 기준 충족','pending':'추가 확인','failed':'보류 원인','unknown':'미평가/미기록'}
+    b.table('quality', '품질 근거', ['구분','상태','근거'],
+            [[c['title'], labels[c['status']], c['detail']] for c in quality['checks']])
+    b.table('next_checks', '다음 검사 제안', ['검사','근거','추가 계산 수'],
+            [[c['message'], c.get('reason'), c.get('additional_runs')] for c in quality['next_checks']])
+    b.paragraph('이 요약은 실험·문헌 검증이나 사람의 검토를 자동 승인하지 않습니다.')
+
+
+def build_density_study(b, record, assessment):
+    b.paragraph('고정 조건의 GAFF2 NPT 밀도 반복 기록입니다. 통계의 일치나 체크리스트 충족만으로 물성 정확도가 입증되지는 않습니다.')
+    b.facts([('재료', record['template']['repeat_smiles']), ('온도', f"{record['conditions']['temperature_kelvin']} K"),
+             ('압력', f"{record['conditions']['pressure_atm']} atm"), ('독립 반복 계획', f"최소 {record['minimum_replicates']} / 최대 {record['max_replicates']}"),
+             ('관측 방법', assessment['method']), ('평가 시각',assessment['created_at']), ('단위', assessment['unit']), ('검토', '검토 전 시뮬레이션')])
+    build_quality_evidence(b, assessment['quality'])
+    b.table('replicates', '반복별 상태와 밀도', ['작업','시드','실행 상태','통계 포함','밀도 (g/cm³)','수렴 판정','보류 사유'],
+            [[r['job_id'],r.get('seed'),r['status'],r.get('eligible'),r.get('density'),r.get('equilibrated'),
+              '; '.join(i['message'] for i in r.get('issues',[]))] for r in assessment['records']])
+    stats = assessment.get('statistics')
+    if stats:
+        b.table('repeat_statistics', '탐색용 반복 통계', ['N','평균','표본 SD','SE','평균 95% t 구간 하한','상한','상대 SD'],
+                [[stats['n'],stats['mean'],stats['sample_sd'],stats['standard_error'],*(stats.get('confidence_interval') or [None,None]),stats['relative_sd']]])
+        figure = _new_figure()
+        ax = figure.subplots()
+        _style(ax)
+        rows = [r for r in assessment['records'] if r.get('eligible')]
+        ax.scatter(range(1,len(rows)+1),[r['density'] for r in rows],color=[POINT if r.get('equilibrated') is True else REFERENCE for r in rows],label='반복값 · 주황은 미수렴/미기록')
+        ax.axhline(stats['mean'],color=POINT,linestyle='--',label='반복 평균')
+        if stats.get('confidence_interval'):
+            low,high=stats['confidence_interval'];ax.axhspan(low,high,color=POINT,alpha=.12,label='평균 95% t 구간')
+        comparison=stats.get('reference_comparison')
+        if comparison:
+            ax.axhline(comparison['reference'],color=REFERENCE,linestyle=':',label='비교 가능한 외부 참조')
+            b.table('reference_comparison','외부 참조와의 기술적 차이', ['참조','평균−참조','상대 차이','결합 표준 불확실성','표준화 차이'],
+                    [[comparison[k] for k in ['reference','value_difference','relative_difference','combined_standard_uncertainty','standardized_difference']]])
+        ax.set_xlabel('기록 순서 (시간 순서 아님)');ax.set_ylabel('NPT 밀도 (g/cm³)');ax.legend(fontsize=7)
+        b.figure('density_replicates','반복 산포와 평균 구간 · 수렴/독립성은 별도 근거',figure)
+    b.warnings += assessment.get('warnings',[])
+
+
 def build_workflow(b, record, measurements):
     names = [f["name"] for f in record["factors"]]
-    b.paragraph("시뮬레이션 단계별 흐름입니다. 반응값은 계산에서 얻은 기하 관측값이며 측정값이 아니고, 모두 검토 전(verified=false)입니다.")
+    b.paragraph("시뮬레이션 단계별 흐름입니다. 반응값은 구조 분석이나 시뮬레이션에서 얻은 관측값이며 측정값이 아니고, 모두 검토 전(verified=false)입니다.")
     states = {}
     for row in record["rows"]:
         states[row["state"]] = states.get(row["state"], 0) + 1
@@ -955,12 +997,12 @@ def _reports_root(research_root):
     return root
 
 
-def create_report(research_root, kind, subject_id=None, store=None, workflows=None):
+def create_report(research_root, kind, subject_id=None, store=None, workflows=None, density_studies=None):
     """Build and publish an immutable report folder plus a ZIP of it; nothing in the sources changes."""
     from .workflows import read_record
     research_root = Path(research_root)
     if kind not in KINDS:
-        raise ValueError("보고서 종류는 doe, workflow, lab 중 하나입니다.")
+        raise ValueError("보고서 종류는 doe, workflow, lab, density_study 중 하나입니다.")
     if kind != "lab" and (not isinstance(subject_id, str) or not IDENTIFIER.fullmatch(subject_id)):
         raise ValueError("보고서로 만들 기록 ID(32자리)를 지정하세요.")
     report_id = uuid.uuid4().hex
@@ -992,6 +1034,21 @@ def create_report(research_root, kind, subject_id=None, store=None, workflows=No
                             **_record_sha(research_root / "workflows" / subject_id / "result.json")})
             jobs = {r["job_id"] for r in record["rows"]} | {c["job_id"] for c in record["confirmations"]}
             build_workflow(builder, record, [m for m in store.list_measurements() if m.get("job_id") in jobs])
+            from .result_quality import summarize_workflow
+            quality = summarize_workflow(record, workflows)
+            build_quality_evidence(builder, quality)
+        elif kind == "density_study":
+            if density_studies is None:
+                from .density_studies import DensityStudyManager
+                density_studies = DensityStudyManager(research_root, workflows.jobs, store)
+            record = density_studies.get(subject_id)
+            assessment = record.get('latest_assessment')
+            if assessment is None:
+                raise ValueError('먼저 대표 밀도의 근거 평가를 저장하세요.')
+            builder = Builder('대표 밀도 근거 보고서')
+            sources.append({'type':'density_study','id':subject_id, **_record_sha(density_studies.root / subject_id / 'result.json')})
+            sources.append({'type':'density_assessment','id':assessment['id'],**_record_sha(density_studies.assessment_path(subject_id,assessment['id']))})
+            build_density_study(builder,record,assessment)
         else:
             import duckdb
             snapshot = store.export_snapshot(temp / "snapshot")
@@ -1010,6 +1067,13 @@ def create_report(research_root, kind, subject_id=None, store=None, workflows=No
         content.mkdir()
         if kind == "workflow":
             _workflow_inputs(builder, record, research_root, workflows, content / "inputs", sources)
+            atomic_json(content / 'inputs' / 'quality.json', quality)
+        elif kind == 'density_study':
+            inputs = content / 'inputs'
+            inputs.mkdir()
+            atomic_json(inputs / 'density-study.json',record)
+            atomic_json(inputs / 'density-assessment.json',assessment)
+            atomic_json(inputs / 'planned-configs.json',record['planned_configs'])
         manifest = _render(builder, report_id, kind, subject_id, created.isoformat(), sources, content)
         zip_name = f"PolymerLab-report-{folder_name}.zip"
         with zipfile.ZipFile(temp / zip_name, "w", zipfile.ZIP_DEFLATED) as bundle:
@@ -1093,7 +1157,7 @@ def _http(call):
 @router.post("/reports", status_code=201)
 def create_report_endpoint(payload: ReportRequest, request: Request):
     state = request.app.state
-    return _http(lambda: create_report(state.research_root, payload.kind, payload.id, state.research_store, state.workflows))
+    return _http(lambda: create_report(state.research_root, payload.kind, payload.id, state.research_store, state.workflows, getattr(state, 'density_studies', None)))
 
 
 @router.get("/reports")

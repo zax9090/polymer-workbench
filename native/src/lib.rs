@@ -19,6 +19,7 @@ pub mod widom;
 pub mod doe;
 pub mod execution;
 pub mod statistics;
+pub mod reliability;
 pub mod topology;
 pub mod mixture;
 

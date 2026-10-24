@@ -108,6 +108,8 @@ def create_app(data_root=None):
             initialize_research(app, app.state.manager)
             from .workflows import WorkflowManager
             app.state.workflows = WorkflowManager(app.state.research_root, app.state.manager)
+            from .density_studies import DensityStudyManager
+            app.state.density_studies = DensityStudyManager(app.state.research_root, app.state.manager, app.state.research_store)
             from .autopilot import Autopilot
             app.state.autopilot = Autopilot(app.state.workflows, app.state.research_root, app.state.research_store)
             from .sheets import SheetManager
@@ -354,6 +356,8 @@ def create_app(data_root=None):
     app.include_router(sheet_router)
     from .target_api import router as target_router
     app.include_router(target_router)
+    from .density_api import router as density_router
+    app.include_router(density_router)
     app.mount("/static", StaticFiles(directory=ROOT / "workbench" / "static"), name="assets")
     app.mount("/", StaticFiles(directory=ROOT / "workbench" / "static", html=True), name="frontend")
     return app

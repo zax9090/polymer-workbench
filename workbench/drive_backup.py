@@ -226,14 +226,14 @@ def create_archive(source_root, manager, store):
             jobs.append({"id": directory.name, "status": record["status"]})
             files.extend((p, "jobs/" + p.relative_to(manager.root).as_posix()) for p in _walk_files(directory))
     doe_records, analysis_records = 0, 0
-    for category in ("doe", "analyses", "statistics", "imports", "workflows"):
+    for category in ("doe", "analyses", "statistics", "imports", "workflows", "density-studies"):
         root = research_root / category
         if not root.is_dir() or root.is_symlink():
             continue
         for folder in sorted(root.iterdir()):
             if not IDENTIFIER.fullmatch(folder.name) or folder.is_symlink() or not folder.is_dir():
                 continue
-            if category in {"doe", "analyses", "statistics", "workflows"} and not _safe_file(root, folder / "result.json"):
+            if category in {"doe", "analyses", "statistics", "workflows", "density-studies"} and not _safe_file(root, folder / "result.json"):
                 continue
             if category == "doe":
                 doe_records += 1

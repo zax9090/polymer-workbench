@@ -304,3 +304,14 @@ def test_local_backup_and_saved_analysis_download_need_no_drive_connection(conte
         saved = client.get(record["download_url"])
         assert saved.status_code == 200 and saved.json() == record
         assert client.get("/api/research/analyses/invalid/download").status_code == 404
+
+
+def test_density_evidence_and_immutable_assessments_are_archived(context):
+    identifier='a3'*16
+    folder=context.store.root/'density-studies'/identifier
+    put(folder/'result.json',json.dumps({'id':identifier,'schema_version':1,'verified':False}))
+    put(folder/'assessments'/'fixture.json',json.dumps({'schema_version':1,'quality':{'conclusion':'hold'},'verified':False}))
+    archive,_=backup.create_archive(context.source,context.manager,context.store)
+    with zipfile.ZipFile(archive) as bundle:
+        stored=json.loads(bundle.read(f'research/density-studies/{identifier}/assessments/fixture.json'))
+        assert stored['quality']['conclusion']=='hold' and stored['verified'] is False
